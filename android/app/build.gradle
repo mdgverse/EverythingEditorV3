@@ -1,0 +1,69 @@
+plugins {
+    id 'com.android.application'
+}
+
+// Versão injetada pelo GitHub Actions (run number) — localmente cai no padrão.
+def vCode = (System.getenv('APK_VERSION_CODE') ?: '1') as Integer
+def vName = System.getenv('APK_VERSION_NAME') ?: '1.0.0'
+
+android {
+    namespace 'br.com.mdgverse.everythingeditor'
+    compileSdk 35
+
+    defaultConfig {
+        applicationId 'br.com.mdgverse.everythingeditor'
+        minSdk 29            // Android 10+: só o caminho moderno de salvamento (MediaStore)
+        targetSdk 35
+        versionCode vCode
+        versionName vName
+        resourceConfigurations += ['en', 'pt', 'pt-rBR']
+    }
+
+    signingConfigs {
+        release {
+            storeFile file(System.getenv('EE_KEYSTORE') ?: 'keystore/release.jks')
+            storePassword System.getenv('EE_STORE_PASSWORD') ?: 'everythingeditor'
+            keyAlias System.getenv('EE_KEY_ALIAS') ?: 'everythingeditor'
+            keyPassword System.getenv('EE_KEY_PASSWORD') ?: 'everythingeditor'
+        }
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+            shrinkResources false
+            signingConfig signingConfigs.release
+        }
+        debug {
+            applicationIdSuffix '.debug'
+            versionNameSuffix '-debug'
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+
+    packaging {
+        resources {
+            excludes += ['META-INF/*.kotlin_module', 'META-INF/*.version']
+        }
+    }
+
+    lint {
+        abortOnError false
+        checkReleaseBuilds false
+    }
+}
+
+// O editor é um arquivo único na raiz do repositório: ele é copiado para
+// assets/ em todo build, então nunca existe uma segunda cópia para manter.
+tasks.register('copyWebApp', Copy) {
+    from("${rootProject.projectDir}/../index.html")
+    into("${projectDir}/src/main/assets")
+}
+
+tasks.configureEach { t ->
+    if (t.name == 'preBuild') t.dependsOn('copyWebApp')
+}
