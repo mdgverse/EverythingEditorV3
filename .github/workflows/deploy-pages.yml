@@ -6,7 +6,6 @@ on:
   push:
     branches:
       - main
-      - 'arena/**'
   workflow_dispatch:
 
 # Permissões necessárias para publicar no Pages via Actions
