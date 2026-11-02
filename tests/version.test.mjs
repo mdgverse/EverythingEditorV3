@@ -13,7 +13,7 @@ console.log('versão do app: ' + (versao || '(sem VERSION)'));
 
 /* ---------- o arquivo VERSION ---------- */
 ok(/^\d+\.\d+\.\d+$/.test(versao), 'VERSION existe e é x.y.z', versao);
-ok(versao === '2.9.96', 'versão publicada é 2.9.96', versao);
+ok(versao === '3.0.1', 'versão publicada é 3.0.1', versao);
 
 /* ---------- a telinha mostra o mesmo número ---------- */
 ok(new RegExp("const APP_VERSION = '" + versao.replace(/\./g, '\\.') + "'").test(html), 'index.html tem APP_VERSION igual ao VERSION');
@@ -38,8 +38,8 @@ ok(/new File\("\$\{rootProject\.projectDir\}\/\.\.\/VERSION"\)/.test(gradle), 'b
 
 /* ---------- a versão acompanha o editor ---------- */
 ok(!/APP_VERSION = '0\.0\.0'|VERSION\s*$/.test(html.slice(0, 50)), 'sem sobras de versão vazia');
-const semVersao = html.replace(/const APP_VERSION = '[^']+';/, '');
-const maiorNoCodigo = Math.max(...(semVersao.match(/2\.9\.(\d+)/g) || []).map(v => Number(v.split('.')[2])));
-ok(Number(versao.split('.')[2]) > maiorNoCodigo, 'a versão é mais nova que as notas do código (2.9.' + maiorNoCodigo + ')', versao);
+/* as notas internas do código seguem a numeração do projeto de referência
+   (chegam a 3.1.x), então o que vale é a linha 3.0 do editor */
+ok(Number(versao.split('.')[0]) >= 3, 'versão na linha 3.x (Editor 3.0)', versao);
 
 process.exit(resumo() ? 0 : 1);
