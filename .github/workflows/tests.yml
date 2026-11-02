@@ -28,3 +28,5 @@ jobs:
         run: node tests/gradient-pins.test.mjs
       - name: Backup/Restore (projetos, pastas e Assets num .json)
         run: node tests/backup.test.mjs
+      - name: Telinha de entrada e Restore ao lado de Assets
+        run: node tests/welcome-restore.test.mjs
