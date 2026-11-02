@@ -9,6 +9,7 @@ on:
       - 'arena/**'
     paths:
       - 'index.html'
+      - 'VERSION'
       - 'android/**'
       - '.github/workflows/build-apk.yml'
   workflow_dispatch:
@@ -80,10 +81,26 @@ jobs:
           git commit -m "chore(apk): chave de assinatura fixa (sideload)"
           git push || echo "::warning::Não foi possível commitar a keystore; os próximos builds terão assinatura diferente."
 
+      # A versão do app vem do arquivo VERSION na raiz (mesmo número que a
+      # telinha de entrada mostra). versionCode continua sendo o run number,
+      # que só cresce — é o que o Android exige para aceitar a atualização.
+      - name: Versão
+        id: ver
+        run: |
+          set -e
+          VER=$(tr -d '[:space:]' < VERSION)
+          case "$VER" in
+            [0-9]*.[0-9]*.[0-9]*) ;;
+            *) echo "::error::VERSION inválido: '$VER'"; exit 1 ;;
+          esac
+          grep -q "APP_VERSION = '$VER'" index.html || { echo "::error::index.html não tem APP_VERSION = '$VER' (VERSION e a telinha saíram de sincronia)"; exit 1; }
+          echo "versão $VER"
+          echo "name=$VER" >> "$GITHUB_OUTPUT"
+
       - name: Build
         env:
           APK_VERSION_CODE: ${{ github.run_number }}
-          APK_VERSION_NAME: '1.0.${{ github.run_number }}'
+          APK_VERSION_NAME: ${{ steps.ver.outputs.name }}
         run: |
           cd android
           gradle --no-daemon --stacktrace assembleRelease bundleRelease
@@ -98,8 +115,11 @@ jobs:
           echo "index.html na raiz: $SRC bytes"
           "$ANDROID_HOME"/build-tools/35.0.0/apksigner verify --print-certs "$APK" | head -5
           mkdir -p dist
-          cp "$APK" dist/EverythingEditor.apk
-          cp android/app/build/outputs/bundle/release/app-release.aab dist/EverythingEditor.aab
+          VER="${{ steps.ver.outputs.name }}"
+          cp "$APK" "dist/everything-editor-$VER.apk"
+          cp "$APK" dist/EverythingEditor.apk          # link fixo (sempre a última)
+          cp android/app/build/outputs/bundle/release/app-release.aab "dist/everything-editor-$VER.aab"
+          cp "dist/everything-editor-$VER.aab" dist/EverythingEditor.aab
           ls -la dist
 
       - name: Upload (artefato da execução)
@@ -114,22 +134,28 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -e
-          NOTES="APK do Everything Editor — commit ${GITHUB_SHA:0:7}.
-          Instale no celular (Android 10+) permitindo \"instalar apps desconhecidos\".
-          Este arquivo é substituído a cada nova versão."
+          VER="${{ steps.ver.outputs.name }}"
+          NOTES="Everything Editor **v$VER** — commit ${GITHUB_SHA:0:7}.
+          Baixe \"everything-editor-$VER.apk\" (a versão mais recente também fica em \"EverythingEditor.apk\").
+          Instale no celular (Android 10+) permitindo \"instalar apps desconhecidos\"."
           if ! gh release view apk-latest > /dev/null 2>&1; then
             gh release create apk-latest \
               --title "Everything Editor — APK" \
               --notes "$NOTES"
           fi
-          gh release upload apk-latest dist/EverythingEditor.apk dist/EverythingEditor.aab --clobber
+          gh release edit apk-latest --title "Everything Editor — APK v$VER" --notes "$NOTES"
+          gh release upload apk-latest \
+            "dist/everything-editor-$VER.apk" "dist/everything-editor-$VER.aab" \
+            dist/EverythingEditor.apk dist/EverythingEditor.aab --clobber
 
       - name: Resumo
         run: |
           {
-            echo "### 📱 APK publicado"
+            echo "### 📱 APK v${{ steps.ver.outputs.name }} publicado"
             echo ""
-            echo "Baixe em: https://github.com/${{ github.repository }}/releases/download/apk-latest/EverythingEditor.apk"
+            echo "Direto: https://github.com/${{ github.repository }}/releases/download/apk-latest/everything-editor-${{ steps.ver.outputs.name }}.apk"
             echo ""
-            echo "Versão \`${{ github.run_number }}\` · commit \`${GITHUB_SHA:0:7}\`"
+            echo "Fixo (sempre a última): https://github.com/${{ github.repository }}/releases/download/apk-latest/EverythingEditor.apk"
+            echo ""
+            echo "versionName \`${{ steps.ver.outputs.name }}\` · versionCode \`${{ github.run_number }}\` · commit \`${GITHUB_SHA:0:7}\`"
           } >> "$GITHUB_STEP_SUMMARY"
