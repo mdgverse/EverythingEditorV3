@@ -32,3 +32,5 @@ jobs:
         run: node tests/welcome-restore.test.mjs
       - name: Quinas do fio (criar, arrastar, fio reto e zip tie)
         run: node tests/pivot.test.mjs
+      - name: Higiene (código morto, CSS sem uso, reference/ fora)
+        run: node tests/hygiene.test.mjs
