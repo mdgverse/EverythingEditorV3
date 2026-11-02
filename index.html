@@ -419,6 +419,7 @@ button .folder-ico-wrap{margin-right:6px}
 .ss-projbar{position:sticky;top:6px;z-index:6;background:var(--ss-bg);padding:6px 0}
 .ss-empty{color:#8d8d96;margin:4px 0}
 .ss-hint{font-size:12px;color:#8d8d96;margin-top:14px}
+.ss-bk{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
 /* export: CMYK note */
 .xcmyk-note{font-size:12px;color:#e0b070;margin:6px 0 0}
 /* clone source (handle on the preview) */
@@ -1019,6 +1020,11 @@ body input,body select,body textarea,.node input,.node select,.node textarea,.no
     <div class="ss-folders" id="ssFolders"></div>
     <div class="ss-recent" id="ssRecent"></div>
     <div class="ss-hint">Recent projects are stored on this device. Use “Save graph” to also create a file.</div>
+    <div class="ss-bk">
+      <button class="ss-btn" id="ssBackup" type="button" title="All projects, folders and the Assets library in one .json">Backup everything</button>
+      <button class="ss-btn" id="ssRestore" type="button" title="Bring a backup into this browser">Restore backup</button>
+      <input type="file" id="ssRestoreFile" accept=".json,application/json" hidden>
+    </div>
   </div>
 </div>
 <script>
@@ -30149,6 +30155,25 @@ const SS_DB = (() => {
       await run('data', 'readwrite', s => s.put(json, meta.id));
       await run('meta', 'readwrite', s => s.put(meta));
     },
+    /* tudo o que mora neste navegador, para o Backup/Restore */
+    async dump() {
+      const tudo = n => run(n, 'readonly', s => s.getAll());
+      return { meta: await tudo('meta'), data: await tudo('data'),
+               dataKeys: await run('data', 'readonly', s => s.getAllKeys()),
+               folders: await tudo('folders'), assetFolders: await tudo('assetFolders'),
+               assets: await tudo('assets') };
+    },
+    async restore(pack) {
+      const metas = pack.meta || [], chaves = pack.dataKeys || [], dados = pack.data || [];
+      for (const f of pack.folders || []) if (f && f.id != null) await run('folders', 'readwrite', s => s.put(f));
+      for (const f of pack.assetFolders || []) if (f && f.id != null) await run('assetFolders', 'readwrite', s => s.put(f));
+      for (const a of pack.assets || []) if (a && a.id != null) await run('assets', 'readwrite', s => s.put(a));
+      for (let i = 0; i < dados.length; i++) {
+        const k = chaves[i] !== undefined ? chaves[i] : (metas[i] || {}).id;
+        if (k != null) await run('data', 'readwrite', s => s.put(dados[i], k));
+      }
+      for (const m of metas) if (m && m.id != null) await run('meta', 'readwrite', s => s.put(m));
+    },
     list: () => run('meta', 'readonly', s => s.getAll()),
     getMeta: id => run('meta', 'readonly', s => s.get(id)),
     listFolders: () => run('folders', 'readonly', s => s.getAll()),
@@ -30416,6 +30441,91 @@ async function ssNewDoc(t) {
 }
 
 function ssClose() { const scr = document.getElementById('ssScr'); if (scr) scr.hidden = true; }
+
+/* ---- Backup / Restore -----------------------------------------------------
+   Os projetos ficam no IndexedDB DESTE endereço: o HTML que você abria do
+   arquivo local e o site publicado são endereços diferentes, então um não
+   enxerga o outro. Este backup junta tudo num .json só — projetos (as imagens
+   já viajam dentro do grafo), pastas e a biblioteca de Assets — e devolve com
+   o mesmo formato do outro lado. */
+const BK_TIPO = 'everything-editor-backup', BK_V = 1;
+
+async function bkBlobParaTexto(blob) {
+  const bytes = new Uint8Array(await blob.arrayBuffer());
+  let s = '';
+  for (let i = 0; i < bytes.length; i += 0x8000) s += String.fromCharCode.apply(null, bytes.subarray(i, i + 0x8000));
+  return 'data:' + (blob.type || 'application/octet-stream') + ';base64,' + btoa(s);
+}
+
+function bkTextoParaBlob(texto) {
+  const m = /^data:([^;,]*)(;base64)?,([\s\S]*)$/.exec(String(texto || ''));
+  if (!m) return null;
+  const cru = m[2] ? atob(m[3]) : decodeURIComponent(m[3]);
+  const bytes = new Uint8Array(cru.length);
+  for (let i = 0; i < cru.length; i++) bytes[i] = cru.charCodeAt(i);
+  return new Blob([bytes], { type: m[1] || 'application/octet-stream' });
+}
+
+/* Blob e TypedArray não sobrevivem ao JSON: viram marcadores e voltam iguais */
+async function bkEmbalar(v) {
+  if (v instanceof Blob) return { __blob: v.type || '', texto: await bkBlobParaTexto(v) };
+  if (ArrayBuffer.isView(v)) return { __bytes: v.constructor.name, dados: Array.from(v) };
+  if (Array.isArray(v)) { const out = []; for (const x of v) out.push(await bkEmbalar(x)); return out; }
+  if (v && typeof v === 'object') { const out = {}; for (const k in v) out[k] = await bkEmbalar(v[k]); return out; }
+  return v;
+}
+
+function bkDesembalar(v) {
+  if (Array.isArray(v)) return v.map(bkDesembalar);
+  if (v && typeof v === 'object') {
+    if (typeof v.__blob === 'string' && typeof v.texto === 'string') return bkTextoParaBlob(v.texto);
+    if (typeof v.__bytes === 'string' && Array.isArray(v.dados)) {
+      const mapa = { Uint8Array, Int8Array, Uint16Array, Int16Array, Uint32Array, Int32Array, Float32Array, Float64Array };
+      const C = mapa[v.__bytes] || Uint8Array;
+      return new C(v.dados);
+    }
+    const out = {};
+    for (const k in v) out[k] = bkDesembalar(v[k]);
+    return out;
+  }
+  return v;
+}
+
+async function bkBackupTudo() {
+  setStatus('Preparando o backup…');
+  const pack = await SS_DB.dump();
+  const conteudo = await bkEmbalar(pack);
+  const nProjetos = (pack.meta || []).length, nAssets = (pack.assets || []).length;
+  const iso = new Date().toISOString().slice(0, 10);
+  const blob = new Blob([JSON.stringify({ app: 'Everything Editor', tipo: BK_TIPO, v: BK_V, em: Date.now(),
+    projetos: nProjetos, assets: nAssets, conteudo })], { type: 'application/json' });
+  downloadBlob(blob, 'everything-editor-backup-' + iso + '.json');
+  setStatus(`Backup pronto: ${nProjetos} projeto(s) e ${nAssets} asset(s).`);
+}
+
+async function bkRestaurarTudo(file) {
+  let pack = null;
+  try { pack = JSON.parse(await file.text()); } catch (e) { pack = null; }
+  if (!pack || pack.tipo !== BK_TIPO) { setStatus('Este arquivo não é um backup do Everything Editor.', true); return; }
+  setStatus('Restaurando o backup…');
+  const conteudo = bkDesembalar(pack.conteudo || {});
+  await SS_DB.restore(conteudo);
+  try { await ssRenderRecent(); } catch (e) { /* a lista se refaz ao abrir a Home */ }
+  try { if (document.getElementById('astScr')) await astRefresh(); } catch (e) {}
+  setStatus(`Backup restaurado: ${(conteudo.meta || []).length} projeto(s) e ${(conteudo.assets || []).length} asset(s).`);
+}
+
+(() => {
+  const b = document.getElementById('ssBackup'), r = document.getElementById('ssRestore'), f = document.getElementById('ssRestoreFile');
+  if (!b || !r || !f) return;
+  b.addEventListener('click', () => { bkBackupTudo().catch(e => setStatus('Backup failed: ' + ((e && e.message) || e), true)); });
+  r.addEventListener('click', () => f.click());
+  f.addEventListener('change', () => {
+    const arq = f.files && f.files[0];
+    f.value = '';
+    if (arq) bkRestaurarTudo(arq).catch(e => setStatus('Restore failed: ' + ((e && e.message) || e), true));
+  });
+})();
 
 function ssRenderTemplates(tab) {
   const grid = document.getElementById('ssGrid');
