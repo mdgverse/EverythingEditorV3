@@ -26,3 +26,5 @@ jobs:
         run: node tests/add-menu.test.mjs
       - name: Gradient map · pinos do mesh
         run: node tests/gradient-pins.test.mjs
+      - name: Backup/Restore (projetos, pastas e Assets num .json)
+        run: node tests/backup.test.mjs
