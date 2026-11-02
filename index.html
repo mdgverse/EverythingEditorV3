@@ -222,6 +222,20 @@ input[type=color]::-webkit-color-swatch{border:0;border-radius:2px}
 .add-item.hi,.add-item:hover{background:var(--accent);color:var(--on-accent)}
 .add-empty{color:var(--text-dim);padding:8px}
 .add-hint{font-size:11px;color:var(--text-accent);padding:2px 6px 6px;border-bottom:1px solid var(--line);margin-bottom:4px}
+/* 2.10.2: menu radial de categorias (Shift+A) */
+.add-wheel{position:relative;margin:2px auto}
+.add-cat{position:absolute;left:50%;top:50%;transform:translate(calc(-50% + var(--wx,0px)),calc(-50% + var(--wy,0px)));width:var(--lado,58px);height:var(--lado,58px);display:flex;align-items:center;justify-content:center;padding:3px;border:1px solid;border-radius:15px;background:#232830;color:var(--text-strong);font:max(9px,calc(var(--lado,58px) * .165))/1.15 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;text-align:center;cursor:pointer;box-shadow:0 4px 12px rgba(0,0,0,.35);transition:transform .09s ease,box-shadow .12s ease}
+.add-cat span{display:block;max-width:100%;overflow-wrap:anywhere}
+.add-cat:hover,.add-cat.hi{transform:translate(calc(-50% + var(--wx,0px)),calc(-50% + var(--wy,0px))) scale(1.08);box-shadow:0 6px 18px rgba(0,0,0,.5);z-index:2}
+.add-cat:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.add-hub{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:calc(var(--lado,58px) * 1.45);height:calc(var(--lado,58px) * 1.45);border-radius:50%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;background:var(--field2);border:1px solid var(--outline);color:var(--text);font-size:max(9px,calc(var(--lado,58px) * .175));line-height:1.1;cursor:pointer;padding:4px;text-align:center;box-shadow:0 4px 14px rgba(0,0,0,.35)}
+.add-hub:hover,.add-hub:focus-visible{background:var(--accent);color:var(--on-accent);border-color:var(--accent);outline:none}
+.add-panel{display:flex;flex-direction:column}
+.add-panel[hidden],.add-wheel[hidden]{display:none!important}
+.add-bar{display:flex;align-items:center;gap:8px;margin:0 0 6px}
+.add-back{width:30px;height:30px;flex:none;display:grid;place-items:center;background:var(--field2);border:1px solid var(--line);border-radius:8px;color:var(--text);cursor:pointer;padding:0}
+.add-back:hover{background:var(--accent);color:var(--on-accent);border-color:var(--accent)}
+.add-title{font-size:12px;font-weight:600;color:var(--text-strong);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 
 /* ---------- Pintor de máscara ---------- */
 .mask-ctl{display:flex;flex-direction:column;gap:4px}
@@ -672,6 +686,9 @@ body.mobile .add-list{max-height:calc(64vh - 64px)}
 body.mobile .add-item{padding:12px 12px;font-size:15px;min-height:44px}
 body.mobile .add-group{margin:10px 6px 4px}
 body.mobile #addSearch{height:44px;font-size:15px}
+body.mobile .add-back{width:40px;height:40px;border-radius:10px}
+body.mobile .add-title{font-size:15px}
+body.mobile .add-wheel{margin:6px auto 8px}
 
 /* mask painter on narrow screens: brush on top, controls below */
 body.mobile .mdlg{flex-direction:column}
@@ -809,8 +826,22 @@ body input,body select,body textarea,.node input,.node select,.node textarea,.no
       <div class="hint">[ / ]: move the selected keys · Ctrl+D: duplicate keys · Middle mouse / Space + drag: pan · Alt + drag across wires: zip tie · Wheel: zoom · Drag on empty space: select · Shift+A: add · Ctrl+X: cut · Ctrl+C: copy · Ctrl+V: paste · Ctrl+D: duplicate · Del: delete · Ctrl+Z: undo · Home: frame all · Timeline: I: key · K: play · ←→: frame · ↑↓: previous/next key</div>
       <div id="grpMenu" class="add-menu grp-menu" hidden></div>
       <div id="addMenu" class="add-menu" hidden>
-        <input id="addSearch" placeholder="Search node…" autocomplete="off" />
-        <div id="addList" class="add-list"></div>
+        <div id="addWheel" class="add-wheel">
+          <button id="addHub" class="add-hub" type="button" title="Search all nodes">
+            <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><circle cx="11" cy="11" r="6.5" fill="none" stroke="currentColor" stroke-width="2"/><path d="M16.2 16.2 21 21" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+            <span id="addHubTxt">Search</span>
+          </button>
+        </div>
+        <div id="addPanel" class="add-panel" hidden>
+          <div class="add-bar">
+            <button id="addBack" class="add-back" type="button" title="Back to categories (Esc)" aria-label="Back to categories">
+              <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M15 5 8 12l7 7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </button>
+            <span id="addTitle" class="add-title">All nodes</span>
+          </div>
+          <input id="addSearch" placeholder="Search node…" autocomplete="off" />
+          <div id="addList" class="add-list"></div>
+        </div>
       </div>
     </section>
 
@@ -1005,6 +1036,8 @@ const hexRGB = hex => {
 const viewEl = $('#nodeView'), worldEl = $('#world'), nodesEl = $('#nodes'), linksEl = $('#links');
 const statusEl = $('#status'), glCanvas = $('#gl'), pmsg = $('#pmsg'), pinfo = $('#pinfo');
 const addMenu = $('#addMenu'), addSearch = $('#addSearch'), addList = $('#addList');
+const addWheel = $('#addWheel'), addPanel = $('#addPanel'), addBack = $('#addBack'), addTitle = $('#addTitle');
+const addHub = $('#addHub'), addHubTxt = $('#addHubTxt');
 const fileInput = $('#fileInput'), graphInput = $('#graphInput');
 
 const view = { zoom: 1, panX: 0, panY: 0 };   // node editor view
@@ -26924,19 +26957,127 @@ let addPos = { x: 100, y: 100 };
 // pending link: { outId } (dragged from an output) or { inId, inIdx } (dragged from an input)
 let pendingLink = null;
 
-function openAddMenu(clientX, clientY, pending = null) {
+/* ==== ADD MENU (BEGIN) ==== */
+/* --- 2.10.2: menu radial -------------------------------------------------
+   Shift+A (ou "Add", ou toque longo no celular) abre o círculo de
+   categorias; escolher uma categoria troca para a lista de nós dela.
+   A seta no topo da lista volta para o círculo.                          */
+let addView = 'wheel';            // 'wheel' = círculo · 'list' = nós da categoria
+let addCat = null;                // categoria escolhida no círculo (null = busca/todos)
+let addClique = { x: 0, y: 0 };   // ponto do clique, para reposicionar ao voltar
+
+function addTam() {
+  const vw = window.innerWidth || 360, vh = window.innerHeight || 640;
+  return Math.max(240, Math.min(320, vw - 32, vh - 210));
+}
+
+function addCorRgba(hex, a) {
+  const h = String(hex || '#888888').replace('#', '');
+  const v = h.length === 3 ? h.split('').map(c => c + c).join('') : h;
+  const n = parseInt(v, 16) || 0;
+  return 'rgba(' + ((n >> 16) & 255) + ',' + ((n >> 8) & 255) + ',' + (n & 255) + ',' + a + ')';
+}
+
+/* mesmo filtro do link pendente: nó que não encaixa não aparece no menu */
+function addIndisponivel(t) {
+  const pl = pendingLink, hasOut = !!outputNode();
+  return !!MACHINE_HIDDEN_PICK[t] || noDesativado(t) ||
+    (t === 'output' && (hasOut || (pl && pl.inId != null))) ||
+    (!!pl && pl.outId != null && NODE_TYPES[t].inputs.length === 0);
+}
+
+function addContar(cat) {
+  let n = 0;
+  for (const t in NODE_TYPES) if (NODE_TYPES[t].cat === cat && !addIndisponivel(t)) n++;
+  return n;
+}
+
+function posicionaAddMenu() {
+  if (document.body.classList.contains('mobile')) return;   // no celular é folha fixa (CSS)
   const r = viewEl.getBoundingClientRect();
+  if (addView === 'wheel') {
+    const S = addTam() + 24;
+    addMenu.style.width = S + 'px';
+    addMenu.style.left = clamp(addClique.x - r.left - S / 2, 8, Math.max(8, r.width - S - 8)) + 'px';
+    addMenu.style.top = clamp(addClique.y - r.top - S / 2, 8, Math.max(8, r.height - S - 8)) + 'px';
+  } else {
+    addMenu.style.width = '';
+    addMenu.style.left = clamp(addClique.x - r.left, 8, Math.max(8, r.width - 262)) + 'px';
+    addMenu.style.top = clamp(addClique.y - r.top, 8, Math.max(8, r.height - 420)) + 'px';
+  }
+}
+
+function renderAddWheel() {
+  const S = addTam();
+  addWheel.style.width = S + 'px';
+  addWheel.style.height = S + 'px';
+  for (const b of [...addWheel.querySelectorAll('.add-cat')]) b.remove();
+  const cats = Object.keys(CATS).filter(c => addContar(c) > 0);
+  /* lado do botão que cabe no anel sem encostar no vizinho:
+     2·π·raio / n = lado + 6, com raio = S/2 − 8 − lado/2 */
+  const n = Math.max(6, cats.length);
+  const lado = Math.max(42, Math.min(62, (2 * Math.PI * (S / 2 - 8) / n - 6) / (1 + Math.PI / n)));
+  const raio = S / 2 - 8 - lado / 2;
+  addWheel.style.setProperty('--lado', lado.toFixed(1) + 'px');
+  cats.forEach((cat, i) => {
+    const ang = (-90 + i * 360 / cats.length) * Math.PI / 180;
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'add-cat';
+    b.dataset.cat = cat;
+    b.style.setProperty('--wx', (Math.cos(ang) * raio).toFixed(1) + 'px');
+    b.style.setProperty('--wy', (Math.sin(ang) * raio).toFixed(1) + 'px');
+    b.style.background = addCorRgba(CATS[cat].color, 0.22);
+    b.style.borderColor = addCorRgba(CATS[cat].color, 0.8);
+    const rotulo = document.createElement('span');
+    rotulo.textContent = CATS[cat].label;
+    b.append(rotulo);
+    b.title = CATS[cat].label + ' · ' + addContar(cat) + ' nodes';
+    b.addEventListener('click', () => abrirLista(cat));
+    b.addEventListener('mouseenter', () => { addHubTxt.textContent = CATS[cat].label + ' · ' + addContar(cat); });
+    b.addEventListener('mouseleave', () => { addHubTxt.textContent = 'Search'; });
+    addWheel.append(b);
+  });
+  const first = addWheel.querySelector('.add-cat');
+  if (first) first.classList.add('hi');
+}
+
+function abrirCategorias() {
+  addView = 'wheel';
+  addCat = null;
+  addPanel.hidden = true;
+  addWheel.hidden = false;
+  addHubTxt.textContent = 'Search';
+  renderAddWheel();
+  posicionaAddMenu();
+}
+
+function abrirLista(cat) {
+  addView = 'list';
+  addCat = cat;
+  addWheel.hidden = true;
+  addPanel.hidden = false;
+  addTitle.textContent = cat ? CATS[cat].label : 'All nodes';
+  addSearch.value = '';
+  renderAddList('');
+  posicionaAddMenu();
+  if (!document.body.classList.contains('mobile')) addSearch.focus();
+}
+
+function voltarCategorias() {
+  addSearch.value = '';
+  abrirCategorias();
+  try { addHub.focus({ preventScroll: true }); } catch (e) {}
+}
+
+function openAddMenu(clientX, clientY, pending = null) {
   const w = screenToWorld(clientX, clientY);
   addPos = { x: w.x - 100, y: w.y - 14 };
   pendingLink = pending;
+  addClique = { x: clientX, y: clientY };
   addMenu.hidden = false;
-  const left = clamp(clientX - r.left, 8, r.width - 262);
-  const top = clamp(clientY - r.top, 8, r.height - 420);
-  addMenu.style.left = left + 'px';
-  addMenu.style.top = top + 'px';
-  addSearch.value = '';
-  renderAddList('');
-  addSearch.focus();
+  abrirCategorias();
+  try { addHub.focus({ preventScroll: true }); } catch (e) {}
 }
 
 function hideAddMenu() {
@@ -26952,34 +27093,63 @@ function hideAddMenu() {
 
 function renderAddList(q) {
   addList.innerHTML = '';
-  q = q.trim().toLowerCase();
+  q = (q || '').trim().toLowerCase();
   const pl = pendingLink;
-  const hasOut = !!outputNode();
-  // nodes that cannot be connected to the pending link stay off the list
-  const excluded = t =>
-    MACHINE_HIDDEN_PICK[t] ||
-    (t === 'output' && (hasOut || (pl && pl.inId != null))) ||
-    (pl && pl.outId != null && NODE_TYPES[t].inputs.length === 0);
   if (pl) addList.append(E('div', 'add-hint', pl.insertTo != null ? 'The chosen node will be inserted into the link'
     : pl.outId != null ? 'The chosen node will be connected to the dragged output' : 'The chosen node will be connected to the input'));
-  for (const cat of Object.keys(CATS)) {
+  const cats = addCat ? [addCat] : Object.keys(CATS);
+  let total = 0;
+  for (const cat of cats) {
     const items = Object.entries(NODE_TYPES).filter(([t, d]) =>
-      d.cat === cat && !excluded(t) && !noDesativado(t) &&
-      (!q || (d.kw || '').toLowerCase().includes(q) || d.title.toLowerCase().includes(q) || d.title.toLowerCase().includes(q) || t.toLowerCase().includes(q) || CATS[cat].label.toLowerCase().includes(q) || (CATS[cat].label).toLowerCase().includes(q)));
+      d.cat === cat && !addIndisponivel(t) &&
+      (!q || (d.kw || '').toLowerCase().includes(q) || d.title.toLowerCase().includes(q) ||
+        t.toLowerCase().includes(q) || (!addCat && CATS[cat].label.toLowerCase().includes(q))));
     sortTypesByTitle(items);
     if (!items.length) continue;
-    addList.append(E('div', 'add-group', CATS[cat].label));
+    if (!addCat) addList.append(E('div', 'add-group', CATS[cat].label));
     for (const [t, d] of items) {
       const b = E('button', 'add-item', d.title);
       b.dataset.type = t;
       b.addEventListener('click', () => { addNodeAt(t, addPos.x, addPos.y); hideAddMenu(); });
       addList.append(b);
     }
+    total += items.length;
   }
-  if (!addList.children.length) addList.append(E('div', 'add-empty', 'Nothing found'));
+  if (!total) addList.append(E('div', 'add-empty', 'Nothing found'));
   const first = addList.querySelector('.add-item');
   if (first) first.classList.add('hi');
 }
+
+addBack.addEventListener('click', () => voltarCategorias());
+addHub.addEventListener('click', () => abrirLista(null));
+
+/* teclado dentro do círculo: setas giram, Enter entra, Esc fecha, digitar busca */
+document.addEventListener('keydown', e => {
+  if (addMenu.hidden || addView !== 'wheel') return;
+  if (e.shiftKey && e.key.toLowerCase() === 'a' && !e.ctrlKey && !e.metaKey && !e.altKey) {
+    e.preventDefault(); e.stopPropagation(); hideAddMenu(); return;     // Shift+A de novo fecha
+  }
+  const cats = [...addWheel.querySelectorAll('.add-cat')];
+  if (!cats.length) return;
+  let i = cats.findIndex(b => b.classList.contains('hi'));
+  const anda = d => {
+    if (i >= 0) cats[i].classList.remove('hi');
+    i = ((i < 0 ? 0 : i) + d + cats.length) % cats.length;
+    cats[i].classList.add('hi');
+  };
+  if (e.key === 'ArrowRight' || e.key === 'ArrowDown') { e.preventDefault(); e.stopPropagation(); anda(1); return; }
+  if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') { e.preventDefault(); e.stopPropagation(); anda(-1); return; }
+  if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.stopPropagation(); cats[i < 0 ? 0 : i].click(); return; }
+  if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); hideAddMenu(); return; }
+  if (e.key === 'Tab') return;
+  if (e.key.length === 1 && !e.ctrlKey && !e.metaKey && !e.altKey) {
+    e.preventDefault(); e.stopPropagation();
+    abrirLista(null);
+    addSearch.value = e.key;
+    renderAddList(e.key);
+  }
+}, true);
+/* ==== ADD MENU (END) ==== */
 
 function addNodeAt(type, x, y) {
   const pl = pendingLink;
@@ -27037,7 +27207,9 @@ addSearch.addEventListener('keydown', e => {
     e.preventDefault();
     items[idx < 0 ? 0 : idx]?.click();
   } else if (e.key === 'Escape') {
-    hideAddMenu();
+    if (addCat) voltarCategorias(); else hideAddMenu();       // 2.10.2: volta ao círculo
+  } else if (e.key === 'Backspace' && !addSearch.value && addCat) {
+    e.preventDefault(); voltarCategorias();
   }
   e.stopPropagation();
 });
