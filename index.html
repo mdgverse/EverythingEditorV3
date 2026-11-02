@@ -116,6 +116,9 @@ circle.pivot{fill:#16181d;stroke:var(--link);stroke-width:2;pointer-events:auto;
 circle.pivot:hover{stroke:var(--text-strong)}
 circle.pivot.sel{stroke:var(--text-strong);stroke-width:3;fill:var(--link)}
 circle.pivothit{fill:transparent;stroke:none;pointer-events:auto;cursor:grab}
+body.altkey circle.pivot{stroke:#ff6b6b;stroke-width:3}
+body.altkey circle.pivot.sel{stroke:#ff6b6b;fill:#ff6b6b}
+body.altkey circle.pivothit{cursor:not-allowed}
 path.tmp{fill:none;stroke:var(--text-strong);stroke-width:2;stroke-dasharray:6 4;opacity:.85}
 path.tmp.zipcut{stroke:var(--zip,#f5c542);stroke-dasharray:none;stroke-width:1.8;opacity:1}
 path.link.cut{stroke:var(--text-strong);stroke-width:3.4;opacity:1}
@@ -828,7 +831,7 @@ body input,body select,body textarea,.node input,.node select,.node textarea,.no
         <div id="nodes"></div>
         <svg id="zipLayer"></svg>
       </div>
-      <div class="hint">[ / ]: move the selected keys · Ctrl+D: duplicate keys · Middle mouse / Space + drag: pan · Alt + drag across wires: zip tie · Wheel: zoom · Drag on empty space: select · Shift+A: add · Ctrl+X: cut · Ctrl+C: copy · Ctrl+V: paste · Ctrl+D: duplicate · Del: delete · Ctrl+Z: undo · Home: frame all · Timeline: I: key · K: play · ←→: frame · ↑↓: previous/next key</div>
+      <div class="hint">[ / ]: move the selected keys · Ctrl+D: duplicate keys · Middle mouse / Space + drag: pan · Alt + drag across wires: zip tie · Alt + click on a corner: remove · Wheel: zoom · Drag on empty space: select · Shift+A: add · Ctrl+X: cut · Ctrl+C: copy · Ctrl+V: paste · Ctrl+D: duplicate · Del: delete · Ctrl+Z: undo · Home: frame all · Timeline: I: key · K: play · ←→: frame · ↑↓: previous/next key</div>
       <div id="grpMenu" class="add-menu grp-menu" hidden></div>
       <div id="addMenu" class="add-menu" hidden>
         <div id="addWheel" class="add-wheel">
@@ -25917,7 +25920,7 @@ function insertPivotAt(l, pt) {
   return idx;
 }
 
-function deletePivot(l, idx, msg = 'Corner removed.') {
+function deletePivot(l, idx, msg = 'Corner removed (Alt+click).') {
   if (!l.pts || !l.pts[idx]) return false;
   l.pts.splice(idx, 1);
   if (!l.pts.length) delete l.pts;
@@ -25963,7 +25966,7 @@ function addPivotFromGesture(e, l) {
   if (idx < 0) return;
   commit();
   drawLinks();
-  setStatus('Corner created: drag to move; Delete removes it.');
+  setStatus('Corner created: drag to move; Alt+click removes it.');
   startPivotDrag(e, l, idx);
 }
 
@@ -25991,6 +25994,9 @@ function wireGesture(e, l) {
   window.addEventListener('pointercancel', cancel);
 }
 
+/* ==== PIVOT HIT (BEGIN) ==== */
+let lastPivotTap = null;                 // duplo toque na quina (celular)
+
 function onWirePointerDown(e) {
   const t = e.target;
   if (!t || !t.classList) return;
@@ -25998,6 +26004,16 @@ function onWirePointerDown(e) {
     if (e.button !== 0 && e.pointerType === 'mouse') return;
     e.stopPropagation();
     e.preventDefault();
+    if (e.altKey && !e.shiftKey) {                      // Alt + clique na quina: remove na hora
+      deletePivot(t.__link, t.__idx, 'Corner removed (Alt+click).');
+      return;
+    }
+    if (e.pointerType === 'touch' || e.pointerType === 'pen') {   // no celular não existe Alt
+      const agora = performance.now();
+      const dbl = lastPivotTap && lastPivotTap.link === t.__link && lastPivotTap.idx === t.__idx && agora - lastPivotTap.t < TAP_MS;
+      lastPivotTap = dbl ? null : { link: t.__link, idx: t.__idx, t: agora };
+      if (dbl) { deletePivot(t.__link, t.__idx, 'Corner removed (double tap).'); return; }
+    }
     startPivotDrag(e, t.__link, t.__idx);
     drawLinks();
     return;
@@ -26015,6 +26031,23 @@ function onWirePointerDown(e) {
   wireGesture(e, l);
 }
 linksEl.addEventListener('pointerdown', onWirePointerDown);
+
+/* duplo clique do mouse na quina também remove */
+linksEl.addEventListener('dblclick', e => {
+  const t = e.target;
+  if (!t || !t.classList) return;
+  if (!(t.classList.contains('pivot') || t.classList.contains('pivothit'))) return;
+  e.stopPropagation();
+  e.preventDefault();
+  deletePivot(t.__link, t.__idx, 'Corner removed (double click).');
+});
+/* ==== PIVOT HIT (END) ==== */
+
+/* Alt pressionado: as quinas ficam vermelhas — o clique com Alt apaga */
+function altVisual(on) { document.body.classList.toggle('altkey', !!on); }
+window.addEventListener('keydown', e => { if (e.key === 'Alt' || e.altKey) altVisual(true); }, true);
+window.addEventListener('keyup', e => { if (!e.altKey) altVisual(false); }, true);
+window.addEventListener('blur', () => altVisual(false));
 // clicking away from a pivot clears its selection
 document.addEventListener('pointerdown', e => {
   const onRing = e.target.classList && e.target.classList.contains('zipthit');
