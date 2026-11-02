@@ -1282,6 +1282,11 @@ setTheme(document.documentElement.getAttribute('data-theme') || 'dark');
 function setStatus(msg, err = false) {
   statusEl.textContent = (msg || '');
   statusEl.classList.toggle('err', !!err);
+  /* a tela de Assets cobre a barra superior: a mensagem também aparece lá dentro */
+  try {
+    const m = document.getElementById('astMsg');
+    if (m) { m.textContent = msg || ''; m.classList.toggle('err', !!err); m.hidden = !msg; }
+  } catch (e) {}
 }
 
 /* =========================================================
@@ -20827,6 +20832,9 @@ function astEstilo() {
     '.ast-bts{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:auto}',
     '.ast-bts .ast-btn{min-width:0;min-height:32px;padding:0 6px;font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}',
     '.ast-vazio{color:#8d96a4;font-size:13px;padding:18px 2px}',
+    '.ast-msg{margin:0 0 10px;padding:9px 11px;border-radius:9px;background:#1f2530;border:1px solid #2f3947;color:#cfd8e3;font-size:12.5px;line-height:1.4}',
+    '.ast-msg.err{background:#3a2222;border-color:#6a3333;color:#f0c9c9}',
+    '.ast-msg[hidden]{display:none}',
     '.ast-prog{position:fixed;left:12px;right:12px;bottom:14px;z-index:9660;display:flex;align-items:center;gap:10px;background:var(--panel,#262626);border:1px solid var(--line,#3a3a3a);border-radius:12px;padding:10px 12px;box-shadow:0 10px 30px rgba(0,0,0,.55);font-size:13px;color:var(--text-strong,#fff)}',
     '.ast-prog[hidden]{display:none}',
     '.ast-prog-t{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}',
@@ -21251,7 +21259,7 @@ function astProgUI() {
 }
 function astProgresso(texto, fracao) {
   const box = astProgUI();
-  box.hidden = false; astCancela = false;
+  box.hidden = false;
   box.querySelector('.ast-prog-t').textContent = texto;
   box.querySelector('.ast-prog-bar i').style.width = Math.round(Math.max(0, Math.min(1, fracao || 0)) * 100) + '%';
   box.querySelector('button').textContent = 'Cancel';
@@ -21286,7 +21294,9 @@ function astMotivoDe(erro) {
   if (m.includes('svg inválido') || m.includes('svg invalido')) return 'SVG inválido';
   if (m.includes('unsupported format')) return 'formato não suportado';
   if (m.includes('criptograf')) return 'criptografado';
-  return 'erro ao converter';
+  if (m.includes('quota')) return 'sem espaço no navegador';
+  const nome = (erro && erro.name) || '';
+  return 'falha ao importar' + (nome && nome !== 'Error' ? ' (' + nome + ')' : '');
 }
 function astResumoTexto(ok, falhou, deZip, motivos) {
   const partes = [];
@@ -21305,6 +21315,7 @@ async function astImportaZip(file, alvo, ctx) {
   const res = { ok: 0, falhou: 0, motivos: new Map() };
   const acrescenta = (m, n) => { res.motivos.set(m, (res.motivos.get(m) || 0) + (n || 1)); };
 
+  astCancela = false;
   astProgresso('Lendo ' + (file.name || 'ZIP') + '…', 0.02);
   let arq;
   try { arq = await ASTZIP.abre(file); }
@@ -21400,7 +21411,7 @@ async function astImportaZip(file, alvo, ctx) {
 
 /* arrastar pasta: percorre a árvore de FileSystemEntry e guarda o caminho relativo */
 const astCaminhoRel = new WeakMap();
-async function astArquivosDaArvore(itens) {
+async function astArquivosDaArvore(entradas) {
   const saida = [];
   const lerEntrada = entry => new Promise(res => { try { entry.file(f => res(f), () => res(null)); } catch (e) { res(null); } });
   const percorre = async (entry, prefixo) => {
@@ -21419,8 +21430,7 @@ async function astArquivosDaArvore(itens) {
       }
     }
   };
-  for (const it of [...(itens || [])]) {
-    const e = it.webkitGetAsEntry && it.webkitGetAsEntry();
+  for (const e of [...(entradas || [])]) {
     if (e) await percorre(e, '');
   }
   return saida;
@@ -21432,26 +21442,81 @@ async function astAddFiles(files, folderId) {
   let ok = 0, falhou = 0, deZip = 0;
   const motivos = new Map();
   const soma = (m, n) => motivos.set(m, (motivos.get(m) || 0) + (n || 1));
+  if (!lista.length) { setStatus('Nenhum arquivo selecionado.', true); return 0; }
   const ctx = await astPastaCtx();
 
+  /* separa ZIP de arquivos soltos (pasta inteira entra pelos soltos, com caminho relativo) */
+  const zips = [], soltos = [];
   for (const f of lista) {
     let ehZip = astEhZip(f);
     if (!ehZip && f && f.size > 22) { try { ehZip = await ASTZIP.pareceZip(f); } catch (e) {} }
-    if (ehZip) {
-      const r = await astImportaZip(f, alvo, ctx);
-      ok += r.ok; falhou += r.falhou; deZip += r.ok;
-      for (const [m, n] of r.motivos) soma(m, n);
-      continue;
-    }
-    try {
-      const rel = String(astCaminhoRel.get(f) || f.webkitRelativePath || '').replace(/\\/g, '/');
-      const pastaRel = rel.includes('/') ? rel.slice(0, rel.lastIndexOf('/')) : '';
-      const destino = pastaRel ? await astGarantePasta(pastaRel, ctx) : alvo;
-      const a = await astAssetDeArquivo(f, destino);
-      await SS_DB.putAsset(a); ok++;
-    } catch (e) { falhou++; soma(astMotivoDe(e)); }
+    (ehZip ? zips : soltos).push(f);
   }
+
+  if (soltos.length) {
+    const bytes = soltos.reduce((t, f) => t + (f.size || 0), 0);
+    /* quanto ainda cabe no armazenamento do navegador (imagens viram data URL) */
+    let cabem = soltos.length;
+    try {
+      if (navigator.storage && navigator.storage.estimate) {
+        const est = await navigator.storage.estimate();
+        const livre = Math.max(0, (est.quota || 0) - (est.usage || 0));
+        if (livre > 0) {
+          let acc = 0, n = 0;
+          for (const f of soltos) {
+            const custo = (f.size || 0) * 1.42 + 60000;
+            if (acc + custo > livre * 0.85) break;
+            acc += custo; n++;
+          }
+          cabem = Math.max(0, n);
+          if (!cabem) {
+            astProgressoFim();
+            setStatus('Sem espaço no navegador para estes arquivos (' + astFmtTam(livre) + ' livres). Libere espaço ou importe menos de uma vez.', true);
+            return 0;
+          }
+        }
+      }
+    } catch (e) {}
+    if (soltos.length > 200 || bytes > 150 * 1048576 || cabem < soltos.length) {
+      const linhas = [
+        soltos.length.toLocaleString('pt-BR') + ' arquivo' + (soltos.length === 1 ? '' : 's') + ', ' + astFmtTam(bytes) + '.',
+        'As subpastas viram pastas na biblioteca. Dá para cancelar no meio pela barra de progresso.'
+      ];
+      if (cabem < soltos.length) linhas.push('O navegador só tem espaço para ~' + cabem.toLocaleString('pt-BR') + ' destes.');
+      const escolha = await astConfirma('Importar arquivos', linhas, ['Importar ' + soltos.length.toLocaleString('pt-BR'), 'Só os primeiros 200', 'Cancelar']);
+      if (escolha === -1 || escolha === 2) { astProgressoFim(); setStatus('Importação cancelada.'); return 0; }
+      if (escolha === 1 && soltos.length > 200) soltos.length = 200;
+    }
+    if (cabem < soltos.length) soltos.length = Math.max(1, Math.min(soltos.length, cabem));
+    astCancela = false;
+    let cancelado = false;
+    for (let i = 0; i < soltos.length; i++) {
+      if (astCancela) { cancelado = true; break; }
+      const f = soltos[i];
+      astProgresso('Importando ' + (i + 1) + ' de ' + soltos.length + ' — ' + (f.name || 'arquivo'), (i + 1) / soltos.length);
+      try {
+        const rel = String(astCaminhoRel.get(f) || f.webkitRelativePath || '').replace(/\\/g, '/');
+        const pastaRel = rel.includes('/') ? rel.slice(0, rel.lastIndexOf('/')) : '';
+        const destino = pastaRel ? await astGarantePasta(pastaRel, ctx) : alvo;
+        const a = await astAssetDeArquivo(f, destino);
+        await SS_DB.putAsset(a); ok++;
+      } catch (e) { falhou++; soma(astMotivoDe(e)); try { console.warn('[assets] falhou:', f && f.name, e); } catch (err) {} }
+      /* deixa a tela respirar e mostra os cartões conforme entram */
+      if (i % 4 === 3) await new Promise(r => setTimeout(r, 0));
+      if (i % 24 === 23 && document.getElementById('astScr')) astPinta();
+    }
+    astProgressoFim();
+    if (cancelado) soma('cancelado pelo usuário', Math.max(1, soltos.length - ok - falhou));
+  }
+
+  for (const f of zips) {
+    const r = await astImportaZip(f, alvo, ctx);
+    ok += r.ok; falhou += r.falhou; deZip += r.ok;
+    for (const [m, n] of r.motivos) soma(m, n);
+  }
+
   setStatus(astResumoTexto(ok, falhou, deZip, motivos), !ok && !!falhou);
+  try { console.info('[assets] importação:', { ok, falhou, deZip, soltos: soltos.length, zips: zips.length, motivos: [...motivos.entries()] }); } catch (e) {}
   if (document.getElementById('astScr')) { if (ok) astLimpaBusca(); await astRefresh(); }
   return ok;
 }
@@ -21614,6 +21679,8 @@ function astTela() {
   const pastas = E('div', 'ast-chips'); pastas.id = 'astPastas';
   const tipos = E('div', 'ast-chips'); tipos.id = 'astTipos';
   wrap.append(pastas, tipos);
+  const msgBar = E('div', 'ast-msg'); msgBar.id = 'astMsg'; msgBar.hidden = true;
+  wrap.append(msgBar);
   pastas.addEventListener('click', e => { const b = e.target.closest('button[data-pasta]'); if (!b) return; astFolderSel = b.dataset.pasta; astPinta(); });
   tipos.addEventListener('click', e => { const b = e.target.closest('button[data-tipo]'); if (!b) return; astKindSel = b.dataset.tipo; astPinta(); });
 
@@ -21632,6 +21699,8 @@ function astTela() {
   const bFolder = E('button', 'ast-btn', 'Upload folder…'); bFolder.type = 'button'; bFolder.id = 'astBtnFolder';
   bFolder.title = 'Send a whole folder: the subfolders become folders in the library';
   bFolder.addEventListener('click', () => folderInp.click());
+  const aceitaPasta = (() => { try { return 'webkitdirectory' in document.createElement('input'); } catch (e) { return false; } })();
+  if (!aceitaPasta) { bFolder.hidden = true; bFolder.style.display = 'none'; }
   const bPasteHint = E('button', 'ast-btn', 'Paste (Ctrl+V)'); bPasteHint.type = 'button';
   bPasteHint.addEventListener('click', () => { const d = document.getElementById('astDrop'); if (d) d.focus(); setStatus('Paste with Ctrl+V (the image/SVG goes to the open folder).'); });
   const bVetor = E('button', 'ast-btn', 'Save selected vector'); bVetor.type = 'button';
@@ -21663,13 +21732,20 @@ function astTela() {
   drop.addEventListener('click', () => fileInp.click());
   drop.addEventListener('dragover', e => { e.preventDefault(); drop.classList.add('over'); });
   drop.addEventListener('dragleave', () => drop.classList.remove('over'));
-  drop.addEventListener('drop', async e => {
+  drop.addEventListener('drop', e => {
     e.preventDefault(); drop.classList.remove('over');
     const itens = e.dataTransfer && e.dataTransfer.items;
-    /* arrastar uma PASTA: percorre a árvore e mantém webkitRelativePath */
-    if (itens && itens.length && itens[0].webkitGetAsEntry) {
-      const arqs = await astArquivosDaArvore(itens);
-      if (arqs && arqs.length) { astAddFiles(arqs); return; }
+    /* As FileSystemEntry precisam ser obtidas AGORA: depois de um await o
+       DataTransfer já foi liberado e elas vêm nulas. */
+    const entradas = itens && itens.length
+      ? [...itens].map(it => { try { return it.webkitGetAsEntry ? it.webkitGetAsEntry() : null; } catch (err) { return null; } }).filter(Boolean)
+      : [];
+    if (entradas.some(en => en.isDirectory)) {
+      astArquivosDaArvore(entradas).then(arqs => {
+        if (arqs && arqs.length) astAddFiles(arqs);
+        else astAddFiles(e.dataTransfer && e.dataTransfer.files);
+      }).catch(() => astAddFiles(e.dataTransfer && e.dataTransfer.files));
+      return;
     }
     astAddFiles(e.dataTransfer && e.dataTransfer.files);
   });
@@ -30026,11 +30102,31 @@ var csOv = null, csS = null, csT = null, csLine = null, csGeo = null, csDrag = n
 const SS_DB = (() => {
   const NAME = 'everything-editor-projects';
   let p = null;
+  /* Lojas exigidas. Se o banco do usuário foi criado por uma versão antiga sem
+     alguma delas (era o caso de "assetFolders"), a importação por pastas falhava
+     inteira; agora o banco se conserta sozinho com uma versão a mais. */
+  const LOJAS = { meta: { keyPath: 'id' }, data: null, folders: { keyPath: 'id' }, assetFolders: { keyPath: 'id' }, assets: { keyPath: 'id' } };
+  const criaLojas = db => { for (const nome in LOJAS) if (!db.objectStoreNames.contains(nome)) db.createObjectStore(nome, LOJAS[nome] || undefined); };
   const open = () => p || (p = new Promise((res, rej) => {
-    const rq = indexedDB.open(NAME, 3);
-    rq.onupgradeneeded = () => { const db = rq.result; if (!db.objectStoreNames.contains('meta')) db.createObjectStore('meta', { keyPath: 'id' }); if (!db.objectStoreNames.contains('data')) db.createObjectStore('data'); if (!db.objectStoreNames.contains('folders')) db.createObjectStore('folders', { keyPath: 'id' }); if (!db.objectStoreNames.contains('assetFolders')) db.createObjectStore('assetFolders', { keyPath: 'id' }); if (!db.objectStoreNames.contains('assets')) db.createObjectStore('assets', { keyPath: 'id' }); };
-    rq.onsuccess = () => res(rq.result);
-    rq.onerror = () => rej(rq.error);
+    const etapa = (versao, tentativas) => {
+      let rq;
+      try { rq = versao ? indexedDB.open(NAME, versao) : indexedDB.open(NAME); }
+      catch (e) { rej(e); return; }
+      rq.onupgradeneeded = () => criaLojas(rq.result);
+      rq.onerror = () => rej(rq.error);
+      rq.onsuccess = () => {
+        const db = rq.result;
+        const faltando = Object.keys(LOJAS).filter(n => !db.objectStoreNames.contains(n));
+        if (faltando.length && tentativas < 2) {
+          const prox = db.version + 1;
+          try { db.close(); } catch (e) {}
+          etapa(prox, tentativas + 1);
+          return;
+        }
+        res(db);
+      };
+    };
+    etapa(0, 0);
   }));
   const run = async (store, mode, fn) => {
     const db = await open();
