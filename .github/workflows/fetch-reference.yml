@@ -1,0 +1,76 @@
+name: Fetch reference APK
+
+# Baixa o APK de referência (Drive), extrai o HTML que está dentro dele e
+# commita em reference/ para análise local. Workflow temporário: pode ser
+# removido depois que as medidas forem extraídas.
+on:
+  push:
+    paths:
+      - '.github/workflows/fetch-reference.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Baixar do Drive
+        run: |
+          set -e
+          FILE_ID="1Nk-EtFn_-mwqfDdyIp5D1P1oh-rwsDb1"      # everything-editor-2.9.26.apk
+          curl -sSL -o ref.apk "https://drive.google.com/uc?export=download&id=$FILE_ID"
+          ls -la ref.apk
+          file ref.apk
+          head -c 4 ref.apk | xxd
+
+      - name: Extrair assets
+        run: |
+          set -e
+          mkdir -p reference
+          echo "=== conteúdo do APK (assets/res relevante) ==="
+          unzip -l ref.apk | grep -Ei 'assets/|\.html|\.js|\.css|AndroidManifest' | head -60
+          echo
+          echo "=== extraindo ==="
+          unzip -o -q ref.apk -d ref_extract || true
+          ls -la ref_extract/assets 2>/dev/null || true
+          find ref_extract -maxdepth 3 -name "*.html" -o -maxdepth 3 -name "*.js" | head -20
+
+      - name: Guardar referência
+        run: |
+          set -e
+          shopt -s nullglob
+          candidatos=(ref_extract/assets/index.html ref_extract/assets/public/index.html ref_extract/assets/www/index.html)
+          alvo=""
+          for c in "${candidatos[@]}"; do [ -f "$c" ] && alvo="$c" && break; done
+          if [ -z "$alvo" ]; then
+            alvo=$(find ref_extract -maxdepth 4 -name '*.html' | sort -k1 | tail -1)
+          fi
+          echo "HTML encontrado: $alvo"
+          mkdir -p reference
+          cp "$alvo" reference/index-2.9.26.html
+          wc -c reference/index-2.9.26.html
+          # resumo do manifesto (versão do app de referência)
+          if command -v aapt >/dev/null 2>&1; then aapt dump badging ref.apk | head -5 || true; fi
+          rm -rf ref_extract ref.apk
+
+      - name: Commit da referência
+        run: |
+          set -e
+          git config user.name "ref-bot"
+          git config user.email "ref-bot@users.noreply.github.com"
+          git add reference
+          git commit -m "chore(ref): HTML extraído do APK de referência 2.9.26" || echo "nada para commitar"
+          git push || echo "::warning::push falhou"
+
+      - name: Resumo
+        run: |
+          {
+            echo "### Referência extraída"
+            echo ""
+            echo "Arquivo: \`reference/index-2.9.26.html\` ($(wc -c < reference/index-2.9.26.html) bytes)"
+          } >> "$GITHUB_STEP_SUMMARY"
