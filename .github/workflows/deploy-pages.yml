@@ -1,7 +1,7 @@
 name: Deploy to GitHub Pages
 
-# Publicação automática: sempre que index.html mudar (ou qualquer arquivo), o site
-# público é reconstruído e republicado no GitHub Pages.
+# Publicação automática: sempre que houver push (index.html atualizado, por exemplo),
+# o site público é reconstruído e republicado no GitHub Pages.
 on:
   push:
     branches:
@@ -15,7 +15,7 @@ permissions:
   pages: write
   id-token: write
 
-# Só um deploy por vez; um push novo cancela o deploy antigo ainda em andamento
+# Só um deploy por vez; um push novo cancela o deploy anterior ainda em andamento
 concurrency:
   group: github-pages
   cancel-in-progress: true
@@ -30,6 +30,27 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
+      - name: Check that GitHub Pages is enabled
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+        run: |
+          if curl -fsS -H "Authorization: Bearer $GH_TOKEN" \
+               "https://api.github.com/repos/$REPO/pages" >/dev/null; then
+            echo "GitHub Pages está habilitado ✅"
+          else
+            {
+              echo "### ⚠️ GitHub Pages ainda não está habilitado"
+              echo ""
+              echo "Ative uma única vez em: https://github.com/$REPO/settings/pages"
+              echo ""
+              echo "Em **Build and deployment → Source**, escolha **GitHub Actions** e salve."
+              echo "Depois disso cada push publica o site automaticamente."
+            } >> "$GITHUB_STEP_SUMMARY"
+            echo "::error title=Habilite o GitHub Pages::Abra https://github.com/$REPO/settings/pages e escolha Source = GitHub Actions (uma única vez)."
+            exit 1
+          fi
 
       - name: Prepare static site
         run: |
@@ -46,10 +67,6 @@ jobs:
 
       - name: Setup Pages
         uses: actions/configure-pages@v5
-        with:
-          # Liga o GitHub Pages automaticamente (Source: GitHub Actions) caso ainda
-          # não esteja habilitado no repositório.
-          enablement: true
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
@@ -59,3 +76,15 @@ jobs:
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
+
+      - name: Summary
+        env:
+          PAGE_URL: ${{ steps.deployment.outputs.page_url }}
+        run: |
+          {
+            echo "### 🌐 Site publicado"
+            echo ""
+            echo "$PAGE_URL"
+            echo ""
+            echo "Commit \`${{ github.sha }}\` · branch \`${{ github.ref_name }}\`"
+          } >> "$GITHUB_STEP_SUMMARY"
