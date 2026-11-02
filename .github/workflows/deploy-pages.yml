@@ -1,0 +1,61 @@
+name: Deploy to GitHub Pages
+
+# Publicação automática: sempre que index.html mudar (ou qualquer arquivo), o site
+# público é reconstruído e republicado no GitHub Pages.
+on:
+  push:
+    branches:
+      - main
+      - 'arena/**'
+  workflow_dispatch:
+
+# Permissões necessárias para publicar no Pages via Actions
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Só um deploy por vez; um push novo cancela o deploy antigo ainda em andamento
+concurrency:
+  group: github-pages
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    name: Build & publish
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Prepare static site
+        run: |
+          set -e
+          if [ ! -f index.html ]; then
+            echo "::error::index.html não encontrado na raiz do repositório"
+            exit 1
+          fi
+          rm -rf _site
+          mkdir -p _site
+          cp index.html _site/index.html
+          touch _site/.nojekyll
+          ls -la _site
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v5
+        with:
+          # Liga o GitHub Pages automaticamente (Source: GitHub Actions) caso ainda
+          # não esteja habilitado no repositório.
+          enablement: true
+
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
