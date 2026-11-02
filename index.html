@@ -224,11 +224,12 @@ input[type=color]::-webkit-color-swatch{border:0;border-radius:2px}
 .add-hint{font-size:11px;color:var(--text-accent);padding:2px 6px 6px;border-bottom:1px solid var(--line);margin-bottom:4px}
 /* 2.10.2: menu radial de categorias (Shift+A) */
 .add-wheel{position:relative;margin:2px auto}
-.add-cat{position:absolute;left:50%;top:50%;transform:translate(calc(-50% + var(--wx,0px)),calc(-50% + var(--wy,0px)));width:var(--lado,58px);height:var(--lado,58px);display:flex;align-items:center;justify-content:center;padding:3px;border:1px solid;border-radius:15px;background:#232830;color:var(--text-strong);font:max(9px,calc(var(--lado,58px) * .165))/1.15 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;text-align:center;cursor:pointer;box-shadow:0 4px 12px rgba(0,0,0,.35);transition:transform .09s ease,box-shadow .12s ease}
-.add-cat span{display:block;max-width:100%;overflow-wrap:anywhere}
-.add-cat:hover,.add-cat.hi{transform:translate(calc(-50% + var(--wx,0px)),calc(-50% + var(--wy,0px))) scale(1.08);box-shadow:0 6px 18px rgba(0,0,0,.5);z-index:2}
-.add-cat:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
-.add-hub{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:calc(var(--lado,58px) * 1.45);height:calc(var(--lado,58px) * 1.45);border-radius:50%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;background:var(--field2);border:1px solid var(--outline);color:var(--text);font-size:max(9px,calc(var(--lado,58px) * .175));line-height:1.1;cursor:pointer;padding:4px;text-align:center;box-shadow:0 4px 14px rgba(0,0,0,.35)}
+.add-svg{position:absolute;inset:0;width:100%;height:100%;display:block;overflow:visible;touch-action:manipulation}
+.add-cat{cursor:pointer}
+.add-cat path{transition:fill .1s ease,stroke .1s ease}
+.add-cat text{font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;font-weight:500;letter-spacing:.1px;user-select:none}
+.add-cat.hi path{filter:drop-shadow(0 2px 6px rgba(0,0,0,.55))}
+.add-hub{position:absolute;z-index:2;left:50%;top:50%;transform:translate(-50%,-50%);width:calc(var(--lado,58px) * 1.45);height:calc(var(--lado,58px) * 1.45);border-radius:50%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;background:var(--field2);border:1px solid var(--outline);color:var(--text);font-size:max(9px,calc(var(--lado,58px) * .175));line-height:1.1;cursor:pointer;padding:4px;text-align:center;box-shadow:0 4px 14px rgba(0,0,0,.35)}
 .add-hub:hover,.add-hub:focus-visible{background:var(--accent);color:var(--on-accent);border-color:var(--accent);outline:none}
 .add-panel{display:flex;flex-direction:column}
 .add-panel[hidden],.add-wheel[hidden]{display:none!important}
@@ -236,6 +237,10 @@ input[type=color]::-webkit-color-swatch{border:0;border-radius:2px}
 .add-back{width:30px;height:30px;flex:none;display:grid;place-items:center;background:var(--field2);border:1px solid var(--line);border-radius:8px;color:var(--text);cursor:pointer;padding:0}
 .add-back:hover{background:var(--accent);color:var(--on-accent);border-color:var(--accent)}
 .add-title{font-size:12px;font-weight:600;color:var(--text-strong);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+/* gradient map: pinos do mesh */
+.gpins{margin:2px 0 6px}
+.gpins-t{font-size:10px;line-height:1.3;color:var(--text-dim);margin:0 0 4px}
+.gpins-cv{display:block;width:100%;border-radius:6px;border:1px solid var(--outline);cursor:crosshair;touch-action:none;background:#111}
 
 /* ---------- Pintor de máscara ---------- */
 .mask-ctl{display:flex;flex-direction:column;gap:4px}
@@ -827,6 +832,7 @@ body input,body select,body textarea,.node input,.node select,.node textarea,.no
       <div id="grpMenu" class="add-menu grp-menu" hidden></div>
       <div id="addMenu" class="add-menu" hidden>
         <div id="addWheel" class="add-wheel">
+          <svg id="addSvg" class="add-svg" xmlns="http://www.w3.org/2000/svg"><g id="addSectors"></g></svg>
           <button id="addHub" class="add-hub" type="button" title="Search all nodes">
             <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><circle cx="11" cy="11" r="6.5" fill="none" stroke="currentColor" stroke-width="2"/><path d="M16.2 16.2 21 21" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
             <span id="addHubTxt">Search</span>
@@ -1038,6 +1044,7 @@ const statusEl = $('#status'), glCanvas = $('#gl'), pmsg = $('#pmsg'), pinfo = $
 const addMenu = $('#addMenu'), addSearch = $('#addSearch'), addList = $('#addList');
 const addWheel = $('#addWheel'), addPanel = $('#addPanel'), addBack = $('#addBack'), addTitle = $('#addTitle');
 const addHub = $('#addHub'), addHubTxt = $('#addHubTxt');
+const addSvg = $('#addSvg'), addSectors = $('#addSectors');
 const fileInput = $('#fileInput'), graphInput = $('#graphInput');
 
 const view = { zoom: 1, panX: 0, panY: 0 };   // node editor view
@@ -3380,8 +3387,10 @@ const NODE_TYPES = {
     title: 'Gradient map', cat: 'color', inputs: ['Image'],
     params: [
       ENUM('mapType', 'Gradient type', [['linear', 'Linear'], ['radial', 'Radial'], ['conic', 'Conical'], ['mesh', 'Mesh']], 'linear'),
-      COL('color1', 'Shadow / corner 1', '#070707'), COL('color2', 'Middle / corner 2', '#6a4cff'),
-      COL('color3', 'Light / corner 3', '#fff0b8'), COL('color4', 'Corner 4 (mesh)', '#00ffd0'),
+      COL('color1', 'Shadow / pin 1', '#070707'), COL('color2', 'Middle / pin 2', '#6a4cff'),
+      COL('color3', 'Light / pin 3', '#fff0b8'), COL('color4', 'Pin 4 (mesh)', '#00ffd0'),
+      { type: 'gpins', key: 'gpins', label: 'Mesh pins', def: '' },
+      { type: 'button', key: 'gpReset', label: '', action: 'gpResetPins', button: 'Reset pins', def: '' },
       NUM('midpoint', 'Midpoint', 1, 99, 50), NUM('angle', 'Angle', -180, 180, 0),
       NUM('centerX', 'Center X', 0, 100, 50), NUM('centerY', 'Center Y', 0, 100, 50),
       NUM('scale', 'Gradient scale', 10, 240, 100), NUM('meshWarp', 'Mesh distortion', 0, 100, 35),
@@ -6985,6 +6994,7 @@ uniform sampler2D uSrc;
 uniform vec2 uRes;
 uniform vec3 uC1, uC2, uC3, uC4;
 uniform float uMid, uContrast, uMix, uPreserve, uDither, uSpatialMix, uCX, uCY, uScale, uAngle, uMeshWarp, uAngleDeg;
+uniform vec2 uP1, uP2, uP3, uP4;
 uniform int uType;
 float spatialAt(vec2 p){
   float W = uRes.x, H = uRes.y;
@@ -7016,12 +7026,15 @@ void main(){
   if (uDither > 0.0) t = clamp(t + (hash(pix.x + 13.0, pix.y - 7.0) - 0.5) * uDither, 0.0, 1.0);
   vec3 col;
   if (uType == 3) {
-    float nx = clamp(pix.x / max(1.0, uRes.x - 1.0), 0.0, 1.0);
-    float ny = clamp(pix.y / max(1.0, uRes.y - 1.0), 0.0, 1.0);
-    vec3 top = mix(uC1, uC2, nx);
-    vec3 bottom = mix(uC4, uC3, nx);
-    float ky = clamp(ny + (t - 0.5) * 0.34, 0.0, 1.0);
-    col = mix(top, bottom, ky);
+    /* Mesh: cada cor "vive" no seu pino; a mistura é por distância até ele */
+    vec2 pp = vec2(clamp(pix.x / max(1.0, uRes.x - 1.0), 0.0, 1.0), clamp(pix.y / max(1.0, uRes.y - 1.0), 0.0, 1.0));
+    float k = 5.5 - 4.15 * uMeshWarp;
+    float w1 = 1.0 / (pow(max(distance(pp, uP1), 0.0008), k) + 0.0006);
+    float w2 = 1.0 / (pow(max(distance(pp, uP2), 0.0008), k) + 0.0006);
+    float w3 = 1.0 / (pow(max(distance(pp, uP3), 0.0008), k) + 0.0006);
+    float w4 = 1.0 / (pow(max(distance(pp, uP4), 0.0008), k) + 0.0006);
+    float sw4 = w1 + w2 + w3 + w4;
+    col = (uC1 * w1 + uC2 * w2 + uC3 * w3 + uC4 * w4) / max(sw4, 0.00001);
   } else if (t <= uMid) {
     float k = uMid <= 0.001 ? 1.0 : t / uMid;
     col = mix(uC1, uC2, k);
@@ -10301,6 +10314,11 @@ function makeActionButton(n, p) {
       n.params.path = JSON.stringify(r);
       n.params.larg = 70; n.params.alt = 70; n.params.posX = 0; n.params.posY = 0; n.params.rot = 0; n.params.raio = 0;
       for (const k of ['forma', 'larg', 'alt', 'posX', 'posY', 'rot', 'raio']) if (n.ui[k]) n.ui[k]();
+      markDirty(n.id); requestRender(); commit();
+    }
+    else if (p.action === 'gpResetPins') {
+      n.params.gpins = '';
+      if (n.ui.gpins) n.ui.gpins();
       markDirty(n.id); requestRender(); commit();
     }
     else if (p.action === 'openRampa') rampaEditorAbre(n);
@@ -22236,6 +22254,7 @@ const RUN = {
     const p = n.params, W = a.w, H = a.h;
     const e = acquire(W, H);
     const type = ({ linear: 0, radial: 1, conic: 2, mesh: 3 })[p.mapType] ?? 0;
+    const gpp = gpPinosDe(p.gpins);
     draw('gradientMap', e, { uSrc: a.tex }, {
       uRes: [W, H], uType: type,
       uC1: hexRGB(p.color1), uC2: hexRGB(p.color2), uC3: hexRGB(p.color3), uC4: hexRGB(p.color4 || p.color3),
@@ -22243,6 +22262,7 @@ const RUN = {
       uPreserve: p.preserveLuma / 100, uDither: p.dither / 100, uSpatialMix: p.spatialMix / 100,
       uCX: p.centerX / 100, uCY: p.centerY / 100, uScale: Math.max(0.08, p.scale / 100),
       uAngle: p.angle * Math.PI / 180, uAngleDeg: p.angle, uMeshWarp: p.meshWarp / 100,
+      uP1: gpp[0], uP2: gpp[1], uP3: gpp[2], uP4: gpp[3],
     });
     return mkRes(e);
   },
@@ -24851,6 +24871,7 @@ function buildControls(n, body) {
     else if (p.type === 'stack') el = makeStackControl(n);
     else if (p.type === 'layers') el = makeLayersControl(n);
     else if (p.type === 'info') el = makeInfoLine(n, p);
+    else if (p.type === 'gpins') el = makeGradientPins(n);
     else if (p.type === 'button') el = makeActionButton(n, p);
     if (el) { el.dataset.pkey = p.key; body.append(el); }
   }
@@ -24862,6 +24883,13 @@ function buildControls(n, body) {
     const anchor = body.querySelector('[data-pkey="glassScope"]');   // right under Glass mode / Effect area
     if (anchor) anchor.after(note); else body.append(note);
     glassAplicaVis(body, n.params, n);
+  }
+  if (n.type === 'gradientMap') {
+    gradAplicaVis(body, n.params);
+    const uiMapa = n.ui.mapType;
+    n.ui.mapType = () => { if (uiMapa) uiMapa(); gradAplicaVis(body, n.params); };
+    body.addEventListener('input', () => { if (n.ui.gpins) n.ui.gpins(); });
+    body.addEventListener('change', () => { if (n.ui.gpins) n.ui.gpins(); });
   }
   if (n.type === 'blurStudio') blurAplicaVis(body, n.params);
   if (n.type === 'bandMachine') bandAplicaVis(body, n.params);
@@ -25019,6 +25047,8 @@ function makeEnum(n, p) {
     if (n.type === 'nodeMachine' && p.key === 'palette') applyNodePalette(n);
     if (n.type === 'bandMachine' && p.key === 'patternMode' && n.el) bandAplicaVis(n.el, n.params);
     if (n.type === 'glassStudio' && (p.key === 'glassMode' || p.key === 'glassScope') && n.el) glassAplicaVis(n.el, n.params, n);
+    if (n.type === 'gradientMap' && p.key === 'mapType' && n.el) gradAplicaVis(n.el, n.params);
+    if (n.type === 'gradientMap' && n.ui.gpins && (p.key === 'meshWarp' || p.key === 'color1' || p.key === 'color2' || p.key === 'color3' || p.key === 'color4')) n.ui.gpins();
     if (n.type === 'blurStudio' && p.key === 'blurMode' && n.el) blurAplicaVis(n.el, n.params);
     if (n.type === 'blurStudio' && p.key === 'blurMode') fbOnModeChange(n);
     if (n.type === 'blurStudio' && p.key === 'fieldRadius') fbSliderChanged(n);
@@ -27007,39 +27037,112 @@ function posicionaAddMenu() {
   }
 }
 
+/* fatia do anel (setor) entre dois ângulos */
+function addSetor(cx, cy, rInt, rExt, a0, a1) {
+  const pt = (r, a) => [cx + r * Math.cos(a), cy + r * Math.sin(a)];
+  const A = pt(rExt, a0), B = pt(rExt, a1), C = pt(rInt, a1), D = pt(rInt, a0);
+  const grande = (a1 - a0) > Math.PI ? 1 : 0;
+  return 'M' + A[0].toFixed(2) + ',' + A[1].toFixed(2) +
+    ' A' + rExt.toFixed(2) + ',' + rExt.toFixed(2) + ' 0 ' + grande + ' 1 ' + B[0].toFixed(2) + ',' + B[1].toFixed(2) +
+    ' L' + C[0].toFixed(2) + ',' + C[1].toFixed(2) +
+    ' A' + rInt.toFixed(2) + ',' + rInt.toFixed(2) + ' 0 ' + grande + ' 0 ' + D[0].toFixed(2) + ',' + D[1].toFixed(2) + ' Z';
+}
+
+/* quebra o rótulo em até duas linhas que caibam na largura da fatia */
+function addQuebra(txt, maxW, fs) {
+  const maxChars = Math.max(4, Math.floor(maxW / (fs * 0.5)));
+  const linhas = [];
+  let atual = '';
+  for (const palavra of String(txt).split(/\s+/)) {
+    const t = atual ? atual + ' ' + palavra : palavra;
+    if (t.length <= maxChars) { atual = t; continue; }
+    if (atual) linhas.push(atual);
+    atual = palavra;
+  }
+  if (atual) linhas.push(atual);
+  let cortou = linhas.length > 2 || linhas.some(l => l.length > maxChars);
+  if (linhas.length > 2) linhas.length = 2;
+  return { linhas, cortou };
+}
+
+/* pinta/realça uma fatia */
+function addPinta(g, on) {
+  const cat = g.dataset.cat, cor = (CATS[cat] && CATS[cat].color) || '#888888';
+  if (g._path) {
+    g._path.setAttribute('fill', addCorRgba(cor, on ? 0.58 : 0.22));
+    g._path.setAttribute('stroke', addCorRgba(cor, on ? 1 : 0.75));
+    g._path.setAttribute('stroke-width', on ? 1.8 : 1.1);
+  }
+  if (g._txt) g._txt.setAttribute('fill', on ? '#ffffff' : '#e9eef4');
+}
+
+function addDestaca(idx) {
+  [...addSectors.children].forEach((g, i) => { g.classList.toggle('hi', i === idx); addPinta(g, i === idx); });
+}
+
 function renderAddWheel() {
   const S = addTam();
   addWheel.style.width = S + 'px';
   addWheel.style.height = S + 'px';
-  for (const b of [...addWheel.querySelectorAll('.add-cat')]) b.remove();
+  addSvg.setAttribute('viewBox', '0 0 ' + S + ' ' + S);
+  addWheel.style.setProperty('--lado', (S * 0.18).toFixed(1) + 'px');   // o hub acompanha o anel
+  addSectors.innerHTML = '';
   const cats = Object.keys(CATS).filter(c => addContar(c) > 0);
-  /* lado do botão que cabe no anel sem encostar no vizinho:
-     2·π·raio / n = lado + 6, com raio = S/2 − 8 − lado/2 */
-  const n = Math.max(6, cats.length);
-  const lado = Math.max(42, Math.min(62, (2 * Math.PI * (S / 2 - 8) / n - 6) / (1 + Math.PI / n)));
-  const raio = S / 2 - 8 - lado / 2;
-  addWheel.style.setProperty('--lado', lado.toFixed(1) + 'px');
+  if (!cats.length) return;
+  const NS = 'http://www.w3.org/2000/svg';
+  const cx = S / 2, cy = S / 2, R = S / 2 - 2, rInt = R * 0.42;
+  const n = cats.length, passo = 2 * Math.PI / n;
+  const vao = Math.min(0.022, passo * 0.05);             // respiro entre fatias (nunca se tocam)
+  const raio = (rInt + R) / 2;
+  const maxW = Math.max(26, 2 * raio * Math.sin(passo / 2) - 6);
+  const fs = Math.max(8.5, Math.min(11.5, maxW / 4.6));
   cats.forEach((cat, i) => {
-    const ang = (-90 + i * 360 / cats.length) * Math.PI / 180;
-    const b = document.createElement('button');
-    b.type = 'button';
-    b.className = 'add-cat';
-    b.dataset.cat = cat;
-    b.style.setProperty('--wx', (Math.cos(ang) * raio).toFixed(1) + 'px');
-    b.style.setProperty('--wy', (Math.sin(ang) * raio).toFixed(1) + 'px');
-    b.style.background = addCorRgba(CATS[cat].color, 0.22);
-    b.style.borderColor = addCorRgba(CATS[cat].color, 0.8);
-    const rotulo = document.createElement('span');
-    rotulo.textContent = CATS[cat].label;
-    b.append(rotulo);
-    b.title = CATS[cat].label + ' · ' + addContar(cat) + ' nodes';
-    b.addEventListener('click', () => abrirLista(cat));
-    b.addEventListener('mouseenter', () => { addHubTxt.textContent = CATS[cat].label + ' · ' + addContar(cat); });
-    b.addEventListener('mouseleave', () => { addHubTxt.textContent = 'Search'; });
-    addWheel.append(b);
+    const a0 = -Math.PI / 2 + i * passo + vao, a1 = -Math.PI / 2 + (i + 1) * passo - vao;
+    const g = document.createElementNS(NS, 'g');
+    g.setAttribute('class', 'add-cat');
+    g.dataset.cat = cat;
+    g.dataset.a0 = (-90 + i * 360 / n + vao * 180 / Math.PI).toFixed(2);
+    g.dataset.a1 = (-90 + (i + 1) * 360 / n - vao * 180 / Math.PI).toFixed(2);
+    const path = document.createElementNS(NS, 'path');
+    path.setAttribute('d', addSetor(cx, cy, rInt, R, a0, a1));
+    g._path = path;
+    const meio = (a0 + a1) / 2, lx = cx + Math.cos(meio) * raio, ly = cy + Math.sin(meio) * raio;
+    const txt = document.createElementNS(NS, 'text');
+    txt.setAttribute('x', lx.toFixed(1));
+    txt.setAttribute('y', ly.toFixed(1));
+    txt.setAttribute('text-anchor', 'middle');
+    txt.setAttribute('dominant-baseline', 'middle');
+    txt.setAttribute('font-size', fs.toFixed(1));
+    txt.setAttribute('fill', '#e9eef4');
+    txt.setAttribute('pointer-events', 'none');
+    const rotulo = CATS[cat].label;
+    const q = addQuebra(rotulo, maxW, fs);
+    const radial = q.cortou && rotulo.length * 6.6 <= (R - rInt);
+    if (radial) {
+      /* nome longo numa fatia estreita: escreve ao longo do raio (cabe de sobra) */
+      const giro = Math.cos(meio) < 0 ? meio + Math.PI : meio;
+      const fsRad = Math.max(6.6, Math.min(fs, (R - rInt - 8) / Math.max(1, rotulo.length * 0.52)));
+      txt.setAttribute('font-size', fsRad.toFixed(1));
+      txt.setAttribute('transform', 'rotate(' + (giro * 180 / Math.PI).toFixed(1) + ' ' + lx.toFixed(1) + ' ' + ly.toFixed(1) + ')');
+      txt.textContent = rotulo;
+    } else {
+      q.linhas.forEach((linha, j) => {
+        const ts = document.createElementNS(NS, 'tspan');
+        ts.setAttribute('x', lx.toFixed(1));
+        ts.setAttribute('dy', j === 0 ? (-(q.linhas.length - 1) * fs * 0.56).toFixed(1) : (fs * 1.12).toFixed(1));
+        ts.textContent = linha;
+        txt.append(ts);
+      });
+    }
+    g._txt = txt;
+    g.append(path, txt);
+    g.title = CATS[cat].label + ' · ' + addContar(cat) + ' nodes';
+    g.addEventListener('click', () => abrirLista(cat));
+    g.addEventListener('mouseenter', () => { addPinta(g, true); addHubTxt.textContent = CATS[cat].label + ' · ' + addContar(cat); });
+    g.addEventListener('mouseleave', () => { addPinta(g, false); addHubTxt.textContent = 'Search'; });
+    addSectors.append(g);
   });
-  const first = addWheel.querySelector('.add-cat');
-  if (first) first.classList.add('hi');
+  addDestaca(0);
 }
 
 function abrirCategorias() {
@@ -27129,17 +27232,21 @@ document.addEventListener('keydown', e => {
   if (e.shiftKey && e.key.toLowerCase() === 'a' && !e.ctrlKey && !e.metaKey && !e.altKey) {
     e.preventDefault(); e.stopPropagation(); hideAddMenu(); return;     // Shift+A de novo fecha
   }
-  const cats = [...addWheel.querySelectorAll('.add-cat')];
+  const cats = [...addSectors.children];
   if (!cats.length) return;
   let i = cats.findIndex(b => b.classList.contains('hi'));
   const anda = d => {
-    if (i >= 0) cats[i].classList.remove('hi');
     i = ((i < 0 ? 0 : i) + d + cats.length) % cats.length;
-    cats[i].classList.add('hi');
+    addDestaca(i);
   };
   if (e.key === 'ArrowRight' || e.key === 'ArrowDown') { e.preventDefault(); e.stopPropagation(); anda(1); return; }
   if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') { e.preventDefault(); e.stopPropagation(); anda(-1); return; }
-  if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.stopPropagation(); cats[i < 0 ? 0 : i].click(); return; }
+  if (e.key === 'Enter' || e.key === ' ') {
+    e.preventDefault(); e.stopPropagation();
+    const alvo = cats[i < 0 ? 0 : i];
+    if (alvo && alvo.dataset.cat) abrirLista(alvo.dataset.cat);
+    return;
+  }
   if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); hideAddMenu(); return; }
   if (e.key === 'Tab') return;
   if (e.key.length === 1 && !e.ctrlKey && !e.metaKey && !e.altKey) {
@@ -27860,6 +27967,135 @@ function getOffTex(n, e) {
   n.runtime.offTex = tex; n.runtime.offKey = key;
   return tex;
 }
+/* ---- Gradient map · mesh pins -----------------------------------------
+   Quatro pinos, um por cor: o pino mostra exatamente onde aquela cor cai.
+   No modo Mesh o shader mistura as quatro cores pela distância até o pino. */
+function gpPinosDe(raw) {
+  const base = [[0, 0], [1, 0], [1, 1], [0, 1]];
+  let v = null;
+  try { v = raw ? JSON.parse(raw) : null; } catch (e) { v = null; }
+  const out = [];
+  for (let i = 0; i < 4; i++) {
+    const q = Array.isArray(v) ? v[i] : null;
+    const x = q ? Number(q.x) : NaN, y = q ? Number(q.y) : NaN;
+    out.push([Number.isFinite(x) ? Math.max(0, Math.min(1, x)) : base[i][0],
+              Number.isFinite(y) ? Math.max(0, Math.min(1, y)) : base[i][1]]);
+  }
+  return out;
+}
+
+function gradAplicaVis(raiz, params) {
+  if (!raiz || !raiz.querySelectorAll) return;
+  const mesh = (params.mapType || 'linear') === 'mesh';
+  raiz.querySelectorAll('[data-pkey="gpins"],[data-pkey="gpReset"]').forEach(el => { el.style.display = mesh ? '' : 'none'; });
+}
+
+function makeGradientPins(n) {
+  const wrap = E('div', 'gpins');
+  const head = E('div', 'gpins-t', 'Drag the pins — each one is where that color sits');
+  const cv = E('canvas', 'gpins-cv');
+  wrap.append(head, cv);
+  let arrastando = -1;
+
+  const cores = () => ['color1', 'color2', 'color3', 'color4'].map(k => hexRGB(n.params[k]));
+
+  const desenha = () => {
+    const css = Math.max(120, Math.round(cv.clientWidth || 180));
+    const dpr = Math.min(2, window.devicePixelRatio || 1);
+    cv.width = Math.round(css * dpr);
+    cv.height = Math.round(css * dpr);
+    cv.style.height = css + 'px';
+    const g = cv.getContext('2d');
+    if (!g) return;
+    g.setTransform(dpr, 0, 0, dpr, 0, 0);
+    const pins = gpPinosDe(n.params.gpins);
+    const cols = cores();
+    const warp = Math.max(0, Math.min(100, Number(n.params.meshWarp) || 0)) / 100;
+    const k = 5.5 - 4.15 * warp;
+    const N = 64, off = document.createElement('canvas');
+    off.width = off.height = N;
+    const og = off.getContext('2d');
+    if (og && og.createImageData) {
+      const img = og.createImageData(N, N);
+      for (let y = 0; y < N; y++) {
+        for (let x = 0; x < N; x++) {
+          const px = x / (N - 1), py = y / (N - 1);
+          let sw = 0; const w = [0, 0, 0, 0];
+          for (let i = 0; i < 4; i++) {
+            const d = Math.hypot(px - pins[i][0], py - pins[i][1]);
+            const wi = 1 / (Math.pow(Math.max(d, 0.0008), k) + 0.0006);
+            w[i] = wi; sw += wi;
+          }
+          const o = (y * N + x) * 4;
+          img.data[o] = (cols[0][0] * w[0] + cols[1][0] * w[1] + cols[2][0] * w[2] + cols[3][0] * w[3]) / sw * 255;
+          img.data[o + 1] = (cols[0][1] * w[0] + cols[1][1] * w[1] + cols[2][1] * w[2] + cols[3][1] * w[3]) / sw * 255;
+          img.data[o + 2] = (cols[0][2] * w[0] + cols[1][2] * w[1] + cols[2][2] * w[2] + cols[3][2] * w[3]) / sw * 255;
+          img.data[o + 3] = 255;
+        }
+      }
+      og.putImageData(img, 0, 0);
+      g.imageSmoothingEnabled = true;
+      g.drawImage(off, 0, 0, css, css);
+    }
+    const R = Math.max(9, css * 0.055);
+    pins.forEach((q, i) => {
+      const x = 4 + q[0] * (css - 8), y = 4 + q[1] * (css - 8);
+      g.beginPath(); g.arc(x, y, R + 4, 0, Math.PI * 2); g.fillStyle = 'rgba(0,0,0,.35)'; g.fill();
+      g.beginPath(); g.arc(x, y, R, 0, Math.PI * 2);
+      const c = cols[i];
+      g.fillStyle = 'rgb(' + Math.round(c[0] * 255) + ',' + Math.round(c[1] * 255) + ',' + Math.round(c[2] * 255) + ')';
+      g.fill();
+      g.lineWidth = arrastando === i ? 3 : 2;
+      g.strokeStyle = arrastando === i ? '#fff' : 'rgba(255,255,255,.85)';
+      g.stroke();
+      const lum = 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2];
+      g.fillStyle = lum > 0.6 ? '#111' : '#fff';
+      g.font = '600 ' + Math.round(R * 1.25) + 'px system-ui,sans-serif';
+      g.textAlign = 'center'; g.textBaseline = 'middle';
+      g.fillText(String(i + 1), x, y + 0.5);
+    });
+  };
+
+  const pos = e => { const r = cv.getBoundingClientRect(); return [(e.clientX - r.left) / Math.max(1, r.width), (e.clientY - r.top) / Math.max(1, r.height)]; };
+
+  cv.addEventListener('pointerdown', e => {
+    e.stopPropagation(); e.preventDefault();
+    selectFromControl(n);
+    const xy = pos(e);
+    const pins = gpPinosDe(n.params.gpins);
+    let melhor = -1, dist = 1e9;
+    pins.forEach((q, i) => { const d = Math.hypot(xy[0] - q[0], xy[1] - q[1]); if (d < dist) { dist = d; melhor = i; } });
+    if (dist > 0.22) return;
+    arrastando = melhor;
+    try { cv.setPointerCapture(e.pointerId); } catch (err) {}
+    desenha();
+  });
+  cv.addEventListener('pointermove', e => {
+    if (arrastando < 0) return;
+    e.stopPropagation(); e.preventDefault();
+    const xy = pos(e);
+    const pins = gpPinosDe(n.params.gpins);
+    pins[arrastando] = [Math.max(0, Math.min(1, xy[0])), Math.max(0, Math.min(1, xy[1]))];
+    n.params.gpins = JSON.stringify(pins.map(q => ({ x: +q[0].toFixed(4), y: +q[1].toFixed(4) })));
+    markDirty(n.id);
+    desenha();
+    requestRender();
+  });
+  const solta = e => {
+    if (arrastando < 0) return;
+    arrastando = -1;
+    try { cv.releasePointerCapture(e.pointerId); } catch (err) {}
+    desenha();
+    commit();
+  };
+  cv.addEventListener('pointerup', solta);
+  cv.addEventListener('pointercancel', solta);
+
+  n.ui.gpins = desenha;
+  requestAnimationFrame(desenha);
+  return wrap;
+}
+
 function makePaintControl(n) {
   const wrap = E('div', 'mask-ctl');
   const b = E('button', 'btn', 'Paint mask…');
