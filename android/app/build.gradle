@@ -13,7 +13,7 @@ android {
     defaultConfig {
         applicationId 'br.com.mdgverse.everythingeditor'
         minSdk 29            // Android 10+: só o caminho moderno de salvamento (MediaStore)
-        targetSdk 35
+        targetSdk 34            // <35: o sistema reserva as barras (sem edge-to-edge forçado)
         versionCode vCode
         versionName vName
         resourceConfigurations += ['en', 'pt', 'pt-rBR']
