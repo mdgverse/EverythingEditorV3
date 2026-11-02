@@ -1,1 +1,17 @@
---- arquivos html encontrados ---
+./AndroidManifest.xml
+./assets/www/index.html
+./assets/www/native-shim.js
+./classes.dex
+./res/mipmap-anydpi-v26/ic_launcher.xml
+./res/mipmap-hdpi-v4/ic_fg.png
+./res/mipmap-hdpi-v4/ic_launcher.png
+./res/mipmap-mdpi-v4/ic_fg.png
+./res/mipmap-mdpi-v4/ic_launcher.png
+./res/mipmap-xhdpi-v4/ic_fg.png
+./res/mipmap-xhdpi-v4/ic_launcher.png
+./res/mipmap-xxhdpi-v4/ic_fg.png
+./res/mipmap-xxhdpi-v4/ic_launcher.png
+./res/mipmap-xxxhdpi-v4/ic_fg.png
+./res/mipmap-xxxhdpi-v4/ic_launcher.png
+./resources.arsc
+html: ref_extract/assets/www/index.html -> reference/assets__www__index.html (1307311 bytes)
