@@ -131,7 +131,7 @@ html, body{overscroll-behavior:none;-webkit-tap-highlight-color:transparent}/* 1
   const greet = document.getElementById('eeSplashGreet');
   /* versão do editor — o arquivo VERSION na raiz é a fonte da verdade
      (o build do APK usa o mesmo número no versionName) */
-  const APP_VERSION = '2.9.96';
+  const APP_VERSION = '3.0.1';
   const ver = document.getElementById('eeSplashVer');
   if (ver) { ver.textContent = 'v' + APP_VERSION; ver.title = 'Everything Editor ' + APP_VERSION; }
   let pt = true;
@@ -2645,6 +2645,25 @@ const NODE_TYPES = {
       NUM('count', 'Blur samples', 4, 48, 24, 1),
       ENUM('dir', 'Direction', [['1', 'Clockwise'], ['-1', 'Counter-clockwise']], '1'),
       NUM('intensity', 'Intensity', 0, 100, 100),
+    ],
+  },
+  /* Editor 3.0 — "Spin Focus Light Leak": núcleo nítido + spin blur crescente
+     para as bordas + light leaks quentes de filme (concert / camera rotation). */
+  spinFocus: {
+    title: 'Spin Focus Light Leak', cat: 'style', inputs: ['Image'],
+    kw: 'spin focus light leak concert film burn radial motion blur vignette haze cinematic slow shutter camera rotation',
+    params: [
+      NUM('centerX', 'Center X', 0, 100, 50), NUM('centerY', 'Center Y', 0, 100, 48),
+      NUM('core', 'Center Focus Size', 5, 70, 42),
+      NUM('coreSoft', 'Focus softness', 0, 60, 55),
+      NUM('strength', 'Spin Blur Strength', 0, 100, 70),
+      NUM('samples', 'Spin Blur Quality', 8, 64, 32, 1),
+      NUM('leak', 'Light Leak Intensity', 0, 100, 50),
+      NUM('warmth', 'Light Leak Warmth', 0, 100, 78),
+      NUM('vig', 'Vignette Strength', 0, 100, 35),
+      NUM('haze', 'Haze / glow', 0, 100, 30),
+      NUM('chroma', 'Chromatic aberration', 0, 100, 18),
+      ENUM('blend', 'Leak blend', [['screen', 'Screen'], ['add', 'Add'], ['overlay', 'Overlay']], 'screen'),
     ],
   },
   transform: {
@@ -5776,6 +5795,83 @@ void main(){
     ws += 1.0;
   }
   outColor = acc / ws;
+}`,
+
+  /* Spin Focus Light Leak (Editor 3.0) — um passe só:
+     núcleo nítido → spin tangencial com rampa suave até a borda, aberração
+     cromática e haze na zona girada, light leaks quentes procedurais nos
+     cantos/bordas (Screen/Add/Overlay) e vignette. Determinístico: o export
+     sai igual ao preview. */
+  spinFocusFx: `
+uniform sampler2D uSrc;
+uniform vec2 uCenter;
+uniform float uAspect, uCore, uCoreSoft, uSweep;
+uniform float uLeak, uWarmth, uVig, uHaze, uChroma;
+uniform int uCount, uBlend;
+
+/* light leaks: manchas quentes nos cantos + barra difusa embaixo (film burn) */
+vec3 eeLeaks(vec2 uv){
+  vec3 acc = vec3(0.0);
+  vec2 a = uv - vec2(0.16, 0.88);   // magenta do alto/esquerda
+  vec2 b = uv - vec2(0.88, 0.90);   // dourado do alto/direita
+  vec2 c = uv - vec2(0.03, 0.06);   // laranja no canto inferior esquerdo
+  vec2 e = uv - vec2(0.98, 0.04);   // âmbar no canto inferior direito
+  acc += vec3(1.00, 0.34, 0.60) * 0.50 * exp(-dot(a, a) * 14.0);
+  acc += vec3(1.00, 0.78, 0.36) * exp(-dot(b, b) * 20.0);
+  acc += vec3(1.00, 0.46, 0.14) * 0.85 * exp(-dot(c, c) * 16.0);
+  acc += vec3(1.00, 0.52, 0.16) * 0.90 * exp(-dot(e, e) * 18.0);
+  acc += vec3(1.00, 0.54, 0.20) * 0.42 * (1.0 - smoothstep(0.0, 0.52, uv.y));
+  return acc;
+}
+
+void main(){
+  vec2 d = vUv - uCenter;
+  float r = length(d * vec2(uAspect, 1.0));
+  // 0 no núcleo (nítido) → 1 na borda (giro máximo), com queda suave
+  float ramp = smoothstep(uCore, uCore + uCoreSoft, r);
+
+  vec3 col = vec3(0.0);
+  float ws = 0.0;
+  for (int i = 0; i < 64; i++) {
+    if (i >= uCount) break;
+    float t = uCount > 1 ? float(i) / float(uCount - 1) : 0.5;
+    float ang = uSweep * (t - 0.5) * ramp;
+    float cs = cos(ang), sn = sin(ang);
+    col += texture(uSrc, uCenter + mat2(cs, -sn, sn, cs) * d).rgb;
+    ws += 1.0;
+  }
+  vec3 base = col / max(ws, 1.0);
+
+  if (uChroma > 0.001) {                     // aberração só na zona girada
+    float ca = uChroma * 0.005 * ramp;
+    vec2 dr = normalize(d + vec2(1e-5));
+    base.r = mix(base.r, texture(uSrc, vUv + dr * ca).r, 0.7 * ramp);
+    base.b = mix(base.b, texture(uSrc, vUv - dr * ca).b, 0.7 * ramp);
+  }
+  if (uHaze > 0.001) {                       // brilho/haze nos médios
+    vec2 h = vec2(0.0035 * (1.0 + r * 5.0), 0.0035 * (1.0 + r * 5.0));
+    vec3 g = texture(uSrc, vUv + vec2(h.x, 0.0)).rgb + texture(uSrc, vUv - vec2(h.x, 0.0)).rgb
+           + texture(uSrc, vUv + vec2(0.0, h.y)).rgb + texture(uSrc, vUv - vec2(0.0, h.y)).rgb;
+    g *= 0.25;
+    base = mix(base, base * 0.55 + g * 0.80, uHaze * 0.6);
+  }
+
+  float edge = smoothstep(0.12, 0.95, r);
+  vec3 lk = eeLeaks(vUv) * uLeak * (0.22 + 0.78 * edge);
+  lk *= mix(vec3(1.00, 0.96, 0.88), vec3(1.10, 0.70, 0.52), uWarmth);   // temperatura
+
+  vec3 outc;
+  if (uBlend == 1) {
+    outc = base + lk;                                                   // Add
+  } else if (uBlend == 2) {
+    vec3 ov = mix(2.0 * base * lk, 1.0 - 2.0 * (1.0 - base) * (1.0 - lk), step(vec3(0.5), base));
+    outc = mix(base, ov, clamp(max(lk.r, max(lk.g, lk.b)), 0.0, 1.0));
+  } else {
+    outc = 1.0 - (1.0 - base) * (1.0 - clamp(lk, 0.0, 1.0));            // Screen
+  }
+
+  outc *= 1.0 - uVig * smoothstep(0.35, 1.05, r) * (0.55 + 0.45 * ramp);
+  outColor = vec4(clamp(outc, 0.0, 1.0), 1.0);
 }`,
 
   /* Spin Blur (standalone) · mixes the spin with the original by intensity. No screen. */
@@ -21727,6 +21823,26 @@ const RUN = {
     draw('spinMixFx', e, { uSpin: spin.tex, uOrig: a.tex }, { uMix: Number(p.intensity) / 100 });
     spin.busy = false;
     return mkRes(e);
+  },
+  /* Editor 3.0 — Spin Focus Light Leak: um passe (núcleo nítido, spin
+     crescente para a borda, leaks quentes, vignette). Export = preview. */
+  spinFocus: (n, [a]) => {
+    if (!a) return null;
+    const p = n.params;
+    return pointOp(a, 'spinFocus', {
+      uCenter: [Number(p.centerX) / 100, 1 - Number(p.centerY) / 100],
+      uAspect: a.w / a.h,
+      uCore: (Number(p.core) / 100) * 0.85,
+      uCoreSoft: Math.max(0.02, (Number(p.coreSoft) / 100) * 0.45),
+      uSweep: (Number(p.strength) / 100) * 55 * Math.PI / 180,
+      uCount: Math.min(64, Math.max(8, Math.round(Number(p.samples) || 32))),
+      uChroma: Number(p.chroma) / 100,
+      uHaze: Number(p.haze) / 100,
+      uLeak: Number(p.leak) / 100,
+      uWarmth: Number(p.warmth) / 100,
+      uVig: Number(p.vig) / 100,
+      uBlend: ({ screen: 0, add: 1, overlay: 2 })[p.blend] ?? 0,
+    });
   },
   transform: (n, [a]) => {
     if (!a) return null;
