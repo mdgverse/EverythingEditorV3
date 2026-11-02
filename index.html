@@ -182,8 +182,6 @@ circle.ziptie.sel{stroke:var(--text-strong);stroke-width:4}
 .recbtn.primary{background:var(--accent);border-color:var(--accent);color:var(--on-accent)}
 .recbtn.danger{background:#8a2c2c;border-color:#8a2c2c;color:#fff}
 .recbtn:disabled{opacity:.45;cursor:default}
-.recmsg{color:#9fd39f;font-size:12px;min-height:16px;margin-top:6px;word-break:break-all}
-#btnRec.recing{background:#b32626;border-color:#b32626;color:#fff;font-variant-numeric:tabular-nums}
 .numedit{position:absolute;inset:0;width:100%;height:100%;background:var(--panel3);border:1px solid var(--accent);color:var(--on-accent);text-align:center;font-size:11px;outline:none;padding:0;border-radius:3px}
 .prow{display:flex;align-items:center;gap:6px;min-height:19px}
 .plbl{width:78px;flex:none;font-size:11px;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -739,8 +737,6 @@ body.mobile .add-menu{box-shadow:0 -10px 28px rgba(0,0,0,.5)}
     <button class="tbtn" id="btnLoad" title="Load graph from file">Load graph</button>
     <span class="spacer"></span>
     <span id="status"></span>
-    <button class="tbtn" id="btnRec" title="Record a project timelapse">● Recording</button>
-    <button class="tbtn" id="btnRecPause" title="Pause or resume the recording. It stays paused when you come back to editing.">❚❚ Pause</button>
     <button class="tbtn accent" id="btnExport" title="Export the Output result">Export PNG</button>
   </header>
 <div class="brand-menu" id="brandMenu" role="menu" aria-hidden="true">
@@ -915,6 +911,7 @@ body.mobile .add-menu{box-shadow:0 -10px 28px rgba(0,0,0,.5)}
     <div class="ss-tabs" id="ssTabs">
       <button type="button" data-tab="social" class="on">Social media</button>
       <button type="button" data-tab="print">Print</button>
+      <button type="button" data-tab="cards">Trading cards</button>
       <button type="button" data-tab="custom">Custom</button>
     </div>
     <div class="ss-grid" id="ssGrid"></div>
@@ -2617,6 +2614,7 @@ const NODE_TYPES = {
       NUM('gAng', 'Angle (°)', 0, 360, 90),
       NUM('fw', 'Width (px)', 1, 8192, 1024),
       NUM('fh', 'Height (px)', 1, 8192, 1024),
+      NUM('cRad', 'Corner radius (px)', 0, 4096, 0, 1),
     ],
   },
   holo: {
@@ -3109,7 +3107,7 @@ const NODE_TYPES = {
     ],
   },
   lineweight: {
-    title: 'LINEweight', cat: 'style', inputs: ['Image', 'Path', 'Mask', 'Background'],
+    title: 'LINEweight', cat: 'style', inputs: ['Image', 'Mask', 'Background'],
     kw: 'lineweight line weight lines ruri lines stroke taper pressure calligraphy wave line pattern variable width swell background bg',
     params: [
       NUM('lines', 'Lines', 2, 400, 80),
@@ -3699,6 +3697,8 @@ const NODE_TYPES = {
       ENUM('glassTexInvert', 'Invert texture', [['no', 'No'], ['yes', 'Yes']], 'no'),
       NUM('glassTexScale', 'Texture scale', 10, 400, 100),
       NUM('glassTexSplit', 'Texture chromatic split', 0, 100, 18),
+      // Texture position: shifts where the linked texture is sampled (% of the frame; 0 = no shift)
+      NUM('glassTexX', 'Texture position X (%)', -100, 100, 0), NUM('glassTexY', 'Texture position Y (%)', -100, 100, 0),
       ENUM('shape', 'Window shape (window mode)', [['rounded', 'Rounded rectangle'], ['rect', 'Rectangle'], ['capsule', 'Capsule'], ['circle', 'Circle'], ['ellipse', 'Ellipse'], ['diamond', 'Diamond']], 'rounded'),
       NUM('x', 'Window X', -30, 130, 50), NUM('y', 'Window Y', -30, 130, 50),
       NUM('width', 'Window width', 4, 120, 54), NUM('height', 'Window height', 4, 120, 42),
@@ -4407,10 +4407,30 @@ const NODE_TYPES = {
     params: [{ type: 'text', key: 'text', label: 'Text', def: 'Your text', multiline: true },
       { type: 'blocos', key: 'blocks', label: 'Blocks (size per line)', def: [] },
       FONT('font', 'Font', 'sans-serif'),
-      ENUM('weight', 'Weight', [['300', 'Light'], ['400', 'Normal'], ['700', 'Bold'], ['900', 'Extra bold']], '700'),
+      ENUM('weight', 'Weight', [['100', 'Thin'], ['200', 'Extra light'], ['300', 'Light'], ['400', 'Normal'], ['500', 'Medium'], ['600', 'Semi bold'], ['700', 'Bold'], ['800', 'Extra bold'], ['900', 'Black']], '700'),
       ENUM('style', 'Style', [['normal', 'Normal'], ['italic', 'Italic']], 'normal'),
       NUM('size', 'Size (% of height)', 1, 100, 10),
-      ENUM('align', 'Alignment', [['left', 'Left'], ['center', 'Center'], ['right', 'Right']], 'center'),
+      NUM('sizePx', 'Size (px, 0 = use % above)', 0, 2000, 0),
+      ENUM('leadMode', 'Leading', [['auto', 'Auto (~118%)'], ['fixed', 'Fixed (px)']], 'auto'),
+      NUM('leadPx', 'Leading (px, fixed)', 1, 2000, 120),
+      NUM('tracking', 'Tracking (1/1000 em)', -200, 600, 0),
+      ENUM('caps', 'All caps', [['no', 'No'], ['yes', 'Yes']], 'no'),
+      ENUM('quality', 'Edge quality', [['standard', 'Standard'], ['high', 'High (2x supersample)']], 'high'),
+      ENUM('mode', 'Text mode', [['point', 'Point text'], ['paragraph', 'Paragraph (word wrap)']], 'point'),
+      NUM('boxW', 'Paragraph width (% of image)', 10, 100, 80),
+      ENUM('kerning', 'Kerning', [['auto', 'Auto (metric)'], ['none', 'Off']], 'auto'),
+      ENUM('smallCaps', 'Small caps', [['no', 'No'], ['yes', 'Yes']], 'no'),
+      ENUM('underline', 'Underline', [['no', 'No'], ['yes', 'Yes']], 'no'),
+      ENUM('strike', 'Strikethrough', [['no', 'No'], ['yes', 'Yes']], 'no'),
+      ENUM('strokePos', 'Outline position', [['outside', 'Outside (default)'], ['center', 'Centered']], 'outside'),
+      ENUM('fillMode', 'Fill', [['solid', 'Solid color'], ['gradient', 'Gradient']], 'solid'),
+      COL('gradColor', 'Gradient end color', '#3a6ea5'),
+      ENUM('shadow', 'Drop shadow', [['no', 'No'], ['yes', 'Yes']], 'no'),
+      COL('shadowColor', 'Shadow color', '#000000'),
+      NUM('shadowBlur', 'Shadow blur (% of size)', 0, 50, 4),
+      NUM('shadowX', 'Shadow X (% of size)', -50, 50, 3),
+      NUM('shadowY', 'Shadow Y (% of size)', -50, 50, 3),
+      ENUM('align', 'Alignment', [['left', 'Left'], ['center', 'Center'], ['right', 'Right'], ['justify', 'Justified']], 'center'),
       NUM('x', 'Position X (%)', 0, 100, 50), NUM('y', 'Position Y (%)', 0, 100, 85),
       NUM('rotation', 'Rotation (degrees)', -180, 180, 0),
       COL('color', 'Color', '#ffffff'),
@@ -6307,7 +6327,7 @@ void main(){
   fillGradFx: `
 uniform vec2 uA, uB, uSize;
 uniform vec3 uColA, uColB;
-uniform float uGrad;
+uniform float uGrad, uRad;
 void main(){
   vec2 pc = vec2(vUv.x, 1.0 - vUv.y) * uSize;
   vec2 a = uA * uSize, b = uB * uSize;
@@ -6319,7 +6339,15 @@ void main(){
   else if (ty == 2) t = fract((atan(pc.y - a.y, pc.x - a.x) - atan(ab.y, ab.x)) / 6.283185307);
   else t = clamp(dot(pc - a, ab) / L2, 0.0, 1.0);
   vec3 col = ty == 3 ? mix(uColB, uColA, 1.0 - abs(2.0 * t - 1.0)) : mix(uColA, uColB, t);
-  outColor = vec4(col, 1.0);
+  // rounded-corner mask (SDF of a rounded box, 1 px anti-alias); radius 0 = full coverage
+  float cov = 1.0;
+  if (uRad > 0.0) {
+    vec2 hs = uSize * 0.5;
+    vec2 q = abs(pc - hs) - (hs - vec2(uRad));
+    float d = length(max(q, 0.0)) + min(max(q.x, q.y), 0.0) - uRad;
+    cov = clamp(0.5 - d, 0.0, 1.0);
+  }
+  outColor = vec4(col, cov);
 }`,
 
   /* SpinHalftoneFX · passe 2 — retícula halftone CMYK (telas a
@@ -9968,6 +9996,7 @@ function fxFastDims(a) {
 // lands in one place in the preview (small canvas, raw parameter) and in another
 // in the export (full canvas), which is the "effect out of place" reported.
 const FX_PXKEYS = {
+  text: ['sizePx', 'leadPx'],
   dittherTexture: ['cell', 'drift', 'lineWeight'],
   linearHalftone: ['spacing', 'wave', 'waveScale'],
   invertGhost: ['patternSize', 'grainSize'],
@@ -10121,58 +10150,6 @@ function lwRender(src, W, H, p, maskCv, bgCv) {
   return out;
 }
 
-// LINEweight, path mode: tapered contour lines that follow a path (points in output pixels)
-function lwRenderPath(pts, closed, W, H, p, bgCv) {
-  const out = fx7NewCanvas(W, H), g = out.getContext('2d');
-  if (bgCv) g.drawImage(bgCv, 0, 0, W, H);   // Background socket: lines are drawn over it
-  const M = pts.length;
-  if (M < 2) return out;
-  const N = clamp(Math.round(Number(p.lines) || 80), 1, 400);
-  const minSide = Math.min(W, H);
-  const band = clamp(Number(p.waveAmp ?? 60), 0, 200) / 100 * minSide * 0.2;   // total width of the contour band
-  const spacing = N > 1 ? band / (N - 1) : 0;
-  const unit = N > 1 ? spacing : (band || minSide * 0.02);                  // single line: width unit
-  const base = clamp(Number(p.baseWeight ?? 100), 0, 400) / 100;
-  const pres = clamp(Number(p.pressure) || 1, 0.2, 4);
-  const st = clamp(Number(p.startWeight ?? 100), 0, 200) / 100;
-  const en = clamp(Number(p.endWeight ?? 100), 0, 200) / 100;
-  const belly = clamp(Number(p.belly) || 0, -100, 100) / 100;
-  const vari = clamp(Number(p.variation) || 0, 0, 100) / 100;
-  const seed = Math.round(Number(p.seed) || 0);
-  const alpha = clamp(Number(p.opacity ?? 100), 0, 100) / 100;
-  // normals from neighbouring points (wrap-around when closed)
-  const nx = new Float64Array(M), ny = new Float64Array(M);
-  for (let k = 0; k < M; k++) {
-    const a = pts[closed ? (k - 1 + M) % M : Math.max(0, k - 1)], b = pts[closed ? (k + 1) % M : Math.min(M - 1, k + 1)];
-    let tx = b.x - a.x, ty = b.y - a.y; const len = Math.hypot(tx, ty) || 1;
-    nx[k] = -ty / len; ny[k] = tx / len;
-  }
-  const path = new Path2D();
-  for (let i = 0; i < N; i++) {
-    const o = (i - (N - 1) / 2) * spacing;
-    const rnd = lwRand(seed * 7919 + i * 104729 + 1);
-    const ph1 = rnd() * Math.PI * 2, ph2 = rnd() * Math.PI * 2;
-    const f1 = 1 + Math.floor(rnd() * 3), f2 = 2 + Math.floor(rnd() * 5), jit = rnd() * 2 - 1;
-    const L = [], R = [];
-    for (let k = 0; k < M; k++) {
-      const t = closed ? k / M : k / (M - 1);
-      const tp = closed ? 1 : st + (en - st) * Math.pow(t, pres);       // start -> end taper (open paths)
-      const sw = 1 + belly * Math.sin(Math.PI * t);
-      const nz = Math.max(0, 1 + vari * (0.6 * Math.sin(f1 * t * Math.PI * 2 + ph1) + 0.4 * jit * Math.sin(f2 * t * Math.PI * 2 + ph2)));
-      const w = Math.max(0, base * unit * tp * Math.max(0, sw) * nz);
-      L.push([pts[k].x + nx[k] * (o + w / 2), pts[k].y + ny[k] * (o + w / 2)]);
-      R.push([pts[k].x + nx[k] * (o - w / 2), pts[k].y + ny[k] * (o - w / 2)]);
-    }
-    path.moveTo(L[0][0], L[0][1]);
-    for (let k = 1; k < M; k++) path.lineTo(L[k][0], L[k][1]);
-    for (let k = M - 1; k >= 0; k--) path.lineTo(R[k][0], R[k][1]);
-    path.closePath();
-  }
-  g.globalAlpha = alpha;
-  g.fillStyle = p.cor || '#000000';
-  g.fill(path, 'nonzero');
-  return out;
-}
 
 function fx7SrcCanvas(a) {
   const c = document.createElement('canvas');
@@ -11819,13 +11796,18 @@ function fx16GlassTex(G, W, H, p, tex) {
   if (amt <= 0 && split <= 0) return G;
   const sc = Math.max(0.1, Number(p.glassTexScale ?? 100) / 100);
   const tc = fx7NewCanvas(W, H), tx = tc.getContext('2d');
-  if (p.glassTexFit === 'tile') {
-    tx.setTransform(sc, 0, 0, sc, 0, 0);
+  // texture position: offset of the sampled map, in px (wraps around the edges)
+  const ox = Math.round((Number(p.glassTexX) || 0) / 100 * W), oy = Math.round((Number(p.glassTexY) || 0) / 100 * H);
+  if (p.glassTexFit === 'tile' || ox !== 0 || oy !== 0) {
+    const fit = p.glassTexFit === 'tile';
+    const sx = fit ? sc : W / tex.width, sy = fit ? sc : H / tex.height;
+    tx.setTransform(sx, 0, 0, sy, ox, oy);
     tx.fillStyle = tx.createPattern(tex, 'repeat');
-    tx.fillRect(0, 0, W / sc, H / sc);
+    const x0 = (-W - ox) / sx, y0 = (-H - oy) / sy, x1 = (2 * W - ox) / sx, y1 = (2 * H - oy) / sy;
+    tx.fillRect(x0, y0, x1 - x0, y1 - y0);
     tx.setTransform(1, 0, 0, 1, 0, 0);
   } else {
-    tx.drawImage(tex, 0, 0, W, H);
+    tx.drawImage(tex, 0, 0, W, H);   // unchanged path for existing projects (stretch, no offset)
   }
   const td = tx.getImageData(0, 0, W, H).data;
   const gctx = G.getContext('2d');
@@ -16233,42 +16215,9 @@ function runVetor(n) {
   const e = acquire(S, S);
   fx4WriteCanvas(e, cv);
   const r = mkRes(e);
-  r.vetOutline = vetOutlinePts(n, S);   // geometry for LINEweight's Path socket (same result object)
-  r.vetS = S;
   return r;
 }
 /* outline of the vector shape as a polyline in canvas pixels (S x S) */
-function vetOutlinePts(n, S) {
-  const cfg = vetCfg(n, S), out = [];
-  let fechado = true;
-  if (n.params.forma === 'elipse') {
-    for (let k = 0; k < 240; k++) {
-      const a = k / 240 * Math.PI * 2;
-      out.push(vetPontoCanvas(n, cfg, { x: 0.5 + 0.5 * Math.cos(a), y: 0.5 + 0.5 * Math.sin(a) }));
-    }
-  } else if (n.params.forma === 'path') {
-    const d = vetPathDe(n), pts = d.pontos;
-    fechado = !!d.fechado;
-    const seg = fechado ? pts.length : pts.length - 1;
-    for (let i = 0; i < seg; i++) {
-      const A = pts[i], B = pts[(i + 1) % pts.length];
-      const P0 = vetPontoCanvas(n, cfg, A), P3 = vetPontoCanvas(n, cfg, B);
-      const h2 = vetAlca(n, cfg, A.h2 || { x: 0, y: 0 }), h1 = vetAlca(n, cfg, B.h1 || { x: 0, y: 0 });
-      const P1 = { x: P0.x + h2.x, y: P0.y + h2.y }, P2 = { x: P3.x + h1.x, y: P3.y + h1.y };
-      for (let k = 0; k < 64; k++) {
-        const t = k / 64, m = 1 - t;
-        out.push({
-          x: m * m * m * P0.x + 3 * m * m * t * P1.x + 3 * m * t * t * P2.x + t * t * t * P3.x,
-          y: m * m * m * P0.y + 3 * m * m * t * P1.y + 3 * m * t * t * P2.y + t * t * t * P3.y,
-        });
-      }
-    }
-    if (!fechado) out.push(vetPontoCanvas(n, cfg, pts[pts.length - 1]));
-  } else {
-    for (const c of [{ x: 0, y: 0 }, { x: 1, y: 0 }, { x: 1, y: 1 }, { x: 0, y: 1 }]) out.push(vetPontoCanvas(n, cfg, c));
-  }
-  return { pts: out, closed: fechado };
-}
 /* converts the parametric shape into a free shape (when entering the pen or the nodes) */
 function vetConverteParaPath(n) {
   const p = n.params;
@@ -19433,7 +19382,35 @@ function fillCorMistura(c1, c2, t) {
   const a = p(c1), b = p(c2);
   return `rgb(${Math.round(a[0] + (b[0] - a[0]) * t)},${Math.round(a[1] + (b[1] - a[1]) * t)},${Math.round(a[2] + (b[2] - a[2]) * t)})`;
 }
+/* Corner radius of the Fill: 0 = sharp; clamped to half the shorter side */
+function fillRaioCanto(p, W, H) {
+  return Math.max(0, Math.min(Number(p.cRad) || 0, Math.min(W, H) / 2));
+}
+function fillCaminhoRet(g, x, y, w, h, r) {
+  g.beginPath();
+  if (r <= 0) { g.rect(x, y, w, h); return; }
+  g.moveTo(x + r, y);
+  g.arcTo(x + w, y, x + w, y + h, r);
+  g.arcTo(x + w, y + h, x, y + h, r);
+  g.arcTo(x, y + h, x, y, r);
+  g.arcTo(x, y, x + w, y, r);
+  g.closePath();
+}
 function fillDesenha(p, W, H) {
+  const c = fillDesenhaBase(p, W, H);
+  const rad = fillRaioCanto(p, W, H);
+  if (rad > 0) {
+    // anti-aliased rounded mask at the export size; the corners become transparent
+    const g = c.getContext('2d');
+    g.globalCompositeOperation = 'destination-in';
+    g.fillStyle = '#000';
+    fillCaminhoRet(g, 0, 0, W, H, rad);
+    g.fill();
+    g.globalCompositeOperation = 'source-over';
+  }
+  return c;
+}
+function fillDesenhaBase(p, W, H) {
   const c = document.createElement('canvas'); c.width = W; c.height = H;
   const g = c.getContext('2d');
   if (p.modo !== 'gradiente') {
@@ -19480,7 +19457,7 @@ function runFill(n) {
   const e = acquire(W, H);
   if (p.modo === 'gradiente') {
     fillSincAng(n, W, H);                       // Angle slider moved: turn the line around its middle
-    draw('fillGradFx', e, {}, fillUniforms(p, W, H));
+    draw('fillGradFx', e, {}, { ...fillUniforms(p, W, H), uRad: fillRaioCanto(p, W, H) });
   } else {
     fx4WriteCanvas(e, fillDesenha(p, W, H));
   }
@@ -21884,20 +21861,9 @@ const RUN = {
     });
     return mkRes(e);
   },
-  lineweight: (n, [a, pth, m, bg]) => {
+  lineweight: (n, [a, m, bg]) => {
     const p = n.params;
     const bgCv = bg ? fx7SrcCanvas(bg) : null;   // unwired: transparent output, as before
-    // Path socket wired to a Vector generator: tapered contour lines follow its outline
-    if (pth && pth.vetOutline) {
-      const { pts, closed } = pth.vetOutline, S = pth.vetS || 1;
-      const toOut = (W2, H2) => pts.map(q => ({ x: q.x * W2 / S, y: q.y * H2 / S }));   // vector space -> output pixels
-      if (!a) {
-        const e = acquire(S, S);
-        fx4WriteCanvas(e, lwRenderPath(toOut(S, S), closed, S, S, p, bgCv));
-        return mkRes(e);
-      }
-      return fx7Canvas(a, (s, W2, H2) => lwRenderPath(toOut(W2, H2), closed, W2, H2, p, bgCv));
-    }
     if (!a) return null;
     return fx7Canvas(a, (s, W2, H2) => lwRender(s, W2, H2, p, m ? fx7SrcCanvas(m) : null, bgCv));
   },
@@ -24006,7 +23972,7 @@ function layerBodyEl(n, i, render) {
 
 // Transform handles over the preview: on Layers they edit the chosen
 // layer; on any other node in preview, the node's transform (tf)
-var xfOv = null, xfFrame = null, xfDrag = null, xfLockBtn = null; // var: the boot calls drawPreview before this line
+var xfOv = null, xfFrame = null, xfDrag = null, xfLockBtn = null, xfGuideV = null, xfGuideH = null; // var: the boot calls drawPreview before this line
 function xfTfSet(n, ch, v) {          // handles write to tf (and to animVal of the channels without keys)
   if (!n.tf) n.tf = tlNewTf();
   n.tf[ch] = v;
@@ -24039,6 +24005,10 @@ function ensureXfOv() {
     if (pn2) { pn2.xfLock = !pn2.xfLock; xfLockBtn.classList.toggle('on', !!pn2.xfLock); }
   });
   xfOv.append(xfFrame, xfLockBtn);
+  xfGuideV = E('div', 'xf-guide'); xfGuideH = E('div', 'xf-guide');
+  xfGuideV.style.cssText = 'position:absolute;top:0;bottom:0;width:1px;background:#ff3d8b;pointer-events:none;display:none;z-index:4';
+  xfGuideH.style.cssText = 'position:absolute;left:0;right:0;height:1px;background:#ff3d8b;pointer-events:none;display:none;z-index:4';
+  xfOv.append(xfGuideV, xfGuideH);
   xfFrame.addEventListener('dblclick', () => {
     const g = xfFrame._geo;
     if (!g || g.mode !== 'node') return;
@@ -24053,6 +24023,70 @@ function ensureXfOv() {
   xfFrame.addEventListener('pointerup', onXfUp);
   xfFrame.addEventListener('pointercancel', onXfUp);
   return xfOv;
+}
+/* Visible box of a layer's source: bounding box of the pixels with alpha > 0,
+   in the source's own pixels. Cached per result object (read back only when the
+   source is evaluated again). Fully transparent source -> the whole image. */
+const layerBoxCache = new WeakMap();
+function layerVisibleBox(lr) {
+  const full = { x: 0, y: 0, w: lr.w, h: lr.h };
+  if (!lr || !lr.w || !lr.h) return full;
+  const c = layerBoxCache.get(lr);
+  if (c) return c;
+  let box = full;
+  try {
+    const d = readResult(lr).getContext('2d').getImageData(0, 0, lr.w, lr.h).data;
+    const u = new Uint32Array(d.buffer);          // little-endian: alpha is the top byte
+    let x0 = lr.w, y0 = lr.h, x1 = -1, y1 = -1;
+    for (let y = 0; y < lr.h; y++) {
+      const row = y * lr.w;
+      for (let x = 0; x < lr.w; x++) {
+        if ((u[row + x] >>> 24) !== 0) {
+          if (x < x0) x0 = x;
+          if (x > x1) x1 = x;
+          if (y < y0) y0 = y;
+          y1 = y;
+        }
+      }
+    }
+    if (x1 >= 0) box = { x: x0, y: y0, w: x1 - x0 + 1, h: y1 - y0 + 1 };
+  } catch (_) { box = full; }
+  layerBoxCache.set(lr, box);
+  return box;
+}
+/* screen offset (rotated) from the layer centre to the centre of its visible box */
+function layerCenterOffset(g, scale, scaleY) {
+  const sx = g.offX0 * (Number(scale) / 100) * g.s, sy = g.offY0 * ((Number(scaleY == null ? scale : scaleY)) / 100) * g.s;
+  const th = (Number(g.rot) || 0) * Math.PI / 180, c = Math.cos(th), sn = Math.sin(th);
+  return { x: sx * c - sy * sn, y: sx * sn + sy * c };
+}
+/* smart guides for a layer being moved: snaps the visible box centre/edges to the canvas
+   centre and edges (unrotated layers only); shows the guide lines while dragging */
+function layerSnap(P, g) {
+  if (xfGuideV) xfGuideV.style.display = 'none';
+  if (xfGuideH) xfGuideH.style.display = 'none';
+  if (Math.abs(g.rot || 0) > 0.01) return;
+  const T = 6;   // screen px
+  const cxNow = g.ox + P.x / 100 * g.dwc + g.rx, cyNow = g.oy + P.y / 100 * g.dhc + g.ry;
+  const pick = (vals, tgts) => {
+    let best = null;
+    for (const v of vals) for (const t of tgts) {
+      const dd = t - v;
+      if (Math.abs(dd) < T && (!best || Math.abs(dd) < Math.abs(best.d))) best = { d: dd, at: t };
+    }
+    return best;
+  };
+  const bx = pick([cxNow, cxNow - g.w / 2, cxNow + g.w / 2], [g.ox + g.dwc / 2, g.ox, g.ox + g.dwc]);
+  const by = pick([cyNow, cyNow - g.h / 2, cyNow + g.h / 2], [g.oy + g.dhc / 2, g.oy, g.oy + g.dhc]);
+  const par = glCanvas.parentElement.getBoundingClientRect();
+  if (bx) {
+    P.x += bx.d / g.dwc * 100;
+    if (xfGuideV) { xfGuideV.style.left = (bx.at - par.left) + 'px'; xfGuideV.style.display = ''; }
+  }
+  if (by) {
+    P.y += by.d / g.dhc * 100;
+    if (xfGuideH) { xfGuideH.style.top = (by.at - par.top) + 'px'; xfGuideH.style.display = ''; }
+  }
 }
 function updateXformOverlay(res) {
   const pn = previewNode();
@@ -24071,12 +24105,20 @@ function updateXformOverlay(res) {
     const P = layerList(pn)[sel];
     const cx = ox + P.x / 100 * dwc, cy = oy + P.y / 100 * dhc;
     const lwR = (lr.fw || lr.w) / (res.fw || res.w) * res.w, lhR = (lr.fh || lr.h) / (res.fh || res.h) * res.h;   // 2.9.52: layer size already in the preview space (full fraction)
-    const w = lwR * Number(P.scale) / 100 * s, h = lhR * Number(P.sy == null ? P.scale : P.sy) / 100 * s;
+    // the frame hugs the visible pixels (alpha > 0), not the whole source image
+    const bb = layerVisibleBox(lr);
+    const kR = lwR / lr.w, khR = lhR / lr.h;                    // preview px per source px
+    const bw = bb.w * kR, bh = bb.h * khR;
+    const scY = Number(P.sy == null ? P.scale : P.sy);
+    const w = bw * Number(P.scale) / 100 * s, h = bh * scY / 100 * s;
+    const gl0 = { offX0: (bb.x + bb.w / 2 - lr.w / 2) * kR, offY0: (bb.y + bb.h / 2 - lr.h / 2) * khR, s, rot: Number(P.rotation) || 0 };
+    const off = layerCenterOffset(gl0, P.scale, scY);
+    const fcx = cx + off.x, fcy = cy + off.y;                   // centre of the visible box (the layer centre is P.x/P.y)
     Object.assign(xfFrame.style, {
-      left: (cx - w / 2 - par.left) + 'px', top: (cy - h / 2 - par.top) + 'px',
+      left: (fcx - w / 2 - par.left) + 'px', top: (fcy - h / 2 - par.top) + 'px',
       width: w + 'px', height: h + 'px', transform: `rotate(${P.rotation}deg)`,
     });
-    xfFrame._geo = { mode: 'layer', cx, cy, dwc, dhc, node: pn.id, layer: sel, w, h, ox, oy, s, lw: lwR, lh: lhR, rot: Number(P.rotation) || 0 };
+    xfFrame._geo = { mode: 'layer', cx: fcx, cy: fcy, px: cx, py: cy, rx: off.x, ry: off.y, dwc, dhc, node: pn.id, layer: sel, w, h, ox, oy, s, lw: bw, lh: bh, rot: gl0.rot, offX0: gl0.offX0, offY0: gl0.offY0 };
     return;
   }
   // 2.9.45: any other node in preview — the frame edits the node's transform
@@ -24117,8 +24159,8 @@ function onXfDown(e) {
       sca: sca0, scay: tf['sca.y'] == null ? sca0 : (Number(tf['sca.y']) || sca0),
       rot: Number(tf['rot.z']) || 0,
     },
-    d0: Math.hypot(e.clientX - g.cx, e.clientY - g.cy) || 1,
-    a0: Math.atan2(e.clientY - g.cy, e.clientX - g.cx),
+    d0: Math.hypot(e.clientX - (g.px ?? g.cx), e.clientY - (g.py ?? g.cy)) || 1,
+    a0: Math.atan2(e.clientY - (g.py ?? g.cy), e.clientX - (g.px ?? g.cx)),
   };
   if (mode === 'scale') {
     // o canto oposto vira a âncora; o canto arrastado segue o ponteiro
@@ -24144,6 +24186,7 @@ function onXfMove(e) {
     } else {
       P.x = Math.min(300, Math.max(-200, d.x0 + (e.clientX - d.sx) / g.dwc * 100));
       P.y = Math.min(300, Math.max(-200, d.y0 + (e.clientY - d.sy) / g.dhc * 100));
+      layerSnap(P, g);
     }
   } else if (d.mode === 'scale') {
     // pointer in the anchor's frame, on the (rotated) axes of the element
@@ -24172,11 +24215,12 @@ function onXfMove(e) {
       P.sy = clampS(ly / (g.lh * g.s) * 100);
       lx = P.scale / 100 * (g.lw * g.s); ly = P.sy / 100 * (g.lh * g.s);
       const ncx = g.cx + cxl() * d.cos - cyl() * d.sin, ncy = g.cy + cxl() * d.sin + cyl() * d.cos;
-      P.x = Math.min(300, Math.max(-200, (ncx - g.ox) / g.dwc * 100));
-      P.y = Math.min(300, Math.max(-200, (ncy - g.oy) / g.dhc * 100));
+      const off = layerCenterOffset(g, P.scale, P.sy);
+      P.x = Math.min(300, Math.max(-200, ((ncx - off.x) - g.ox) / g.dwc * 100));
+      P.y = Math.min(300, Math.max(-200, ((ncy - off.y) - g.oy) / g.dhc * 100));
     }
   } else if (d.mode === 'rotate') {
-    const a = Math.atan2(e.clientY - g.cy, e.clientX - g.cx);
+    const a = Math.atan2(e.clientY - (g.py ?? g.cy), e.clientX - (g.px ?? g.cx));
     const dd = (a - d.a0) * 180 / Math.PI;
     let r = (((((node ? d.tf0.rot - dd : d.r0 + dd) + 180) % 360) + 360) % 360) - 180;
     r = Math.round(r * 10) / 10;
@@ -24188,6 +24232,8 @@ function onXfMove(e) {
 function onXfUp() {
   if (!xfDrag) return;
   xfDrag = null;
+  if (xfGuideV) xfGuideV.style.display = 'none';
+  if (xfGuideH) xfGuideH.style.display = 'none';
   commit();
 }
 
@@ -24616,7 +24662,8 @@ function glassKeysVisiveis(params, texLinked) {
   if (g.tint) { vis.add('tint'); vis.add('tintColor'); }
   for (const k of g.keys) vis.add(k);
   // Texture socket linked on Refraction: the texture is the pattern map, so the built-in type/pattern are hidden
-  if (texLinked && (p.glassMode || 'flutedPrism') === 'refractal') { vis.delete('direction'); vis.delete('pattern'); vis.add('texNote'); }
+  if (texLinked) { vis.add('texNote'); vis.add('glassTexX'); vis.add('glassTexY'); }   // the linked texture supplies the luminance driver in every mode; its position stays editable
+  if (texLinked && (p.glassMode || 'flutedPrism') === 'refractal') { vis.delete('direction'); vis.delete('pattern'); }
   if ((p.glassScope || 'full') === 'frame') for (const k of GLASS_JANELA) vis.add(k);
   return vis;
 }
@@ -24667,7 +24714,8 @@ function buildControls(n, body) {
     if (el) { el.dataset.pkey = p.key; body.append(el); }
   }
   if (n.type === 'glassStudio') {
-    const note = E('div', 'glass-tex-note', 'Refraction Map: Driven by Input Socket');
+    const note = E('div', 'glass-tex-note');
+    note.append(E('div', '', 'Refraction driven by Texture Luminance'), E('div', '', 'Refraction Map: Driven by Input Socket'));
     note.dataset.pkey = 'texNote';
     note.style.cssText = 'font-size:11px;color:var(--text-muted);padding:4px 6px;margin:2px 0;border:1px dashed var(--text-muted);border-radius:4px';
     const anchor = body.querySelector('[data-pkey="glassScope"]');   // right under Glass mode / Effect area
@@ -25010,31 +25058,155 @@ function textLineSpecs(p, count) {
   }
   return out;
 }
+/* word wrap for paragraph mode: greedy, by words, measured with the current font/spacing */
+function textWrapWords(g, ln, maxW) {
+  const words = ln.split(' ');
+  const out = [];
+  let cur = '';
+  for (const w of words) {
+    const cand = cur ? cur + ' ' + w : w;
+    if (cur && g.measureText(cand).width > maxW) { out.push(cur); cur = w; }
+    else cur = cand;
+  }
+  out.push(cur);
+  return out;
+}
+/* small caps: lowercase letters become capitals at 70% of the size */
+function textCapsRuns(t, px) {
+  const out = [];
+  let cur = null;
+  for (const ch of t) {
+    const small = ch !== ch.toUpperCase();
+    const piece = small ? ch.toUpperCase() : ch;
+    const size = small ? px * 0.7 : px;
+    if (cur && cur.px === size) cur.t += piece;
+    else { cur = { t: piece, px: size }; out.push(cur); }
+  }
+  return out;
+}
 function paintText(g, p, txt, W, H) {
-  const basePx = Math.max(1, H * Number(p.size || 10) / 100);
-  const lines = String(txt).split('\n');
-  const specs = textLineSpecs(p, lines.length);
-  const hs = lines.map((_, i) => basePx * specs[i].size / 100 * specs[i].line / 100);
-  const total = hs.reduce((s, v) => s + v, 0);
-  g.textAlign = p.align || 'center';
+  const basePx = Number(p.sizePx) > 0 ? Number(p.sizePx) : Math.max(1, H * Number(p.size || 10) / 100);
+  const track = Number(p.tracking) || 0;                        // 1/1000 em, applies to every line
+  const srcLines = String(p.caps === 'yes' ? txt.toUpperCase() : txt).split('\n');
+  const specs = textLineSpecs(p, srcLines.length);
+  const fixedLead = p.leadMode === 'fixed' ? Math.max(1, Number(p.leadPx) || basePx * 1.18) : 0;
+  const para = p.mode === 'paragraph';
+  const wrapW = para ? Math.max(1, W * Number(p.boxW ?? 80) / 100) : 0;
+  const smallCaps = p.smallCaps === 'yes';
+  const justify = para && p.align === 'justify';
+  const manual = para || smallCaps;
+  const align = p.align === 'justify' ? 'left' : (p.align || 'center');
+  const fontOf = px => `${p.style === 'italic' ? 'italic ' : ''}${p.weight || '700'} ${px}px ${textFamilyCss(p.font)}`;
+  const setSp = (pxs, spec, extraWord) => {
+    g.letterSpacing = (pxs * spec.ch / 100 + pxs * track / 1000) + 'px';
+    g.wordSpacing = (pxs * spec.wd / 100 + (extraWord || 0)) + 'px';
+  };
+  g.fontKerning = p.kerning === 'none' ? 'none' : 'auto';
   g.textBaseline = 'middle';
   g.lineJoin = 'round';
+
+  // 1. visual lines (paragraph mode wraps each source line to the box width)
+  const vis = [];
+  srcLines.forEach((ln, i) => {
+    const px = basePx * specs[i].size / 100;
+    const h = fixedLead || basePx * specs[i].size / 100 * specs[i].line / 100;
+    g.font = fontOf(px);
+    setSp(px, specs[i]);
+    const parts = para ? textWrapWords(g, ln, wrapW) : [ln];
+    parts.forEach((t, k) => vis.push({ t, px, h, spec: specs[i], last: k === parts.length - 1 }));
+  });
+  const total = vis.reduce((sum, v) => sum + v.h, 0);
+
+  // 2. placement, fill, shadow
   g.translate(W * Number(p.x ?? 50) / 100, H * Number(p.y ?? 85) / 100);
   g.rotate(Number(p.rotation || 0) * Math.PI / 180);
   g.globalAlpha = Math.max(0, Math.min(1, Number(p.opacity ?? 100) / 100));
-  g.fillStyle = p.color || '#ffffff';
-  let cy = -total / 2;
-  lines.forEach((ln, i) => {
-    const px = basePx * specs[i].size / 100;
-    g.font = `${p.style === 'italic' ? 'italic ' : ''}${p.weight || '700'} ${px}px ${textFamilyCss(p.font)}`;
-    g.letterSpacing = (px * specs[i].ch / 100) + 'px';
-    g.wordSpacing = (px * specs[i].wd / 100) + 'px';
-    const yMid = cy + hs[i] / 2;
+  const solid = p.color || '#ffffff';
+  if (p.fillMode === 'gradient') {
+    const gr = g.createLinearGradient(0, -total / 2, 0, total / 2);
+    gr.addColorStop(0, solid);
+    gr.addColorStop(1, p.gradColor || '#3a6ea5');
+    g.fillStyle = gr;
+  } else {
+    g.fillStyle = solid;
+  }
+  const shadowOn = p.shadow === 'yes';
+  const shadowSet = (px) => {
+    g.shadowColor = p.shadowColor || '#000000';
+    g.shadowBlur = px * Number(p.shadowBlur ?? 4) / 100;
+    g.shadowOffsetX = px * Number(p.shadowX ?? 3) / 100;
+    g.shadowOffsetY = px * Number(p.shadowY ?? 3) / 100;
+  };
+  const shadowOff = () => { g.shadowColor = 'rgba(0,0,0,0)'; };
+  const centred = p.strokePos === 'center';
+  // one run of text: stroke and fill; the first drawn op of the line carries the shadow
+  const drawRun = (t, x, yMid, px, first) => {
     const sw = px * Number(p.stroke || 0) / 100;
-    if (sw > 0) { g.strokeStyle = p.strokeColor || '#000000'; g.lineWidth = sw * 2; g.strokeText(ln, 0, yMid); }
-    g.fillText(ln, 0, yMid);
-    cy += hs[i];
-  });
+    const order = sw > 0 ? (centred ? ['fill', 'stroke'] : ['stroke', 'fill']) : ['fill'];
+    order.forEach((op, k) => {
+      if (first && k === 0 && shadowOn) shadowSet(px);
+      if (op === 'stroke') { g.strokeStyle = p.strokeColor || '#000000'; g.lineWidth = sw * 2; g.strokeText(t, x, yMid); }
+      else g.fillText(t, x, yMid);
+      if (first && k === 0 && shadowOn) shadowOff();
+    });
+  };
+
+  // 3. draw
+  let cy = -total / 2;
+  for (const v of vis) {
+    const yMid = cy + v.h / 2;
+    const px = v.px;
+    const decor = p.underline === 'yes' || p.strike === 'yes';
+    if (!manual) {
+      // same path as before (legacy look): alignment by the canvas
+      g.font = fontOf(px);
+      setSp(px, v.spec);
+      g.textAlign = align;
+      drawRun(v.t, 0, yMid, px, true);
+      if (decor) {
+        const lw = g.measureText(v.t).width;
+        const x0 = align === 'right' ? -lw : align === 'center' ? -lw / 2 : 0;
+        if (p.underline === 'yes') g.fillRect(x0, yMid + px * 0.42, lw, Math.max(1, px * 0.06));
+        if (p.strike === 'yes') g.fillRect(x0, yMid - px * 0.12, lw, Math.max(1, px * 0.06));
+      }
+      cy += v.h;
+      continue;
+    }
+    // manual layout: paragraph boxes and small caps
+    const segs = smallCaps ? textCapsRuns(v.t, px) : [{ t: v.t, px }];
+    const count = (v.t.match(/ /g) || []).length;
+    const measure = (extra) => {
+      let sum = 0;
+      for (const sg of segs) { g.font = fontOf(sg.px); setSp(sg.px, v.spec, extra * sg.px / px); sg.w = g.measureText(sg.t).width; sum += sg.w; }
+      return sum;
+    };
+    let sum = measure(0);
+    const extra = justify && !v.last && count > 0 ? Math.max(0, (wrapW - sum) / count) : 0;
+    if (extra) sum = measure(extra);
+    let x0;
+    if (para) x0 = align === 'right' ? wrapW / 2 - sum : align === 'center' ? -sum / 2 : -wrapW / 2;
+    else x0 = align === 'right' ? -sum : align === 'center' ? -sum / 2 : 0;
+    let x = x0;
+    segs.forEach((sg, si) => {
+      g.font = fontOf(sg.px);
+      setSp(sg.px, v.spec, extra * sg.px / px);
+      g.textAlign = 'left';
+      drawRun(sg.t, x, yMid, sg.px, si === 0);
+      x += sg.w;
+    });
+    if (decor) {
+      if (p.underline === 'yes') g.fillRect(x0, yMid + px * 0.42, sum, Math.max(1, px * 0.06));
+      if (p.strike === 'yes') g.fillRect(x0, yMid - px * 0.12, sum, Math.max(1, px * 0.06));
+    }
+    cy += v.h;
+  }
+  if (shadowOn) shadowOff();
+}
+function paintTextQ(g, p, txt, W, H) {
+  if (p.quality !== 'high' || Math.max(W, H) > 2048) return paintText(g, p, txt, W, H);
+  const T = fx7NewCanvas(W * 2, H * 2);                         // 2x supersample: smoother glyph edges
+  paintText(T.getContext('2d'), p, txt, W * 2, H * 2);
+  g.drawImage(T, 0, 0, W, H);
 }
 function drawTextNode(n, a) {
   textEnsureFont(n);
@@ -25044,7 +25216,7 @@ function drawTextNode(n, a) {
     // 2.9.31: free text — with no image wired, the text is born on its own on a transparent frame
     const S = Math.max(64, Math.min(2048, Number(p.resLivre) || 1024));
     const cv = fx7NewCanvas(S, S);
-    if (txt.trim()) paintText(cv.getContext('2d'), p, txt, S, S);
+    if (txt.trim()) paintTextQ(cv.getContext('2d'), p, txt, S, S);
     const e = acquire(S, S);
     fx4WriteCanvas(e, cv);
     return mkRes(e);
@@ -25054,7 +25226,7 @@ function drawTextNode(n, a) {
     const cv = fx7NewCanvas(W, H);
     const g = cv.getContext('2d');
     g.drawImage(s, 0, 0);
-    paintText(g, p, txt, W, H);
+    paintTextQ(g, p, txt, W, H);
     return cv;
   });
 }
@@ -28555,7 +28727,10 @@ function restoreGraph(data) {
   for (const n of nodes.values()) { releaseNode(n); if (n.el) n.el.remove(); }
   nodes.clear();
   selected.clear();
-  links = (data.links || []).map(linkFromData);
+  // LINEweight lost its Path socket: drop old Path links, shift Mask/Background down
+  const lwIds = new Set((data.nodes || []).filter(nd => nd.type === 'lineweight').map(nd => nd.id));
+  const rawLinks = (data.links || []).filter(l => !(lwIds.has(l.to) && l.input === 1)).map(l => (lwIds.has(l.to) && l.input >= 2) ? Object.assign({}, l, { input: l.input - 1 }) : l);
+  links = rawLinks.map(linkFromData);
   previewId = data.previewId ?? null;
   for (const nd of data.nodes || []) {
     if (nd.type === 'halftone') nd.type = 'halfmode';   // 2.9.57: old name of HalfMode
@@ -28623,522 +28798,10 @@ function downloadBlob(blob, name) {
   setTimeout(() => URL.revokeObjectURL(a.href), 4000);
 }
 
-/* ===================================================================
-   Recording a project (timelapse): automatic.
-   While the editor is open, it records a frame at each interval
-   (only when the image changes). On the Recording tab you pause, choose the
-   velocidade e exporta. O vídeo nunca passa de 3 minutos.
-   =================================================================== */
-const REC_MAX_SECS = 180;                  // maximum length of the exported timelapse
-const REC_MAX_SPEED = 1000;                // velocidade máxima
-const REC_PV_MAX = 1920;                    // preview frame (Full HD)
-const REC_UI_MAX = 1920;                    // interface frame (Full HD, longer side)
-const REC_HD_W = 1920, REC_HD_H = 1080;     // MP4 output: 1080p HD
-const REC_MAX_BYTES = 300 * 1024 * 1024;   // above this the frames are halved
+const REC_HD_W = 1920, REC_HD_H = 1080;     // MP4 output size (Render: 1080p default)
 const REC_GIF_MAX = 300;                   // GIF frames
-const REC_UI_EVERY = 4;                    // whole interface only every N frames (it is the costly capture)
-const REC_UI_MIN_MS = 2000;                 // ... and at most once every 2 s (ultra-fine intervals)
-const recS = { pid: null, frames: [], bytes: 0, on: false, manual: false, nextId: 1, acc: 0, resumeAt: 0, base: 1000, level: 0, timer: 0, nextDue: 0, busy: false, lastSig: '', uiSeq: 0, lastUiAt: -1e9 };
-let recUI = null;
-let recExporting = false;
-let recLastAct = 0;   // last interaction: capture waits for the pause instead of freezing the drag
-addEventListener('pointerdown', () => { recLastAct = Date.now(); }, true);
-addEventListener('pointermove', e => { if (e.buttons) recLastAct = Date.now(); }, true);
-addEventListener('keydown', () => { recLastAct = Date.now(); }, true);
-addEventListener('wheel', () => { recLastAct = Date.now(); }, { capture: true, passive: true });
-
-function recInterval() { return Math.min(60000, recS.base * Math.pow(2, recS.level)); }
-// active recording time (pauses do not go into the video)
-function recActiveMs() { return recS.acc + (recS.on ? Date.now() - recS.resumeAt : 0); }
-function recMinSpeed(totalMs) { return Math.max(0.01, Math.ceil(totalMs / (REC_MAX_SECS * 1000) * 100) / 100); }
-function recStartScreenOpen() {
-  const s = document.getElementById('ssScr');
-  if (!s) return false;
-  const cs = getComputedStyle(s);
-  return cs.display !== 'none' && cs.visibility !== 'hidden' && s.getBoundingClientRect().width > 0;
-}
-// small signature of the image: detects whether the screen changed since the last frame
-const recSigCv = document.createElement('canvas'); recSigCv.width = 32; recSigCv.height = 20;
-const recSigCtx = recSigCv.getContext('2d', { willReadFrequently: true });
-function recSignature(cv) {
-  const c = recSigCtx;
-  c.drawImage(cv, 0, 0, 32, 20);
-  const d = c.getImageData(0, 0, 32, 20).data;
-  let h1 = 2166136261, h2 = 424243;
-  for (let i = 0; i < d.length; i += 4) {
-    h1 = Math.imul(h1 ^ d[i], 16777619);
-    h1 = Math.imul(h1 ^ d[i + 1], 16777619);
-    h2 = (Math.imul(h2, 31) + d[i + 2]) | 0;
-  }
-  return (h1 >>> 0).toString(36) + ':' + (h2 >>> 0).toString(36);
-}
-
-async function recTick() {
-  if (!recS.on || recS.busy) return;
-  if (recUI && !recUI.ov.hidden) return;     // panel open: does not record the panel
-  if (recStartScreenOpen()) return;          // start screen: does not record
-  if (!ssCurId || ssCurId !== recS.pid || recSwitching) return;   // project switch in progress
-  if (recS.frames.length && Date.now() - recLastAct < 300) return;   // dragging/typing: waits for the pause (does not freeze)
-  recS.busy = true;
-  const pid = recS.pid;
-  const jogando = !!TL.playing;            // playback: does not capture the interface (avoids freezing the play)
-  try {
-    // the whole interface (DOM + SVG clone) is the costly part: only every REC_UI_EVERY frames
-    const uiDue = !jogando && recS.uiSeq % REC_UI_EVERY === 0 && recActiveMs() - recS.lastUiAt >= REC_UI_MIN_MS;
-    const prv = recPreviewFrame(jogando, uiDue);
-    if (!prv.cv) return;
-    const sig = recSignature(prv.cv);
-    if (sig === recS.lastSig) return;        // nada mudou: o quadro anterior continua valendo
-    recS.lastSig = sig;
-    recS.uiSeq++;
-    const uiCv = uiDue ? await recUIFrame(prv.gl) : null;
-    if (pid !== recS.pid) return;            // switched project during the capture
-    const pv = await recCanvasBlob(prv.cv);
-    const ui = jogando ? pv : (uiCv ? await recCanvasBlob(uiCv) : null);
-    if (pid !== recS.pid) return;            // switched project during the capture
-    const f = { id: recS.nextId++, pid, t: recActiveMs(), ui, pv,
-                bytes: (jogando ? 0 : (ui ? ui.size : 0)) + (pv ? pv.size : 0) };
-    recS.frames.push(f); recS.bytes += f.bytes;
-    if (ui) recS.lastUiAt = f.t;
-    recSaveFrame(f); recSaveMeta();
-    if (recS.bytes > REC_MAX_BYTES && recS.frames.length > 2) recThin();
-  } catch (e) {
-    console.warn('recording frame failed', e);
-    setStatus('Failed to capture a recording frame.', true);
-  } finally { recS.busy = false; recUpdateUI(); }
-}
-
-// schedules by the clock: the capture time does not stretch the interval
-function recSchedule() {
-  if (!recS.on) return;
-  const delay = Math.max(0, recS.nextDue - Date.now());
-  recS.timer = setTimeout(async () => {
-    recS.nextDue += recInterval();
-    if (recS.nextDue < Date.now() - recInterval()) recS.nextDue = Date.now() + recInterval();   // fell too far behind (hidden tab)
-    await recTick();
-    recSchedule();
-  }, delay);
-}
-
-// memory full: keeps one frame in two and doubles the interval (still covers the whole time)
-function recThin() {
-  const n = recS.frames.length;
-  const gone = recS.frames.filter((f, i) => !(i % 2 === 0 || i === n - 1)).map(f => f.id);
-  recS.frames = recS.frames.filter((f, i) => i % 2 === 0 || i === n - 1);
-  recS.bytes = recS.frames.reduce((s, f) => s + f.bytes, 0);
-  recS.level = Math.min(recS.level + 1, 10);
-  recDeleteFrames(recS.pid, gone); recSaveMeta();
-}
-
-function recResume() {
-  if (recS.on || recExporting) return;
-  recS.manual = false;
-  recS.on = true; recS.resumeAt = Date.now();
-  recS.nextDue = Date.now() + 60;
-  recSchedule(); recUpdateUI();
-}
-// manual = true when the user clicks "Stop recording" (stays paused on return)
-function recPause(manual = false) {
-  if (!recS.on) { if (manual) { recS.manual = true; recSaveMeta(); } return; }
-  recS.acc += Date.now() - recS.resumeAt;
-  recS.on = false; recS.manual = manual; clearTimeout(recS.timer);
-  recSaveMeta(); recUpdateUI();
-}
-// discards the frames; keeps recording if it was recording, or stays paused
-function recDiscard() {
-  recS.frames = []; recS.bytes = 0; recS.acc = 0; recS.level = 0; recS.lastSig = ''; recS.uiSeq = 0; recS.lastUiAt = -1e9;
-  if (recS.on) recS.resumeAt = Date.now();
-  recDbClear(recS.pid); recSaveMeta(); recUpdateUI();
-}
-// Start: pauses itself (not a manual pause); when a project opens it records again, if it was not paused by hand
-function recSyncHome() {
-  if (recSwitching) return;
-  const home = recStartScreenOpen();
-  if (home && recS.on) recPause(false);
-  else if (!home && !recS.on && !recS.manual && !recExporting && !(recUI && !recUI.ov.hidden)) recResume();
-}
-// repeat: deletes the current recording and starts another now
-function recRestart() {
-  recDiscard();
-  recS.manual = false;
-  if (!recStartScreenOpen()) recResume();
-  recSaveMeta(); recUpdateUI();
-}
-
-/* ---------- One recording per project, stored in the browser (IndexedDB) ---------- */
-const REC_DB = 'ee-rec2';
-let recDbP = null, recSwitching = false;
-function recDb() {
-  if (!recDbP) recDbP = new Promise((res, rej) => {
-    if (!self.indexedDB) { rej(new Error('no IndexedDB')); return; }
-    const r = indexedDB.open(REC_DB, 1);
-    r.onupgradeneeded = () => {
-      const db = r.result;
-      db.createObjectStore('frames', { keyPath: 'key' }).createIndex('pid', 'pid');
-      db.createObjectStore('meta');
-    };
-    r.onsuccess = () => res(r.result);
-    r.onerror = () => rej(r.error);
-  });
-  return recDbP;
-}
-// one transaction; work(tx, set) can return a result via set(value)
-function recDbTx(stores, mode, work) {
-  return recDb().then(db => new Promise((res, rej) => {
-    const tx = db.transaction(stores, mode);
-    let out;
-    work(tx, v => { out = v; });
-    tx.oncomplete = () => res(out);
-    tx.onerror = () => rej(tx.error);
-    tx.onabort = () => rej(tx.error);
-  }));
-}
-function recDbFail(e) { console.warn('recording was not saved in the browser', e); }
-function recSaveFrame(f) {
-  recDbTx(['frames'], 'readwrite', tx => { tx.objectStore('frames').put({ key: f.pid + '#' + f.id, pid: f.pid, id: f.id, t: f.t, ui: f.ui, pv: f.pv, bytes: f.bytes }); }).catch(recDbFail);
-}
-function recDeleteFrames(pid, ids) {
-  if (!pid || !ids.length) return;
-  recDbTx(['frames'], 'readwrite', tx => { const st = tx.objectStore('frames'); for (const id of ids) st.delete(pid + '#' + id); }).catch(recDbFail);
-}
-// deletes all the frames of a project
-function recDbClear(pid) {
-  if (!pid) return;
-  recDbTx(['frames'], 'readwrite', tx => {
-    const r = tx.objectStore('frames').index('pid').openCursor(IDBKeyRange.only(pid));
-    r.onsuccess = () => { const c = r.result; if (c) { c.delete(); c.continue(); } };
-  }).catch(recDbFail);
-}
-function recSaveMeta() {
-  if (!recS.pid || recSwitching) return;
-  const pid = recS.pid;
-  const m = { acc: recActiveMs(), level: recS.level, manual: recS.manual, nextId: recS.nextId };
-  recDbTx(['meta'], 'readwrite', tx => { tx.objectStore('meta').put(m, 'state:' + pid); }).catch(recDbFail);
-}
-// reads the saved recording of a project
-async function recDbLoad(pid) {
-  const meta = await recDbTx(['meta'], 'readonly', (tx, set) => { const r = tx.objectStore('meta').get('state:' + pid); r.onsuccess = () => set(r.result); });
-  const frames = await recDbTx(['frames'], 'readonly', (tx, set) => { const r = tx.objectStore('frames').index('pid').getAll(IDBKeyRange.only(pid)); r.onsuccess = () => set(r.result); });
-  return { meta, frames: (frames || []).sort((x, y) => x.id - y.id) };
-}
-// each project has its own recording: switching project saves the current one and loads the new one
-function recSyncProject() {
-  const pid = ssCurId || null;
-  if (!pid || pid === recS.pid) return;
-  if (recS.on) recPause(false);          // records the time up to here, in the previous project
-  recSaveMeta();
-  recSwitching = true;
-  Object.assign(recS, { pid, frames: [], bytes: 0, acc: 0, level: 0, nextId: 1, manual: false, lastSig: '', uiSeq: 0, lastUiAt: -1e9 });
-  recUpdateUI();
-  recDbLoad(pid).then(({ meta, frames }) => {
-    if (recS.pid !== pid) return;        // switched again while loading
-    if (meta) { recS.acc = meta.acc || 0; recS.level = meta.level || 0; recS.manual = !!meta.manual; recS.nextId = meta.nextId || 1; }
-    recS.frames = frames;
-    if (frames.length) recS.nextId = Math.max(recS.nextId, frames[frames.length - 1].id + 1);
-    recS.bytes = frames.reduce((t, f) => t + (f.bytes || 0), 0);
-  }).catch(recDbFail).finally(() => {
-    if (recS.pid === pid) { recSwitching = false; recSyncHome(); recUpdateUI(); }
-  });
-}
-
-function recUpdateUI() {
-  const b = document.getElementById('btnRec');
-  if (!b) return;
-  b.textContent = (recS.on ? '● ' : '❚❚ ') + recFmt(recActiveMs());
-  b.classList.toggle('recing', recS.on);
-  b.title = recS.on ? 'Automatic recording. Click to stop and export.' : 'Recording paused. Click to export.';
-  const pb = document.getElementById('btnRecPause');
-  if (pb) { pb.textContent = recS.on ? '❚❚ Pause' : '▶ Resume'; pb.classList.toggle('accent', !recS.on); }
-}
-
-/* ---------- Diálogo ---------- */
-function recBuildDialog() {
-  const ov = recH('div', { id: 'recov', className: 'recov' });
-  ov.hidden = true;
-  const panel = recH('div', { className: 'recpanel' });
-  const closeBtn = recH('button', { className: 'recx', textContent: '✕', title: 'Close' });
-  const stat = recH('div', { className: 'recstat' });
-  const pauseBtn = recH('button', { className: 'recbtn primary' });
-  const discardBtn = recH('button', { className: 'recbtn', textContent: 'Discard recording' });
-  const repeatBtn = recH('button', { className: 'recbtn', textContent: 'Repeat recording', title: 'Deletes the current recording and starts a new one' });
-  const ivSel = recH('select', {}, recOpt(50, '0,05 s'), recOpt(100, '0,1 s'), recOpt(250, '0,25 s'), recOpt(500, '0.5 s'), recOpt(1000, '1 s', true), recOpt(2000, '2 s'));
-  const spIn = recH('input', { type: 'number', min: 0.01, max: REC_MAX_SPEED, step: 0.01, value: 1 });
-  const hint = recH('div', { className: 'rechint' });
-  const fmtSel = recH('select', {}, recOpt('mp4', 'MP4 (1080p video)', true), recOpt('gif', 'GIF (animated)'));
-  const srcSel = recH('select', {}, recOpt('pv', 'Preview video only', true), recOpt('ui', 'Whole editor screen'));
-  const expBtn = recH('button', { className: 'recbtn primary', textContent: 'Export' });
-  // replay: plays back the saved frames of the project, at the speed chosen below
-  const rpSrc = recH('select', {}, recOpt('ui', 'Whole editor screen', true), recOpt('pv', 'Preview video only'));
-  const rpCv = recH('canvas', { width: 960, height: 540 });
-  rpCv.style.cssText = 'width:100%;aspect-ratio:16/9;background:#111;border:1px solid #333;border-radius:4px;display:block;margin:4px 0;';
-  const rpPlay = recH('button', { className: 'recbtn primary', textContent: '▶ Play' });
-  const rpTime = recH('span', { textContent: '00:00 / 00:00' });
-  rpTime.style.cssText = 'font-variant-numeric:tabular-nums;font-size:12px;color:#9a9a9a;';
-  const rpSeek = recH('input', { type: 'range', min: 0, max: 1000, step: 1, value: 0 });
-  rpSeek.style.cssText = 'width:100%;margin:4px 0;';
-  const rpEmpty = recH('div', { className: 'recsub', textContent: 'Record something to see the replay.' });
-  const msg = recH('div', { className: 'recmsg' });
-  const row = (label, ...c) => recH('label', { className: 'recrow' }, recH('span', { className: 'reclbl', textContent: label }), ...c);
-  panel.append(
-    closeBtn,
-    recH('div', { className: 'rectitle', textContent: 'Project recording' }),
-    recH('div', { className: 'recsub', textContent: 'Automatic recording while the editor is open. Stop here to choose the speed and export.' }),
-    stat,
-    recH('div', { className: 'recrow' }, pauseBtn, discardBtn, repeatBtn),
-    recH('div', { className: 'recsec' },
-      recH('div', { className: 'recsub', textContent: 'Project replay: plays the recording at the speed chosen below.' }),
-      row('Replay source', rpSrc),
-      rpCv,
-      recH('div', { className: 'recrow' }, rpPlay, rpTime),
-      rpSeek,
-      rpEmpty),
-    row('Interval between frames', ivSel),
-    recH('div', { className: 'recsec' },
-      row('Speed (x)', spIn),
-      hint,
-      row('Format', fmtSel),
-      row('Source', srcSel),
-      recH('div', { className: 'recrow' }, expBtn),
-      msg),
-  );
-  ov.append(panel);
-  document.body.append(ov);
-
-  const refresh = () => {
-    const total = recActiveMs();
-    const minSp = recMinSpeed(total);
-    const n = recS.frames.length;
-    stat.replaceChildren(
-      recH('span', { textContent: (recS.on ? 'Recording' : (n ? 'Paused' : 'Stopped')) + ' · ' + recFmt(total) }),
-      recH('span', { textContent: ' · ' + n + ' frames' }));
-    pauseBtn.textContent = recS.on ? 'Stop recording' : 'Resume recording';
-    pauseBtn.className = 'recbtn ' + (recS.on ? 'danger' : 'primary');
-    pauseBtn.disabled = recExporting;
-    discardBtn.disabled = recExporting || !n;
-    repeatBtn.disabled = recExporting;
-    if (ivSel.value !== String(recS.base)) ivSel.value = String(recS.base);
-    spIn.min = minSp;
-    if (document.activeElement !== spIn && !(Number(spIn.value) >= minSp)) spIn.value = minSp;   // lock: does not let it pass
-    const sp = Number(spIn.value) || minSp;
-    hint.textContent = n
-      ? 'Video duration: ' + recFmt(total / sp) + ' · minimum speed ' + minSp.toFixed(2).replace('.', ',') + '× (vídeo de até 3 min)'
-      : 'Record something before exporting.';
-    expBtn.disabled = recS.on || !n || recExporting;
-    rpEmpty.hidden = n > 0;
-    rpSync(); rpShow(); rpUI();
-  };
-  const setMsg = t => { msg.textContent = t; };
-
-  /* ---------- Replay ---------- */
-  const RP = { items: [], starts: [], dur: 0, pos: 0, playing: false, last: 0, shown: -1, token: 0, key: '' };
-  const rpCtx = rpCv.getContext('2d');
-  const rpSpeed = () => Math.max(recMinSpeed(recActiveMs()), Number(spIn.value) || 1);
-  // builds the timeline with the current source and speed; keeps the relative position
-  function rpBuild() {
-    const snap = recS.frames.slice();
-    const items = snap.length ? recTimelineItems(snap, recActiveMs(), rpSrc.value, rpSpeed()) : [];
-    const starts = []; let t = 0;
-    for (const it of items) { starts.push(t); t += it.dur; }
-    const frac = RP.dur ? RP.pos / RP.dur : 0;
-    Object.assign(RP, { items, starts, dur: t, pos: frac * t, shown: -1 });
-  }
-  // rebuilds when the source/speed change, or when frames arrive (with the replay stopped)
-  function rpSync() {
-    const key = rpSrc.value + '|' + rpSpeed() + (RP.playing ? '' : '|' + recS.frames.length);
-    if (key !== RP.key) { RP.key = key; rpBuild(); }
-  }
-  // draws the frame at the current position
-  function rpShow() {
-    if (!RP.items.length) { rpCtx.fillStyle = '#111'; rpCtx.fillRect(0, 0, rpCv.width, rpCv.height); RP.shown = -1; return; }
-    let i = 0;
-    while (i + 1 < RP.starts.length && RP.starts[i + 1] <= RP.pos) i++;
-    if (i === RP.shown) return;
-    RP.shown = i;
-    const tok = ++RP.token;
-    createImageBitmap(RP.items[i].blob).then(bmp => {
-      if (tok !== RP.token) { bmp.close(); return; }
-      recDrawFit(rpCtx, bmp, rpCv.width, rpCv.height); bmp.close();
-    }).catch(() => {});
-  }
-  function rpUI() {
-    rpSeek.value = RP.dur ? Math.round(RP.pos / RP.dur * 1000) : 0;
-    rpTime.textContent = recFmt(RP.pos * 1000) + ' / ' + recFmt(RP.dur * 1000);
-    rpPlay.textContent = RP.playing ? '❚❚ Pause' : '▶ Play';
-    rpPlay.disabled = !RP.items.length;
-  }
-  function rpLoop(now) {
-    if (!RP.playing) return;
-    if (recUI && recUI.ov.hidden) { RP.playing = false; rpUI(); return; }   // panel closed: stops
-    RP.pos += (now - RP.last) / 1000; RP.last = now;
-    if (RP.pos >= RP.dur) { RP.pos = RP.dur; RP.playing = false; }
-    rpShow(); rpUI();
-    if (RP.playing) requestAnimationFrame(rpLoop);
-  }
-  rpPlay.addEventListener('click', () => {
-    if (RP.playing) { RP.playing = false; rpUI(); return; }
-    if (!RP.items.length) return;
-    if (RP.pos >= RP.dur) RP.pos = 0;
-    RP.playing = true; RP.last = performance.now();
-    requestAnimationFrame(rpLoop); rpUI();
-  });
-  rpSeek.addEventListener('input', () => { RP.pos = RP.dur * Number(rpSeek.value) / 1000; rpShow(); rpUI(); });
-  rpSrc.addEventListener('change', () => { RP.key = ''; rpSync(); rpShow(); rpUI(); });
-
-  // resuming closes the tab: recording counts again only after it is closed (no stopped time in the replay)
-pauseBtn.addEventListener('click', () => { if (recS.on) { recPause(true); refresh(); } else { recResume(); ov.hidden = true; } });
-  discardBtn.addEventListener('click', () => { recDiscard(); setMsg(''); refresh(); });
-  repeatBtn.addEventListener('click', () => { recRestart(); ov.hidden = true; setMsg(''); refresh(); });
-  ivSel.addEventListener('change', () => {
-    recS.base = Number(ivSel.value); recSaveMeta();
-    if (recS.on) { clearTimeout(recS.timer); recS.nextDue = Date.now() + 50; recSchedule(); }
-  });
-  const clampSpeed = () => { const minSp = recMinSpeed(recActiveMs()); if (!(Number(spIn.value) >= minSp)) spIn.value = minSp; refresh(); };
-  spIn.addEventListener('change', clampSpeed);
-  spIn.addEventListener('blur', clampSpeed);
-  closeBtn.addEventListener('click', () => { ov.hidden = true; });
-  expBtn.addEventListener('click', async () => {
-    if (recS.on) { setMsg('Stop the recording before exporting.'); return; }
-    const total = recS.acc;
-    const minSp = recMinSpeed(total);
-    let sp = Number(spIn.value);
-    if (!(sp >= minSp)) { sp = minSp; spIn.value = sp; setMsg('Speed set to the minimum (video up to 3 min).'); }
-    if (sp > REC_MAX_SPEED) { sp = REC_MAX_SPEED; spIn.value = sp; }
-    const src = srcSel.value;
-    const snap = recS.frames.slice();
-    if (!snap.length) { setMsg('Record something before exporting.'); return; }
-    const items = recTimelineItems(snap, total, src, sp);
-    if (!items.length) { setMsg('No frames available for this source.'); return; }
-    recExporting = true; refresh();
-    const fmt = fmtSel.value;
-    const prog = p => setMsg('Codificando… ' + Math.round(p * 100) + '%');
-    try {
-      const blob = fmt === 'gif' ? await recEncodeGif(items, prog) : await recEncodeMp4(items, prog, REC_HD_W, REC_HD_H);
-      const stamp = new Date().toISOString().slice(0, 16).replace(/[:T]/g, '-');
-      const name = 'projeto-timelapse-' + stamp + '.' + fmt;
-      downloadBlob(blob, name);
-      setMsg('Pronto: ' + name + ' (' + Math.round(blob.size / 1024) + ' KB)');
-    } catch (e) {
-      console.warn(e);
-      setMsg('Export failed: ' + e.message);
-    } finally { recExporting = false; refresh(); }
-  });
-  ov.addEventListener('keydown', e => { e.stopPropagation(); if (e.key === 'Escape') ov.hidden = true; });
-  recUI = { ov, refresh, setMsg };
-}
-
-function openRecDialog() {
-  if (!recUI) recBuildDialog();
-  recUI.ov.hidden = false;
-  if (recS.on) recPause(false);      // the recording tab pauses; on closing, it records again
-  recUI.setMsg('');
-  recUI.refresh();
-}
-
-// frames of the chosen source, with the duration of each one in seconds already divided by the speed
-function recTimelineItems(snap, total, src, speed) {
-  const items = []; let carry = 0;
-  for (let i = 0; i < snap.length; i++) {
-    const f = snap[i];
-    const d = i < snap.length - 1 ? snap[i + 1].t - f.t : Math.max(total - f.t, recInterval());
-    const blob = f[src];
-    if (!blob) { carry += d; continue; }      // no image in this source: the time goes to the previous frame
-    items.push({ blob, dur: Math.max(0.001, (d + carry) / 1000 / speed) });
-    carry = 0;
-  }
-  if (carry && items.length) items[items.length - 1].dur += carry / 1000 / speed;
-  return items;
-}
-
 function recEven(v) { return Math.max(2, Math.floor(v) & ~1); }
 function recFit(w, h, max) { const k = Math.min(1, max / Math.max(w, h)); return [recEven(w * k), recEven(h * k)]; }
-function recFmt(ms) { const s = Math.floor(ms / 1000); return String(Math.floor(s / 60)).padStart(2, '0') + ':' + String(s % 60).padStart(2, '0'); }
-function recScaled(src, w, h) { const c = document.createElement('canvas'); c.width = w; c.height = h; drawImageHQ(c.getContext('2d'), src, w, h); return c; }   // 2.9.92
-function recCanvasBlob(c) { return new Promise(res => c.toBlob(res, 'image/jpeg', 0.88)); }
-function recH(tag, attrs, ...kids) {
-  const e = document.createElement(tag);
-  for (const k in (attrs || {})) { if (k === 'className') e.className = attrs[k]; else e[k] = attrs[k]; }
-  for (const k of kids) e.append(k instanceof Node ? k : document.createTextNode(String(k)));
-  return e;
-}
-function recOpt(v, label, sel) { const o = recH('option', { value: String(v), textContent: label }); if (sel) o.selected = true; return o; }
-
-/* preview frame: the output shown in the preview panel (its own resolution) */
-function recPreviewFrame(emPlay, needGl = true) {
-  const tgt = previewNode();
-  const res = tgt ? evalNode(tgt.id) : null;
-  if (!res) return { cv: null, gl: null };
-  drawPreview(res);                                   // draws now: the WebGL buffer is still valid
-  let gl = null;
-  if (!emPlay && needGl) { try { gl = glCanvas.toDataURL('image/jpeg', 0.9); } catch (e) { gl = null; } }
-  // playback or ultra-fine interval (< 0.25 s): the frame comes from the preview panel itself
-  // — no full-resolution read (readPixels + flip), which is what
-  // would stop it capturing every 0.05 s
-  if (emPlay || recS.base < 250) {
-    const [pw, ph] = recFit(glCanvas.width, glCanvas.height, REC_PV_MAX);
-    return { cv: recScaled(glCanvas, pw, ph), gl: emPlay ? null : gl };
-  }
-  const full = readResult(res);
-  const [w, hh] = recFit(full.width, full.height, REC_PV_MAX);
-  return { cv: recScaled(full, w, hh), gl };
-}
-
-/* whole-interface frame: the body is copied and rasterised with SVG foreignObject */
-async function recUIFrame(glSnap) {
-  const W = innerWidth, H = innerHeight;
-  const recVis = el => { const r = el.getBoundingClientRect(); return r.width > 0 && r.height > 0 && r.bottom > 0 && r.right > 0 && r.top < innerHeight && r.left < innerWidth; };
-  const k = REC_UI_MAX / Math.max(W, H);     // scales up to Full HD: the SVG is vector, the text stays sharp
-  const [cw, ch] = recFit(W * k, H * k, 1e9);
-  const clone = document.body.cloneNode(true);
-  const cb = clone.querySelector('#btnRec'); if (cb) cb.textContent = '● Recording';
-  const L = sel => [...document.body.querySelectorAll(sel)];
-  const C = sel => [...clone.querySelectorAll(sel)];
-  // current values of the fields (the .value property does not go into the serialisation)
-  const liveIn = L('input'), cIn = C('input');
-  liveIn.forEach((o, i) => {
-    if (o.type === 'checkbox' || o.type === 'radio') { if (o.checked) cIn[i].setAttribute('checked', ''); else cIn[i].removeAttribute('checked'); }
-    else cIn[i].setAttribute('value', o.value);
-  });
-  const liveTa = L('textarea'), cTa = C('textarea');
-  liveTa.forEach((o, i) => { cTa[i].textContent = o.value; });
-  const liveSel = L('select'), cSel = C('select');
-  liveSel.forEach((o, i) => { [...cSel[i].options].forEach((op, j) => { if (j === o.selectedIndex) op.setAttribute('selected', ''); else op.remove(); }); });   // only the chosen one: the rest does not appear in the raster and the clone stays light
-  // images: become data URLs (the SVG cannot see blob: nor the document's URLs)
-  const liveImg = L('img'), cImg = C('img');
-  liveImg.forEach((o, i) => {
-    if (!recVis(o)) return;   // off screen: not worth converting
-    try {
-      if (o.complete && o.naturalWidth && !o.src.startsWith('data:')) {
-        const c2 = document.createElement('canvas'); c2.width = o.naturalWidth; c2.height = o.naturalHeight;
-        c2.getContext('2d').drawImage(o, 0, 0); cImg[i].setAttribute('src', c2.toDataURL('image/png'));
-      }
-    } catch (e) { /* ignores an image that cannot be read */ }
-  });
-  // canvases become images (WebGL uses the frame already read in glSnap)
-  const liveCv = L('canvas'), cCv = C('canvas');
-  cCv.forEach((c, i) => {
-    const o = liveCv[i]; let src = null;
-    if (o === glCanvas) src = glSnap;
-    else if (recVis(o)) { try { src = o.toDataURL('image/png'); } catch (e) { src = null; } }
-    const im = document.createElement('img');
-    for (const a of c.attributes) if (a.name !== 'width' && a.name !== 'height') im.setAttribute(a.name, a.value);
-    if (src) im.setAttribute('src', src);
-    c.replaceWith(im);
-  });
-  const css = [...document.querySelectorAll('style')].map(s => s.textContent).join('\n').replace(/\]\]>/g, ']]]]><![CDATA[>');
-  const xhtml = new XMLSerializer().serializeToString(clone);
-  const svg = '<svg xmlns="http://www.w3.org/2000/svg" width="' + cw + '" height="' + ch + '" viewBox="0 0 ' + W + ' ' + H + '">'
-    + '<foreignObject x="0" y="0" width="' + W + '" height="' + H + '">'
-    + '<div xmlns="http://www.w3.org/1999/xhtml" style="width:' + W + 'px;height:' + H + 'px;overflow:hidden;position:relative">'
-    + '<style><![CDATA[' + css + ']]></style>' + xhtml + '</div></foreignObject></svg>';
-  // data: not blob: — with foreignObject, the blob taints the canvas and prevents reading it
-  const img = new Image();
-  img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
-  await img.decode();
-  const c = document.createElement('canvas'); c.width = cw; c.height = ch;
-  c.getContext('2d').drawImage(img, 0, 0, cw, ch);
-  return c;
-}
-
 function recCat(parts) {
   const arrs = parts.map(p => (p instanceof Uint8Array ? p : Uint8Array.from(p)));
   let n = 0; for (const a of arrs) n += a.length;
@@ -29441,11 +29104,14 @@ async function recEncodeMp4(items, prog, tw, th, audBuf) {
   const ctx = cv.getContext('2d');
   const N = items.length;
   let ts = 0;                                  // presentation time, in seconds
+  let bmp = null, bmpBlob = null;
   for (let i = 0; i < N; i++) {
-    const bmp = await createImageBitmap(items[i].blob);
-    ctx.fillStyle = '#1b1b1f'; ctx.fillRect(0, 0, W, H);
-    ctx.drawImage(bmp, 0, 0, W, H);           // the frame already comes at the Output's size: goes in whole, without bars
-    bmp.close();
+    if (items[i].blob !== bmpBlob) {
+      if (bmp) bmp.close();
+      bmp = await createImageBitmap(items[i].blob); bmpBlob = items[i].blob;
+      ctx.fillStyle = '#1b1b1f'; ctx.fillRect(0, 0, W, H);
+      ctx.drawImage(bmp, 0, 0, W, H);         // the frame already comes at the Output's size: goes in whole, without bars
+    }
     const vf = new VideoFrame(cv, { timestamp: Math.round(ts * 1e6), duration: Math.max(1, Math.round(items[i].dur * 1e6)) });
     ts += items[i].dur;
     enc.encode(vf, { keyFrame: i % 60 === 0 });
@@ -29507,11 +29173,6 @@ async function recEncodeGif(items, prog) {
   return new Blob([recCat(parts)], { type: 'image/gif' });
 }
 
-// clock on the top bar (updates the counter and the panel during recording)
-setInterval(() => { recSyncProject(); recSyncHome(); recUpdateUI(); if (recUI && !recUI.ov.hidden) recUI.refresh(); }, 500);
-// automatic recording: each project's recording is loaded when it is opened
-setTimeout(() => { recSyncProject(); recSyncHome(); }, 0);   // after the script: ssCurId already exists
-window.addEventListener('pagehide', () => recSaveMeta());
 
 
 /* ---------- Export: file name and enlargement (1× to 8×) ---------- */
@@ -29754,15 +29415,6 @@ $('#btnFrame').addEventListener('click', frameAll);
 $('#btnSave').addEventListener('click', saveGraphFile);
 $('#btnLoad').addEventListener('click', () => graphInput.click());
 $('#btnExport').addEventListener('click', exportPNG);
-$('#btnRec').addEventListener('click', () => openRecDialog());
-// direct pause on the bar: a pause made here stays in effect when you return to editing (only Resume or Repeat start recording again)
-function recTogglePause() {
-  if (recS.on) recPause(true);
-  else if (recStartScreenOpen()) setStatus('Open a project to record.', true);
-  else recResume();
-  recUpdateUI();
-}
-$('#btnRecPause').addEventListener('click', recTogglePause);
 graphInput.addEventListener('change', () => {
   const f = graphInput.files[0];
   if (f) loadGraphFile(f).catch(err => setStatus('Invalid file: ' + err.message, true));
@@ -29812,6 +29464,13 @@ const SS_PRINT = [
   { name: 'Photo 10 × 15 cm', mm: [100, 150] },
   { name: 'Poster · 30 × 40 cm', mm: [300, 400] },
 ].map(t => ({ name: t.name, w: ssPx(t.mm[0]), h: ssPx(t.mm[1]), mm: t.mm, print: true }));
+/* Trading cards: pixel sizes at 300 dpi (the names give the size in px) */
+const SS_CARDS = [
+  { name: 'Trading Card – Standard (750×1050)', w: 750, h: 1050, info: '2.5 × 3.5 in · 63.5 × 88.9 mm · 300 dpi · ratio 5:7' },
+  { name: 'Trading Card – Tarot (825×1425)', w: 825, h: 1425, info: '2.75 × 4.75 in · 70 × 120 mm · 300 dpi · ratio 11:19' },
+  { name: 'Trading Card – Japanese mini (697×1016)', w: 697, h: 1016, info: '59 × 86 mm · 300 dpi' },
+  { name: 'Trading Card – Square (750×750)', w: 750, h: 750, info: '2.5 × 2.5 in · 300 dpi · ratio 1:1' },
+];
 const SS_MAX_WORK = 4096;   // longest work side (limit of the device and of WebGL)
 const ssMaxSide = (w, h) => (Math.max(w, h) <= 2048 ? '2048' : '4096');
 
@@ -30115,7 +29774,7 @@ function ssRenderTemplates(tab) {
   grid.hidden = tab === 'custom';
   grid.textContent = '';
   if (tab === 'custom') return;
-  for (const t of (tab === 'social' ? SS_SOCIAL : SS_PRINT)) {
+  for (const t of (tab === 'cards' ? SS_CARDS : tab === 'social' ? SS_SOCIAL : SS_PRINT)) {
     const card = E('button', 'ss-t');
     card.type = 'button';
     const box = E('div', 'ss-box');
@@ -30123,7 +29782,7 @@ function ssRenderTemplates(tab) {
     const r = E('div', 'ss-ratio');
     r.style.width = Math.round(t.w * k) + 'px'; r.style.height = Math.round(t.h * k) + 'px';
     box.append(r);
-    const info = t.print ? `${t.mm[0]} × ${t.mm[1]} mm · ${SS_DPI} dpi · ${t.w} × ${t.h} px` : `${t.w} × ${t.h} px`;
+    const info = t.info || (t.print ? `${t.mm[0]} × ${t.mm[1]} mm · ${SS_DPI} dpi · ${t.w} × ${t.h} px` : `${t.w} × ${t.h} px`);
     card.append(box, E('div', 'ss-tn', t.name), E('div', 'ss-td', info));
     if (Math.max(t.w, t.h) > SS_MAX_WORK) card.append(E('div', 'ss-note', 'Above 4096 px: the editor works at 4096 px on the longest side.'));
     card.addEventListener('click', () => ssNewDoc(t));
@@ -30456,6 +30115,8 @@ function startScreenOpen() {
   });
 }
 window.startScreenOpen = startScreenOpen;
+function startScreenOpenTab(tab) { startScreenOpen(); ssRenderTemplates(tab); }
+window.startScreenOpenTab = startScreenOpenTab;
 
 // "Open file…": images (PNG, JPG, WebP, GIF, BMP) become a new document; .json opens the project
 const SS_OPEN_ACCEPT = 'image/png,image/jpeg,image/webp,image/gif,image/bmp,.png,.jpg,.jpeg,.webp,.gif,.bmp,.json,application/json';
@@ -33083,17 +32744,11 @@ function buildMenu() {
   const g4 = grid();
   g4.append(
     menuBtn('Home', startScreenOpen),
+    menuBtn('Canvas size', () => window.startScreenOpenTab('cards')),
     menuBtn('Assets', () => astTela()),
     menuBtn('Save graph', saveGraphFile),
     menuBtn('Load graph', () => graphInput.click()),
     menuBtn('Export PNG', exportPNG, 'on'),
-  );
-
-  group('Recording');
-  const gRec = grid();
-  gRec.append(
-    menuBtn(recS.on ? '● Recording' : '● Recording (paused)', openRecDialog, recS.on ? 'on' : ''),
-    menuBtn(recS.on ? 'Pause recording' : 'Resume recording', recTogglePause),
   );
 
   group('Animation');
