@@ -24,3 +24,7 @@ jobs:
         run: node tests/session.test.mjs
       - name: Menu radial de categorias (Shift+A → lista → volta)
         run: node tests/add-menu.test.mjs
+      - name: Gradient map · pinos do mesh
+        run: node tests/gradient-pins.test.mjs
+      - name: Quinas do cabo (Alt+clique remove)
+        run: node tests/pivot.test.mjs
