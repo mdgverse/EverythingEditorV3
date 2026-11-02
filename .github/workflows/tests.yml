@@ -24,3 +24,5 @@ jobs:
         run: node tests/assets-import.test.mjs
       - name: Árvore de pastas (órfãs visíveis, sem ciclo infinito)
         run: node tests/folders.test.mjs
+      - name: Restauração de sessão (teto de memória e atalhos de URL)
+        run: node tests/session.test.mjs
