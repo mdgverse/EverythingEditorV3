@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
 <meta name="theme-color" content="#1b1b1b" />
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Crect width='24' height='24' rx='5' fill='%23000'/%3E%3Cpath d='M12,12C9,7.6,5.2,7.6,5.2,12C5.2,16.4,9,16.4,12,12C15,7.6,18.8,7.6,18.8,12C18.8,16.4,15,16.4,12,12' fill='none' stroke='%23fff' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E" />
 <link rel="shortcut icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Crect width='24' height='24' rx='5' fill='%23000'/%3E%3Cpath d='M12,12C9,7.6,5.2,7.6,5.2,12C5.2,16.4,9,16.4,12,12C15,7.6,18.8,7.6,18.8,12C18.8,16.4,15,16.4,12,12' fill='none' stroke='%23fff' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E" />
@@ -729,6 +729,44 @@ body.mobile .add-menu{box-shadow:0 -10px 28px rgba(0,0,0,.5)}
   } catch (e) {}
 })();
 </script>
+
+<style id="ee-fit">
+/* ===== Ajuste de tela (portado da build de referência do APK) =====
+   Quebra a barra superior em linhas e encolhe os rótulos para tudo caber
+   na largura do aparelho. */
+@media (max-width: 1100px){
+  .app{grid-template-rows:auto auto minmax(0,1fr) auto}
+  .topbar{flex-wrap:wrap;align-content:center;height:auto;min-height:34px;padding:3px 4px;row-gap:2px;column-gap:1px}
+  .brand{font-size:11px;margin-right:3px}
+  .tbtn{padding:3px 6px;font-size:11px}
+  select.tbtn{max-width:92px}
+  .sep{display:none}
+  .spacer{display:none}
+  #status{flex:1 1 100%;order:99;max-width:none;padding:1px 3px;font-size:10.5px}
+  .hint{display:none}
+}
+@media (max-width: 620px){
+  .topbar{padding:2px 3px;row-gap:1px}
+  .brand{font-size:10.5px}
+  .brand-mark{width:16px;height:16px;border-radius:4px}
+  .tbtn{padding:2px 5px;font-size:10.5px}
+  .tbtn.accent{padding:2px 7px}
+}
+</style>
+<style id="ee-touch-css">
+/* ===== Dedo no aparelho (portado da referência) ===== */
+html,body{overscroll-behavior:none;-webkit-tap-highlight-color:transparent}
+/* 1) alvos pequenos do nó: o dedo não acerta 12 px */
+.node .eye,.node .fold,.node .goout{position:relative;overflow:visible}
+.node .eye::after,.node .fold::after,.node .goout::after{
+  content:'';position:absolute;left:50%;top:50%;width:26px;height:26px;
+  margin:-13px 0 0 -13px;border-radius:50%}
+/* 2) superfícies de arraste: sem rolagem, sem zoom do navegador, sem seleção */
+#nodeView,#gl,#mStage,#tlCanvas,#tlResize,#splitter,.mdlg-stage{
+  touch-action:none;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+body input,body select,body textarea,.node input,.node select,.node textarea,.node .ctrl{
+  -webkit-user-select:auto;user-select:auto}
+</style>
 </head>
 <body>
 <div class="app">
@@ -33449,6 +33487,62 @@ ld');
 </script>
 
 
+
+<script id="ee-fit-js">
+/* ===== rótulos curtos e prévia recolhida em telas estreitas (referência) ===== */
+(function () {
+  var IDS = ['btnHome','btnOpen','btnAdd','btnUndo','btnRedo','btnFrame','btnCollapse','btnSave','btnLoad','btnExport'];
+  var MAP = {
+    pt: {btnHome:'Início',btnOpen:'Abrir',btnAdd:'+ Adicionar',btnUndo:'Desfazer',btnRedo:'Refazer',btnFrame:'Enquadrar',btnCollapse:'Recolher',btnSave:'Salvar',btnLoad:'Carregar',btnExport:'Exportar'},
+    en: {btnHome:'Home',btnOpen:'Open',btnAdd:'+ Add',btnUndo:'Undo',btnRedo:'Redo',btnFrame:'Frame',btnCollapse:'Collapse',btnSave:'Save',btnLoad:'Load',btnExport:'Export'}
+  };
+  function lang() { try { return localStorage.getItem('everything-editor:lang') === 'pt' ? 'pt' : 'en'; } catch (e) { return 'en'; } }
+  function tick() {
+    var curto = window.innerWidth < 620, m = MAP[lang()];
+    for (var i = 0; i < IDS.length; i++) {
+      var el = document.getElementById(IDS[i]);
+      if (!el) continue;
+      if (el.dataset.eeFull === undefined) el.dataset.eeFull = el.textContent;
+      var v = curto ? (m[IDS[i]] || el.dataset.eeFull) : el.dataset.eeFull;
+      if (el.textContent !== v) el.textContent = v;
+    }
+  }
+  function pronto(fn) {
+    if (document.readyState === 'complete') setTimeout(fn, 350);
+    else window.addEventListener('load', function () { setTimeout(fn, 350); });
+  }
+  pronto(function () {
+    tick();
+    window.addEventListener('resize', function () { setTimeout(tick, 150); });
+    window.addEventListener('ee:lang', function () { setTimeout(tick, 80); });
+    /* tela estreita: visualização recolhida na primeira abertura */
+    try {
+      if (window.innerWidth < 700 && localStorage.getItem('node-image-editor:pv-closed') === null) {
+        var b = document.getElementById('btnPanelFold');
+        if (b) b.click();
+      }
+    } catch (e) {}
+  });
+})();
+</script>
+<script id="ee-touch-js">
+/* ===== ponteiro sintético não tem captura: sem esta guarda o gesto morreria ===== */
+(function () {
+  if (window.__eeTouchGuard) return;
+  window.__eeTouchGuard = 1;
+  var P = Element.prototype;
+  function guarda(nome, padrao) {
+    var orig = P[nome];
+    if (!orig) return;
+    P[nome] = function (id) {
+      try { return orig.call(this, id); } catch (e) { return padrao; }
+    };
+  }
+  guarda('setPointerCapture');
+  guarda('releasePointerCapture');
+  guarda('hasPointerCapture', false);
+})();
+</script>
 <script id="ee-android-bridge">
 /* ---- Android shell bridge (used only inside the APK) ---- */
 (function () {
