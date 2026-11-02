@@ -45,7 +45,7 @@ menus antes de sair (`window.__eeAndroidBack` em `index.html`).
 | O que muda | O que acontece |
 | --- | --- |
 | `index.html` (ou `android/**`) entra na `main` | `.github/workflows/build-apk.yml` compila **APK + AAB** e publica na Release `apk-latest` |
-| `index.html` entra na `main` | GitHub Pages (publicando da branch `main`, pasta raiz) republica o site |
+| `index.html` entra na `main` | GitHub Pages republica o site (branch `main`, pasta raiz); o workflow `deploy-pages.yml` também republica, como redundância |
 
 Para gerar um APK manualmente: **Actions → Build APK → Run workflow**.
 
