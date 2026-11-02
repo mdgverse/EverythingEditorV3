@@ -78,6 +78,7 @@ jobs:
         uses: actions/deploy-pages@v4
 
       - name: Summary
+        if: success()
         env:
           PAGE_URL: ${{ steps.deployment.outputs.page_url }}
         run: |
@@ -87,4 +88,28 @@ jobs:
             echo "$PAGE_URL"
             echo ""
             echo "Commit \`${{ github.sha }}\` · branch \`${{ github.ref_name }}\`"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      # Ajuda a diagnosticar problemas de publicação (configuração do Pages,
+      # modo de build e branches liberadas no environment github-pages).
+      - name: Diagnostics
+        if: failure()
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+        run: |
+          {
+            echo "### 🔎 Diagnóstico"
+            echo ""
+            echo '#### Configuração do Pages (`/pages`)'
+            echo '```json'
+            curl -sS -H "Authorization: Bearer $GH_TOKEN" \
+              "https://api.github.com/repos/$REPO/pages" | head -c 2000
+            echo '```'
+            echo ""
+            echo '#### Branches liberadas no environment `github-pages`'
+            echo '```json'
+            curl -sS -H "Authorization: Bearer $GH_TOKEN" \
+              "https://api.github.com/repos/$REPO/environments/github-pages/deployment-branch-policies" | head -c 1000
+            echo '```'
           } >> "$GITHUB_STEP_SUMMARY"
