@@ -21647,8 +21647,11 @@ async function astMigraAssets() {
   astMigrando = true;
   let convertidos = 0;
   try {
-    for (const a of pendentes.slice(0, 20)) {
+    for (const a of pendentes.slice(0, 6)) {
       try {
+        /* converter vários de uma vez é o que estoura a memória: poucos por vez
+           e nada absurdamente grande */
+        if (a.dataUrl.length > 40 * 1048576) continue;
         const blob = await (await fetch(a.dataUrl)).blob();
         if (!blob.size) continue;
         const novo = { ...a, blob, mime: a.mime || blob.type || 'image/png' };
@@ -34014,6 +34017,7 @@ const PERSIST = (() => {
 })();
 
 let sessionRestoring = true;   // while the previous session is being read, nothing is saved
+let ssSemSessao = false;       // ?safe=1: não grava por cima da sessão guardada
 let sessionTimer = 0;
 let sessionChain = Promise.resolve();
 
@@ -34028,6 +34032,7 @@ function buildSessionJson() {
 }
 
 function saveSessionNow() {
+  if (ssSemSessao) return sessionChain;
   if (sessionRestoring || !nodes.size) return sessionChain;
   clearTimeout(sessionTimer);
   const json = buildSessionJson();          // synchronous snapshot of the current state
@@ -34036,7 +34041,7 @@ function saveSessionNow() {
 }
 
 function saveSessionSoon() {
-  if (sessionRestoring) return;
+  if (ssSemSessao || sessionRestoring) return;
   clearTimeout(sessionTimer);
   sessionTimer = setTimeout(saveSessionNow, 400);
 }
@@ -34048,16 +34053,65 @@ window.mobileSaveNow = () => { saveSessionNow(); return true; };
 document.addEventListener('visibilitychange', () => { if (document.hidden) saveSessionNow(); });
 window.addEventListener('pagehide', () => { saveSessionNow(); });
 
+/* A sessão anterior guarda o projeto inteiro com as imagens em base64.
+   Restaurar um projeto grande decodifica tudo de uma vez e o navegador morre
+   com "Out of Memory" antes de mostrar a tela (foi o erro relatado no site).
+   Agora: teto de tamanho, escolha do usuário e atalhos de URL. */
+const SESSION_MAX_MB = 64;
+/* decisão testável: a sessão passou do teto? (tests/session.test.mjs) */
+function astSessaoPesada(tamanhoBytes, limiteMb) {
+  const teto = limiteMb || SESSION_MAX_MB;
+  return (tamanhoBytes || 0) > teto * 1048576;
+}
+
 async function restoreSession() {
+  const flags = (() => { try { return new URLSearchParams(location.search); } catch (e) { return new URLSearchParams(''); } })();
+  const querBackup = flags.get('restaurar') === 'antiga';
+  if (flags.get('limpar') === '1') { try { await PERSIST.put(PERSIST.KEY, null); } catch (e) {} }
+  if (flags.get('safe') === '1' || flags.get('limpar') === '1') {
+    sessionRestoring = false;
+    if (flags.get('safe') === '1') {
+      ssSemSessao = true;               /* não grava por cima: a sessão antiga continua intacta */
+      setStatus('Modo seguro: a sessão anterior não foi aberta e nada será salvo automaticamente. Use "Salvar grafo" para guardar em arquivo.');
+    } else {
+      setStatus('Sessão anterior apagada. Começando vazio.');
+    }
+    return;
+  }
+
+  const chave = querBackup ? PERSIST.KEY + ':antiga' : PERSIST.KEY;
   let json = null;
-  try { json = await PERSIST.get(PERSIST.KEY); } catch (e) { json = null; }
+  try { json = await PERSIST.get(chave); } catch (e) { json = null; }
+  if (typeof json !== 'string' || !json) json = null;
   if (json) ssHadSession = true;
+
   if (json) {
+    const mb = json.length / 1048576;
+    if (astSessaoPesada(json.length)) {
+      const escolha = await astConfirma('Sessão anterior muito grande', [
+        'A sessão guardada tem ' + mb.toFixed(0) + ' MB (imagens embutidas no projeto).',
+        'Abrir tudo de uma vez pode estourar a memória do navegador.',
+        'Se começar vazio, a sessão antiga fica guardada como backup (volte a ela abrindo o site com ?restaurar=antiga).'
+      ], ['Abrir mesmo assim', 'Começar vazio (guardar backup)', 'Apagar a sessão']);
+      if (escolha === 1) {
+        try { await PERSIST.put(PERSIST.KEY + ':antiga', json); await PERSIST.put(PERSIST.KEY, null); } catch (e) {}
+        sessionRestoring = false;
+        setStatus('Sessão antiga guardada como backup. Para voltar a ela: abra o site com ?restaurar=antiga');
+        return;
+      }
+      if (escolha === 2) {
+        try { await PERSIST.put(chave, null); } catch (e) {}
+        sessionRestoring = false;
+        setStatus('Sessão anterior apagada. Começando vazio.');
+        return;
+      }
+    }
     try {
-      await loadGraphFile(new File([json], 'sessao.json', { type: 'application/json' }));
-      setStatus('Previous session restored.');
+      /* parse direto da string: evita a cópia extra que new File([json]).text() fazia */
+      await loadGraphData(JSON.parse(json));
+      setStatus(querBackup ? 'Backup da sessão restaurado.' : 'Previous session restored.');
     } catch (e) {
-      // does not overwrite the saved session if it could not be read
+      // não sobrescreve a sessão guardada se não deu para ler
       try { await PERSIST.put('session-unreadable', json); } catch (_) {}
       setStatus('Could not restore the previous session.', true);
     }
