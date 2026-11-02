@@ -22,3 +22,5 @@ jobs:
         run: node tests/assets-import.test.mjs
       - name: Sessão e limpeza (teto de memória, atalhos de URL, apagar tudo)
         run: node tests/session.test.mjs
+      - name: Menu radial de categorias (Shift+A → lista → volta)
+        run: node tests/add-menu.test.mjs
