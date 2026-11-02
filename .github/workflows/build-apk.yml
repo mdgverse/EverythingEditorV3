@@ -91,8 +91,14 @@ jobs:
       - name: Artefatos
         run: |
           set -e
+          APK=android/app/build/outputs/apk/release/app-release.apk
+          # o editor precisa estar dentro do pacote, senão o app abre em branco
+          unzip -l "$APK" | grep -q 'assets/index.html' || { echo "::error::assets/index.html não entrou no APK"; exit 1; }
+          SRC=$(wc -c < index.html)
+          echo "index.html na raiz: $SRC bytes"
+          "$ANDROID_HOME"/build-tools/35.0.0/apksigner verify --print-certs "$APK" | head -5
           mkdir -p dist
-          cp android/app/build/outputs/apk/release/app-release.apk dist/EverythingEditor.apk
+          cp "$APK" dist/EverythingEditor.apk
           cp android/app/build/outputs/bundle/release/app-release.aab dist/EverythingEditor.aab
           ls -la dist
 
