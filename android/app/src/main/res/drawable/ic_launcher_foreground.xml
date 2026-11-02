@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- ◆ do marca "Everything Editor": losango laranja com núcleo escuro -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+
+    <path
+        android:fillColor="#FF9C3A"
+        android:pathData="M54,24 L84,54 L54,84 L24,54 Z" />
+    <path
+        android:fillColor="#1B1B1B"
+        android:pathData="M54,40.5 L67.5,54 L54,67.5 L40.5,54 Z" />
+</vector>

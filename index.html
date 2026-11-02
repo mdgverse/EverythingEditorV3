@@ -2,7 +2,12 @@
 <html lang="en">
 <head>
 <meta charset="utf-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+<meta name="theme-color" content="#1b1b1b" />
+<meta name="color-scheme" content="dark light" />
+<meta name="mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
 <title>Everything Editor v3 — WebGL</title>
 <script>try{var __t=localStorage.getItem("everything-editor:theme");if(__t)document.documentElement.setAttribute("data-theme",__t);if(__t==="custom"){var __c=JSON.parse(localStorage.getItem("everything-editor:theme-custom")||"null");if(__c)for(var __k in __c)document.documentElement.style.setProperty(__k,__c[__k])}}catch(e){}</script>
 <style>
@@ -33433,6 +33438,42 @@ ld');
 
 
 
+})();
+</script>
+
+
+<script id="ee-android-bridge">
+/* ---- Android shell bridge (used only inside the APK) ---- */
+(function () {
+  var isApp = !!(window.AndroidSave || (window.AndroidBridge && window.AndroidBridge.isApp && window.AndroidBridge.isApp()));
+  if (isApp) document.documentElement.classList.add('ee-app');
+
+  function click(id) { var el = document.getElementById(id); if (el) { try { el.click(); } catch (e) {} return true; } return false; }
+
+  /* The physical Back button calls this. It closes the top-most overlay and
+     returns true when it handled the press, so the app stays open. */
+  window.__eeAndroidBack = function () {
+    try {
+      var ss = document.getElementById('ssScr');
+      if (ss && !ss.hidden) return click('ssClose');
+      var sh = document.getElementById('mSheet');
+      if (sh && !sh.hidden) return click('mSheetClose');
+      var bm = document.getElementById('brandMenu');
+      if (bm && bm.classList.contains('open')) return click('brandBtn');
+      var am = document.getElementById('addMenu');
+      if (am && !am.hidden) { am.hidden = true; return true; }
+      var gm = document.getElementById('grpMenu');
+      if (gm && !gm.hidden) { gm.hidden = true; return true; }
+      var tm = document.getElementById('tlMenu');
+      if (tm && !tm.hidden) { tm.hidden = true; return true; }
+      var dlg = document.querySelector('.tldlgback');
+      if (dlg) { var b = dlg.querySelector('.tldlgbtn'); if (b) { b.click(); return true; } }
+      var md = document.getElementById('maskDlg');
+      if (md && !md.hidden) return true;              /* painting: Finish/Cancel decides */
+      if (document.body.classList.contains('view-preview')) return click('mGoGraph');
+      return false;
+    } catch (e) { return false; }
+  };
 })();
 </script>
 
