@@ -34,5 +34,7 @@ jobs:
         run: node tests/welcome-restore.test.mjs
       - name: Quinas do fio (criar, arrastar, fio reto e zip tie)
         run: node tests/pivot.test.mjs
+      - name: Versão (VERSION = telinha = APK)
+        run: node tests/version.test.mjs
       - name: Higiene (código morto, CSS sem uso, reference/ fora)
         run: node tests/hygiene.test.mjs
