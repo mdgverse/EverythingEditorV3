@@ -775,6 +775,27 @@ body.mobile .add-menu{box-shadow:0 -10px 28px rgba(0,0,0,.5)}
   .tbtn{padding:2px 5px;font-size:10.5px}
   .tbtn.accent{padding:2px 7px}
 }
+/* ===== telinha de entrada ("tenha uma ótima edição") ===== */
+.ee-splash{position:fixed;inset:0;z-index:9800;display:grid;place-items:center;padding:24px;
+  background:rgba(0,0,0,.62);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);
+  opacity:0;transition:opacity .26s ease}
+.ee-splash[hidden]{display:none}
+.ee-splash.is-on{opacity:1}
+.ee-splash-card{width:min(92vw,520px);text-align:center;padding:36px 28px 30px;
+  border:2px solid rgba(210,210,210,.5);border-radius:34px 26px 40px 26px;
+  background:radial-gradient(ellipse at 70% 25%,rgba(255,255,255,.05),transparent 45%),
+             linear-gradient(90deg,#030303 0%,#111 52%,#080808 100%);
+  color:rgba(245,245,245,.92);box-shadow:0 28px 90px rgba(0,0,0,.72),inset 0 0 50px rgba(255,255,255,.025);
+  transform:scale(.92) translateY(12px);transition:transform .38s cubic-bezier(.2,1.15,.28,1)}
+.ee-splash.is-on .ee-splash-card{transform:scale(1) translateY(0)}
+.ee-splash-mark{display:block;width:104px;height:104px;margin:0 auto 18px;opacity:.95;
+  filter:drop-shadow(0 0 7px rgba(255,255,255,.22))}
+.ee-splash-logo{margin:0;font-size:clamp(22px,5vw,32px);letter-spacing:4px;font-weight:400;color:#f5f5f5}
+.ee-splash-byline{margin:10px 0 22px;font-size:12px;letter-spacing:2px;color:rgba(255,255,255,.6)}
+.ee-splash-greet{margin:0 0 24px;font-size:17px;line-height:1.4;letter-spacing:1px;color:rgba(255,255,255,.88)}
+.ee-splash-btn{border:1px solid rgba(255,255,255,.3);border-radius:999px;padding:12px 22px;
+  background:rgba(255,255,255,.07);color:#fff;font-size:13px;letter-spacing:1.4px;cursor:pointer}
+.ee-splash-btn:hover{background:rgba(255,255,255,.16);border-color:rgba(255,255,255,.6)}
 </style>
 <style id="ee-touch-css">
 /* ===== Dedo no aparelho (portado da referência) ===== */
@@ -792,6 +813,40 @@ body input,body select,body textarea,.node input,.node select,.node textarea,.no
 </style>
 </head>
 <body>
+<div class="ee-splash" id="eeSplash" hidden>
+  <div class="ee-splash-card" role="dialog" aria-modal="true" aria-label="Everything Editor">
+    <svg class="ee-splash-mark" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><rect width="24" height="24" rx="5" fill="#000"/><path d="M12,12C9,7.6,5.2,7.6,5.2,12C5.2,16.4,9,16.4,12,12C15,7.6,18.8,7.6,18.8,12C18.8,16.4,15,16.4,12,12" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    <h2 class="ee-splash-logo">Everything Editor</h2>
+    <p class="ee-splash-byline">by mdgverse.dsgn</p>
+    <p class="ee-splash-greet" id="eeSplashGreet">Tenha uma ótima edição!</p>
+    <button class="ee-splash-btn" id="eeSplashGo" type="button">Começar edição</button>
+  </div>
+</div>
+<script>
+/* Telinha de entrada: aparece ao abrir e sai no clique (ou Esc). */
+(() => {
+  const el = document.getElementById('eeSplash');
+  if (!el) return;
+  const go = document.getElementById('eeSplashGo');
+  const greet = document.getElementById('eeSplashGreet');
+  let pt = true;
+  try { const l = localStorage.getItem('everything-editor:lang'); pt = l ? l === 'pt' : /^pt/i.test(navigator.language || ''); } catch (e) {}
+  if (greet) greet.textContent = pt ? 'Tenha uma ótima edição!' : 'Have a great edit!';
+  if (go) go.textContent = pt ? 'Começar edição' : 'Start editing';
+  el.hidden = false;
+  requestAnimationFrame(() => el.classList.add('is-on'));
+  let indo = false;
+  const fecha = () => {
+    if (indo || el.hidden) return;
+    indo = true;
+    el.classList.remove('is-on');
+    setTimeout(() => { el.hidden = true; }, 300);
+  };
+  if (go) go.addEventListener('click', fecha);
+  el.addEventListener('pointerdown', e => { if (e.target === el) fecha(); });
+  document.addEventListener('keydown', e => { if (e.key === 'Escape' || e.key === 'Enter') fecha(); });
+})();
+</script>
 <div class="app">
   <header class="topbar">
     <div class="brand" id="brandBtn" role="button" tabindex="0" aria-haspopup="true" aria-expanded="false" aria-controls="brandMenu"><svg class="brand-mark" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><rect width="24" height="24" rx="5" fill="#000"/><path d="M12,12C9,7.6,5.2,7.6,5.2,12C5.2,16.4,9,16.4,12,12C15,7.6,18.8,7.6,18.8,12C18.8,16.4,15,16.4,12,12" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg><span class="brand-txt">Everything Editor v3</span><span class="brand-caret" aria-hidden="true">▾</span></div>
@@ -800,6 +855,7 @@ body input,body select,body textarea,.node input,.node select,.node textarea,.no
     <button class="tbtn" id="btnAdd" title="Add node (Shift+A)">Add</button>
     <button class="tbtn" id="btnWf" title="Workflows: ready-made effect templates">Workflows</button>
     <button class="tbtn" id="btnAssets" title="Assets: your library of images, vectors and SVG">Assets</button>
+    <button class="tbtn" id="btnRestore" title="Restaurar: cache deste navegador ou arquivo de backup (.json)">Restore</button>
     <span class="sep"></span>
     <button class="tbtn" id="btnUndo" title="Undo (Ctrl+Z)">Undo</button>
     <button class="tbtn" id="btnRedo" title="Redo (Ctrl+Shift+Z)">Redo</button>
@@ -21555,9 +21611,48 @@ window.addEventListener('paste', e => {
   else if (texto && /<svg[\s>]/i.test(texto)) { e.preventDefault(); e.stopPropagation(); astAddSvgTexto(texto, 'svg-colado.svg'); }
 }, true);
 
+/* Restaurar o cache: pega a sessão guardada neste navegador (ou o backup que
+   ficou de uma sessão antiga) e reabre, sem depender de mexer na URL. */
+async function restaurarSessaoCache() {
+  const opcoes = [];
+  try { const a = await PERSIST.get(PERSIST.KEY); if (typeof a === 'string' && a) opcoes.push({ rotulo: 'Sessão guardada', json: a }); } catch (e) {}
+  try { const b = await PERSIST.get(PERSIST.KEY + ':antiga'); if (typeof b === 'string' && b) opcoes.push({ rotulo: 'Backup antigo', json: b }); } catch (e) {}
+  if (!opcoes.length) { setStatus('Nenhuma sessão guardada neste navegador.', true); return; }
+  const linhas = ['Substitui o que está aberto agora pelo que ficou guardado no cache.'];
+  for (const o of opcoes) linhas.push(o.rotulo + ': ' + (o.json.length / 1048576).toFixed(1) + ' MB');
+  const escolha = await astConfirma('Restaurar do cache', linhas, opcoes.map(o => o.rotulo).concat('Cancelar'));
+  if (escolha < 0 || escolha >= opcoes.length) return;
+  try {
+    await loadGraphData(JSON.parse(opcoes[escolha].json));
+    sessionRestoring = false;
+    saveSessionSoon();
+    requestRender();
+    commit();
+    frameAll();
+    setStatus('Sessão restaurada do cache.');
+  } catch (e) {
+    setStatus('Não foi possível ler a sessão guardada.', true);
+  }
+}
+
+/* Botão Restore da barra: escolhe entre o cache deste navegador e um arquivo
+   de backup (.json) — o mesmo que o "Restore backup" da tela inicial. */
+async function abrirRestaurar() {
+  const escolha = await astConfirma('Restaurar', ['De onde vem o que você quer reabrir?'],
+    ['Cache deste navegador', 'Arquivo de backup (.json)', 'Cancelar']);
+  if (escolha === 0) return restaurarSessaoCache();
+  if (escolha === 1) {
+    const inp = document.getElementById('ssRestoreFile');
+    if (inp) inp.click();
+    else setStatus('Abra a tela inicial ou o Assets para escolher o arquivo de backup.', true);
+  }
+}
+
 function astMontaBotoes() {
   const b = document.getElementById('btnAssets');
   if (b && !b.dataset.ast) { b.dataset.ast = '1'; b.addEventListener('click', () => astTela()); }
+  const br = document.getElementById('btnRestore');
+  if (br && !br.dataset.ast) { br.dataset.ast = '1'; br.addEventListener('click', () => abrirRestaurar()); }
   const acts = document.querySelector('#ssScr .ss-actions');
   if (acts && !acts.dataset.ast) {
     acts.dataset.ast = '1';
@@ -34325,10 +34420,10 @@ ld');
 <script id="ee-fit-js">
 /* ===== rótulos curtos e prévia recolhida em telas estreitas (referência) ===== */
 (function () {
-  var IDS = ['btnHome','btnOpen','btnAdd','btnUndo','btnRedo','btnFrame','btnCollapse','btnSave','btnLoad','btnExport'];
+  var IDS = ['btnHome','btnOpen','btnAdd','btnAssets','btnRestore','btnUndo','btnRedo','btnFrame','btnCollapse','btnSave','btnLoad','btnExport'];
   var MAP = {
-    pt: {btnHome:'Início',btnOpen:'Abrir',btnAdd:'+ Adicionar',btnUndo:'Desfazer',btnRedo:'Refazer',btnFrame:'Enquadrar',btnCollapse:'Recolher',btnSave:'Salvar',btnLoad:'Carregar',btnExport:'Exportar'},
-    en: {btnHome:'Home',btnOpen:'Open',btnAdd:'+ Add',btnUndo:'Undo',btnRedo:'Redo',btnFrame:'Frame',btnCollapse:'Collapse',btnSave:'Save',btnLoad:'Load',btnExport:'Export'}
+    pt: {btnHome:'Início',btnOpen:'Abrir',btnAdd:'+ Adicionar',btnAssets:'Assets',btnRestore:'Restaurar',btnUndo:'Desfazer',btnRedo:'Refazer',btnFrame:'Enquadrar',btnCollapse:'Recolher',btnSave:'Salvar',btnLoad:'Carregar',btnExport:'Exportar'},
+    en: {btnHome:'Home',btnOpen:'Open',btnAdd:'+ Add',btnAssets:'Assets',btnRestore:'Restore',btnUndo:'Undo',btnRedo:'Redo',btnFrame:'Frame',btnCollapse:'Collapse',btnSave:'Save',btnLoad:'Load',btnExport:'Export'}
   };
   function lang() { try { return localStorage.getItem('everything-editor:lang') === 'pt' ? 'pt' : 'en'; } catch (e) { return 'en'; } }
   function tick() {
