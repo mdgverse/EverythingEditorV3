@@ -131,7 +131,7 @@ html, body{overscroll-behavior:none;-webkit-tap-highlight-color:transparent}/* 1
   const greet = document.getElementById('eeSplashGreet');
   /* versão do editor — o arquivo VERSION na raiz é a fonte da verdade
      (o build do APK usa o mesmo número no versionName) */
-  const APP_VERSION = '3.0.1';
+  const APP_VERSION = '3.0.2';
   const ver = document.getElementById('eeSplashVer');
   if (ver) { ver.textContent = 'v' + APP_VERSION; ver.title = 'Everything Editor ' + APP_VERSION; }
   let pt = true;
@@ -21829,7 +21829,7 @@ const RUN = {
   spinFocus: (n, [a]) => {
     if (!a) return null;
     const p = n.params;
-    return pointOp(a, 'spinFocus', {
+    return pointOp(a, 'spinFocusFx', {
       uCenter: [Number(p.centerX) / 100, 1 - Number(p.centerY) / 100],
       uAspect: a.w / a.h,
       uCore: (Number(p.core) / 100) * 0.85,

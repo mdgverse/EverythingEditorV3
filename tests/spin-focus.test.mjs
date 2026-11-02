@@ -60,7 +60,7 @@ const render = new Function('pointOp', 'const f = ' + corpo + '; return f;')(
 const n = { params: { centerX: 50, centerY: 40, core: 40, coreSoft: 22, strength: 70, samples: 32, leak: 50, warmth: 78, vig: 35, haze: 30, chroma: 25, blend: 'screen' } };
 const r = render(n, [{ w: 1600, h: 1000, tex: 1 }]);
 ok(r && r.ok, 'renderiza sem imagem nula');
-ok(uni.prog === 'spinFocus', 'usa o programa spinFocus', uni.prog);
+ok(uni.prog === 'spinFocusFx', 'usa o programa spinFocusFx (mesmo nome que está em SHADERS)', uni.prog);
 ok(Math.abs(uni.u.uCenter[0] - 0.5) < 1e-9 && Math.abs(uni.u.uCenter[1] - 0.6) < 1e-9, 'centro convertido (y invertido)', uni.u.uCenter);
 ok(Math.abs(uni.u.uAspect - 1.6) < 1e-9, 'proporção da imagem', uni.u.uAspect);
 ok(Math.abs(uni.u.uSweep - 0.7 * 55 * Math.PI / 180) < 1e-9, 'força vira ângulo de giro', uni.u.uSweep);
