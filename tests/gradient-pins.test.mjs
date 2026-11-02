@@ -96,18 +96,31 @@ function painel(extra) {
   const shader = html.slice(ini, html.indexOf('`,\n', ini));
   ok(/uniform vec3 uCols\[8\];/.test(shader), 'shader guarda até 8 cores');
   ok(/uniform vec2 uPins\[8\];/.test(shader), 'shader guarda até 8 pinos');
-  ok(/uniform float uCount;/.test(shader), 'shader sabe quantas cores estão em uso');
-  ok(/for \(int i = 0; i < 8; i\+\+\)/.test(shader) && /if \(float\(i\) >= uCount\) break;/.test(shader), 'o mesh percorre só as cores escolhidas');
-  ok(/uCount - 1\.0/.test(shader), 'a rampa usa todas as cores igualmente espaçadas');
+  ok(/uniform float uGpCount;/.test(shader), 'shader sabe quantas cores estão em uso');
+  ok(!/uCount/.test(shader), 'não usa o nome "uCount" (é um uniforme inteiro de outro nó)');
+  ok(/for \(int i = 0; i < 8; i\+\+\)/.test(shader) && /if \(float\(i\) >= uGpCount\) break;/.test(shader), 'o mesh percorre só as cores escolhidas');
+  ok(/uGpCount - 1\.0/.test(shader), 'a rampa usa todas as cores igualmente espaçadas');
   ok(/vec2 cp = vec2\(pix\.x, uRes\.y - 1\.0 - pix\.y\);/.test(shader), 'eixo Y convertido (sem espelhar)');
   ok(/uDither/.test(shader), 'dithering ativo');
   ok(!/uC1/.test(shader), 'não usa mais as quatro cores fixas');
 }
 
 /* ---------- ligação com o render ---------- */
-ok(/uCount: nCores, uCols: coresFlat, uPins: pinsFlat/.test(html), 'render envia contagem, cores e pinos');
+ok(/uGpCount: nCores, uCols: coresFlat, uPins: pinsFlat/.test(html), 'render envia contagem, cores e pinos');
+{
+  /* o upload usa gl.uniform1i para os nomes de INT_UNIFORMS: um uniforme float
+     com nome de lá fica sempre 0 — foi o que deixou o nó preto. */
+  const ints = html.slice(html.indexOf('const INT_UNIFORMS'), html.indexOf('function draw('));
+  const nomes = [...ints.matchAll(/'([A-Za-z0-9_]+)'/g)].map(m => m[1]);
+  ok(nomes.length > 10, 'lista de uniformes inteiros encontrada', nomes.length);
+  for (const n of ['uGpCount', 'uCols', 'uPins', 'uMid', 'uMeshWarp', 'uDither']) {
+    ok(!nomes.includes(n), `"${n}" (float/array) não pode estar em INT_UNIFORMS`);
+  }
+  ok(nomes.includes('uType'), 'uType continua inteiro');
+}
 ok(/const nCores = gpContagem\(p\);/.test(html), 'render respeita a quantidade escolhida');
 ok(/ENUM\('colorCount', 'Colors'/.test(html), 'existe o seletor de quantidade de cores');
+ok(/name \+ '\[0\]'/.test(html), 'localização de uniforme em array tem fallback (driver antigo)');
 ok(/COL\('color5'/.test(html) && /COL\('color8'/.test(html), 'existem as cores 5 a 8');
 
 const tudo = resumo();
