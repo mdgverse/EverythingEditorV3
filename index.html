@@ -20227,6 +20227,8 @@ let astPickCb = null;
 function astId() { return 'a' + Date.now().toString(36) + Math.random().toString(36).slice(2, 7); }
 function astFmtTam(n) {
   n = Number(n) || 0;
+  if (n >= 1099511627776) return (n / 1099511627776).toFixed(1).replace('.', ',') + ' TB';
+  if (n >= 1073741824) return (n / 1073741824).toFixed(1).replace('.', ',') + ' GB';
   if (n >= 1048576) return (n / 1048576).toFixed(1).replace('.', ',') + ' MB';
   if (n >= 1024) return Math.round(n / 1024) + ' KB';
   return n + ' B';
@@ -20376,6 +20378,15 @@ function astLimpaBusca() {
   if (inp) inp.value = '';
 }
 /* ==== ASSET IMPORT (BEGIN) ==== */
+/* Teto da biblioteca de Assets: 2 TB. É o limite do app — o navegador pode
+   liberar menos (cota do disco), e aí vale o menor dos dois (o IndexedDB
+   avisa com QuotaExceededError, tratado em astAddFiles). */
+const AST_TETO_BYTES = 2 * 1024 * 1024 * 1024 * 1024;
+function astUsadoBytes() {
+  let n = 0;
+  for (const a of astAssets) n += (a && a.size) || (a && a.blob && a.blob.size) || 0;
+  return n;
+}
 /* Armazenamento: sem persist() o navegador pode apagar a biblioteca e os
    projetos quando o espaço aperta (era o "erro de cache / perdi o progresso"). */
 let astPersistencia = null;
@@ -20394,12 +20405,16 @@ async function astMostraCota() {
     if (!navigator.storage || !navigator.storage.estimate) { el.textContent = ''; return; }
     const est = await navigator.storage.estimate();
     if (astPersistencia === null) await astPedePersistencia();
-    const usado = astFmtTam(est.usage || 0), total = astFmtTam(est.quota || 0);
+    const cotaNavegador = Number(est.quota || 0) || AST_TETO_BYTES;
+    const teto = Math.min(AST_TETO_BYTES, cotaNavegador);
+    const usado = astFmtTam(est.usage || 0), total = astFmtTam(teto);
     el.textContent = 'Armazenamento: ' + usado + ' de ' + total + (astPersistencia ? ' · protegido' : ' · não protegido');
     el.classList.toggle('aviso', !astPersistencia);
-    el.title = astPersistencia
+    el.title = (astPersistencia
       ? 'O navegador não vai apagar seus dados para liberar espaço.'
-      : 'Sem armazenamento persistente o navegador pode apagar seus dados se o espaço acabar.';
+      : 'Sem armazenamento persistente o navegador pode apagar seus dados se o espaço acabar.')
+      + ' Limite da biblioteca: ' + astFmtTam(AST_TETO_BYTES) + '.'
+      + (cotaNavegador < AST_TETO_BYTES ? ' Este navegador libera até ' + astFmtTam(cotaNavegador) + '.' : '');
   } catch (e) { el.textContent = ''; }
 }
 /* pedido único, na abertura: evita que o navegador apague projetos e assets */
@@ -20434,19 +20449,24 @@ function astConfirma(titulo, linhas, botoes) {
 async function astAddFiles(files, folderId) {
   const alvo = folderId !== undefined ? folderId : (astFolderSel !== 'all' && astFolderSel !== 'none' ? astFolderSel : null);
   const lista = [...(files || [])];
-  let ok = 0, falhou = 0, zip = 0;
+  let ok = 0, falhou = 0, zip = 0, cheio = 0;
+  let usado = astUsadoBytes();          // soma dos bytes já na biblioteca
   for (const f of lista) {
     /* ZIP não é aceito nesta versão: o editor importa imagens e SVG */
     if (/\.zip$/i.test(f.name || '') || /zip/i.test(f.type || '')) { zip++; continue; }
+    /* teto do app: 2 TB na biblioteca (o navegador pode cortar antes) */
+    if (usado + (f.size || 0) > AST_TETO_BYTES) { cheio++; continue; }
     try {
       const a = await astAssetDeArquivo(f, alvo);
       await SS_DB.putAsset(a);
+      usado += (a && a.size) || (f.size || 0);
       ok++;
     } catch (e) {
       falhou++;
       try { console.warn('[assets] falhou:', f && f.name, e); } catch (err) {}
       if (astErroDeCota(e)) {
-        setStatus('Sem espaço no navegador: ' + ok + ' asset(s) importado(s). Apague assets grandes e tente de novo.', true);
+        setStatus('Sem espaço no navegador (limite da biblioteca: ' + astFmtTam(AST_TETO_BYTES) + '): ' +
+          ok + ' asset(s) importado(s). Apague assets grandes e tente de novo.', true);
         break;
       }
     }
@@ -20455,6 +20475,7 @@ async function astAddFiles(files, folderId) {
   if (ok) partes.push(ok + (ok === 1 ? ' asset na biblioteca' : ' assets na biblioteca'));
   if (falhou) partes.push(falhou + ' ignorado' + (falhou === 1 ? '' : 's') + ' (use imagem ou SVG)');
   if (zip) partes.push('ZIP não é aceito — envie as imagens direto');
+  if (cheio) partes.push('limite de ' + astFmtTam(AST_TETO_BYTES) + ' da biblioteca atingido');
   setStatus(partes.join(' · ') || 'Nada para importar.', !ok && (falhou > 0 || zip > 0));
   if (document.getElementById('astScr')) { if (ok) astLimpaBusca(); await astRefresh(); }
   return ok;
