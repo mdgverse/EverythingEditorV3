@@ -30,3 +30,5 @@ jobs:
         run: node tests/backup.test.mjs
       - name: Telinha de entrada e Restore ao lado de Assets
         run: node tests/welcome-restore.test.mjs
+      - name: Quinas do fio (criar, arrastar, fio reto e zip tie)
+        run: node tests/pivot.test.mjs
