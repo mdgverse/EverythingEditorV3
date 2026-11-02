@@ -1,4 +1,4 @@
-/* Gradient map: quantidade de cores (2 a 8), pinos do mesh e controles por modo. */
+/* Gradient map: quantidade de cores (2 a 8), pinos do mesh, categoria e controles por modo. */
 import fs from 'node:fs';
 import { ok, resumo } from './kit.mjs';
 
@@ -67,12 +67,12 @@ function painel(extra) {
 {
   const { raiz, pega, params } = painel({ mapType: 'mesh', colorCount: '4' });
   gradAplicaVis(raiz, params);
-  for (const k of ['midpoint', 'angle', 'centerX', 'centerY', 'scale', 'spatialMix']) {
+  for (const k of ['midpoint', 'angle', 'centerX', 'centerY', 'scale', 'spatialMix', 'dither']) {
     ok(pega(k).style.display === 'none', `no Mesh "${k}" fica escondido`, pega(k).style.display);
   }
   ok(pega('gpins').style.display === '', 'no Mesh os pinos aparecem');
   ok(pega('meshWarp').style.display === undefined, 'Mesh distortion continua visível');
-  ok(pega('dither').style.display === undefined, 'Dithering continua visível');
+  ok(pega('contrast').style.display === undefined, 'Mask contrast continua visível');
   ok(pega('color4').style.display === '' && pega('color5').style.display === 'none', 'com 4 cores, a 5ª fica escondida');
 }
 
@@ -80,6 +80,7 @@ function painel(extra) {
   const { raiz, pega, params } = painel({ mapType: 'linear', colorCount: '6' });
   gradAplicaVis(raiz, params);
   ok(pega('midpoint').style.display === '', 'no Linear o midpoint volta');
+  ok(pega('dither').style.display === '', 'no Linear o dithering volta');
   ok(pega('gpins').style.display === 'none', 'fora do Mesh os pinos somem');
   ok(pega('color6').style.display === '' && pega('color7').style.display === 'none', 'com 6 cores, a 7ª fica escondida');
 }
@@ -94,34 +95,48 @@ function painel(extra) {
 {
   const ini = html.indexOf('gradientMap: `');
   const shader = html.slice(ini, html.indexOf('`,\n', ini));
-  ok(/uniform vec3 uCols\[8\];/.test(shader), 'shader guarda até 8 cores');
-  ok(/uniform vec2 uPins\[8\];/.test(shader), 'shader guarda até 8 pinos');
+  ok(/uniform vec3 uC1, uC2, uC3, uC4, uC5, uC6, uC7, uC8;/.test(shader), 'shader recebe até 8 cores em uniformes soltos');
+  ok(/uniform vec2 uQ1, uQ2, uQ3, uQ4, uQ5, uQ6, uQ7, uQ8;/.test(shader), 'shader recebe até 8 pinos em uniformes soltos');
+  ok(!/uCols\[|uPins\[/.test(shader), 'sem array de uniforme (não depende de localizar elemento)');
   ok(/uniform float uGpCount;/.test(shader), 'shader sabe quantas cores estão em uso');
-  ok(!/uCount/.test(shader), 'não usa o nome "uCount" (é um uniforme inteiro de outro nó)');
-  ok(/for \(int i = 0; i < 8; i\+\+\)/.test(shader) && /if \(float\(i\) >= uGpCount\) break;/.test(shader), 'o mesh percorre só as cores escolhidas');
-  ok(/uGpCount - 1\.0/.test(shader), 'a rampa usa todas as cores igualmente espaçadas');
+  ok(/clamp\(uGpCount, 1\.0, 8\.0\)/.test(shader), 'contagem nunca é zero (senão a saída fica preta)');
+  ok(/vec3 gpCor\(int i\)/.test(shader) && /vec2 gpPin\(int i\)/.test(shader), 'cor e pino da posição i por cadeia de if');
+  ok(/if \(float\(i\) >= cnt\) break;/.test(shader), 'o mesh percorre só as cores escolhidas');
+  ok(/float xf = tc \* \(cnt - 1\.0\)/.test(shader), 'a rampa usa todas as cores igualmente espaçadas');
   ok(/vec2 cp = vec2\(pix\.x, uRes\.y - 1\.0 - pix\.y\);/.test(shader), 'eixo Y convertido (sem espelhar)');
-  ok(/uDither/.test(shader), 'dithering ativo');
-  ok(!/uC1/.test(shader), 'não usa mais as quatro cores fixas');
+  {
+    /* cuidado: spatialAt() também tem um "if (uType == 3)"; o ramo do Mesh é o último antes do else */
+    const fim = shader.indexOf('} else {');
+    const mesh = shader.slice(shader.lastIndexOf('if (uType == 3) {', fim), fim);
+    ok(mesh.length > 200, 'ramo do Mesh encontrado', mesh.length);
+    ok(!/hash\(|uDither/.test(mesh), 'Mesh sem dithering');
+  }
+  ok(/if \(uDither > 0\.0\) t = clamp\(t \+/.test(shader), 'modos de rampa continuam com dithering');
+  ok(!/uCount/.test(shader), 'não usa o nome "uCount" (é um uniforme inteiro de outro nó)');
 }
 
 /* ---------- ligação com o render ---------- */
-ok(/uGpCount: nCores, uCols: coresFlat, uPins: pinsFlat/.test(html), 'render envia contagem, cores e pinos');
+ok(/uni\['uC' \+ \(i \+ 1\)\] = hexRGB/.test(html), 'render envia as cores como uC1..uC8');
+ok(/uni\['uQ' \+ \(i \+ 1\)\] = \[q\[0\], q\[1\]\]/.test(html), 'render envia os pinos como uQ1..uQ8');
+ok(/uGpCount: nCores/.test(html), 'render envia a contagem');
+ok(/if \(type !== 3\) uni\.uDither/.test(html), 'render ignora o dithering no Mesh');
+ok(/const nCores = gpContagem\(p\);/.test(html), 'render respeita a quantidade escolhida');
+ok(/\^color\[1-8\]\$/.test(html), 'prévia dos pinos acompanha as cores 1..8');
+ok(/title: 'Gradient map', cat: 'input'/.test(html), 'Gradient map fica na categoria Input (não em Color)');
+ok(/ENUM\('colorCount', 'Colors'/.test(html), 'existe o seletor de quantidade de cores');
+ok(/COL\('color5'/.test(html) && /COL\('color8'/.test(html), 'existem as cores 5 a 8');
+ok(/name \+ '\[0\]'/.test(html), 'localização de uniforme em array tem fallback (driver antigo)');
 {
   /* o upload usa gl.uniform1i para os nomes de INT_UNIFORMS: um uniforme float
      com nome de lá fica sempre 0 — foi o que deixou o nó preto. */
   const ints = html.slice(html.indexOf('const INT_UNIFORMS'), html.indexOf('function draw('));
   const nomes = [...ints.matchAll(/'([A-Za-z0-9_]+)'/g)].map(m => m[1]);
   ok(nomes.length > 10, 'lista de uniformes inteiros encontrada', nomes.length);
-  for (const n of ['uGpCount', 'uCols', 'uPins', 'uMid', 'uMeshWarp', 'uDither']) {
-    ok(!nomes.includes(n), `"${n}" (float/array) não pode estar em INT_UNIFORMS`);
+  for (const n of ['uGpCount', 'uC1', 'uC8', 'uQ1', 'uQ8', 'uMid', 'uMeshWarp', 'uDither']) {
+    ok(!nomes.includes(n), `"${n}" (float/vetor) não pode estar em INT_UNIFORMS`);
   }
   ok(nomes.includes('uType'), 'uType continua inteiro');
 }
-ok(/const nCores = gpContagem\(p\);/.test(html), 'render respeita a quantidade escolhida');
-ok(/ENUM\('colorCount', 'Colors'/.test(html), 'existe o seletor de quantidade de cores');
-ok(/name \+ '\[0\]'/.test(html), 'localização de uniforme em array tem fallback (driver antigo)');
-ok(/COL\('color5'/.test(html) && /COL\('color8'/.test(html), 'existem as cores 5 a 8');
 
 const tudo = resumo();
 process.exit(tudo ? 0 : 1);
