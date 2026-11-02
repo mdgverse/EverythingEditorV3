@@ -20220,7 +20220,7 @@ setTimeout(wfMontaBotoes, 0);
    ========================================================= */
 
 let astFolderSel = 'all', astKindSel = 'all', astQuery = '';
-let astSel = new Set(), astClipIds = null;
+let astSel = new Set(), astClipIds = null, astUltimoSel = null, astUltimoToque = false;
 let astAssets = [], astFolders = [];
 let astPickCb = null;
 
@@ -20572,7 +20572,7 @@ function astPinta() {
     const bts = E('div', 'ast-bts');
     const bUse = E('button', 'ast-btn primary', 'Add'); bUse.type = 'button'; bUse.dataset.act = 'use'; bUse.title = 'Add to project';
     const bRen = E('button', 'ast-btn', 'Rename'); bRen.type = 'button'; bRen.dataset.act = 'ren'; bRen.title = 'Rename asset';
-    const bCut = E('button', 'ast-btn', 'Crop'); bCut.type = 'button'; bCut.dataset.act = 'cut'; bCut.title = 'Cut (move from folder)';
+    const bCut = E('button', 'ast-btn', 'Cut'); bCut.type = 'button'; bCut.dataset.act = 'cut'; bCut.title = 'Cut: open the target folder and use “Paste here”';
     const bDel = E('button', 'ast-btn', 'Delete'); bDel.type = 'button'; bDel.dataset.act = 'del'; bDel.title = 'Delete';
     bts.append(bUse, bRen, bCut, bDel);
     card.append(bts);
@@ -20584,6 +20584,8 @@ function astPinta() {
   if (info) info.textContent = astSel.size ? astSel.size + (astSel.size === 1 ? ' selected' : ' selected') : 'None selected';
   const set = (id, dis) => { const b = document.getElementById(id); if (b) b.disabled = !!dis; };
   set('astBtnAdd', !astSel.size);
+  set('astBtnCrop', !astSel.size);
+  set('astBtnMove', !astSel.size);
   set('astBtnCut', !astSel.size);
   set('astBtnDelSel', !astSel.size);
   set('astBtnRen', astSel.size !== 1);
@@ -20594,6 +20596,158 @@ function astPinta() {
   const clipInfo = document.getElementById('astClipInfo');
   if (clipInfo) clipInfo.textContent = astClipIds && astClipIds.length ? astClipIds.length + (astClipIds.length === 1 ? ' cut — open the destination folder and tap “Paste here”.' : ' cut — open the destination folder and tap “Paste here”.') : '';
 }
+/* ---------- mover vários para outra pasta ---------- */
+async function astMoverPara() {
+  const ids = [...astSel];
+  if (!ids.length) return;
+  const destinos = [{ id: null, nome: 'No folder' }].concat(astFolders.map(f => ({ id: f.id, nome: f.name })));
+  const escolha = await astConfirma('Move to folder',
+    [ids.length + (ids.length === 1 ? ' asset selected.' : ' assets selected.'), 'Choose the destination folder:'],
+    destinos.map(d => d.nome).concat('Cancel'));
+  if (escolha < 0 || escolha >= destinos.length) return;
+  try {
+    await SS_DB.setAssetFolder(ids, destinos[escolha].id);
+    astClipIds = null;
+    await astRefresh();
+    setStatus('Asset(s) moved to “' + destinos[escolha].nome + '”.');
+  } catch (e) { setStatus('Could not move the assets.', true); }
+}
+
+/* ---------- recorte em lote ----------
+   Um recorte só para todos os selecionados: a MESMA área (em %) é aplicada a
+   cada imagem, então cada uma é cortada proporcionalmente ao seu tamanho.
+   SVG e vetor ficam de fora (não são bitmap) e o total pulado vai no aviso. */
+const AR_MIN = 0.04;                      // 4% mínimo de largura/altura
+
+function arLimitaRetangulo(r) {
+  const w = Math.max(AR_MIN, Math.min(1, r.w)), h = Math.max(AR_MIN, Math.min(1, r.h));
+  const x = Math.max(0, Math.min(1 - w, r.x)), y = Math.max(0, Math.min(1 - h, r.y));
+  return { x: +x.toFixed(4), y: +y.toFixed(4), w: +w.toFixed(4), h: +h.toFixed(4) };
+}
+function arMoveRetangulo(r, dx, dy) { return arLimitaRetangulo({ x: r.x + dx, y: r.y + dy, w: r.w, h: r.h }); }
+function arRedimensiona(r, canto, dx, dy) {
+  let { x, y, w, h } = r;
+  if (canto.indexOf('w') >= 0) { const nx = Math.max(0, Math.min(x + w - AR_MIN, x + dx)); w += x - nx; x = nx; }
+  if (canto.indexOf('e') >= 0) w = Math.max(AR_MIN, Math.min(1 - x, w + dx));
+  if (canto.indexOf('n') >= 0) { const ny = Math.max(0, Math.min(y + h - AR_MIN, y + dy)); h += y - ny; y = ny; }
+  if (canto.indexOf('s') >= 0) h = Math.max(AR_MIN, Math.min(1 - y, h + dy));
+  return arLimitaRetangulo({ x, y, w, h });
+}
+
+async function astBitmapDe(blob) {
+  if (typeof createImageBitmap === 'function') {
+    try { return await createImageBitmap(blob); } catch (e) { /* cai para o <img> */ }
+  }
+  const url = URL.createObjectURL(blob);
+  try {
+    const im = new Image();
+    im.src = url;
+    if (im.decode) await im.decode();
+    else await new Promise((res, rej) => { im.onload = res; im.onerror = rej; });
+    return im;
+  } finally { setTimeout(() => URL.revokeObjectURL(url), 8000); }
+}
+
+async function astRecorteAplicar(ids, rc, pulados) {
+  setStatus('Cropping…');
+  let ok = 0, falhou = 0;
+  for (const id of ids) {
+    const a = astAssets.find(x => x.id === id);
+    if (!a || a.kind !== 'image') continue;
+    try {
+      const blob = await astFileDeAsset(a);
+      const bmp = await astBitmapDe(blob);
+      const W = bmp.width || bmp.naturalWidth, H = bmp.height || bmp.naturalHeight;
+      const sx = Math.round(rc.x * W), sy = Math.round(rc.y * H);
+      const sw = Math.max(1, Math.round(rc.w * W)), sh = Math.max(1, Math.round(rc.h * H));
+      const c = document.createElement('canvas'); c.width = sw; c.height = sh;
+      c.getContext('2d').drawImage(bmp, sx, sy, sw, sh, 0, 0, sw, sh);
+      const tipo = /jpe?g/i.test(a.mime || '') ? 'image/jpeg' : 'image/png';
+      const novo = await new Promise(res => c.toBlob(res, tipo, 0.94));
+      if (!novo) throw new Error('toBlob');
+      const t = await astThumbDeBlob(novo);
+      await SS_DB.putAsset({ ...a, blob: novo, mime: tipo, thumb: t.thumb, w: t.w, h: t.h, size: novo.size, updated: Date.now() });
+      astEsqueceURL(id);
+      ok++;
+    } catch (e) { falhou++; }
+  }
+  await astRefresh();
+  setStatus('Cropped ' + ok + ' asset(s)' + (falhou ? ' · ' + falhou + ' failed' : '') + (pulados ? ' · ' + pulados + ' skipped (SVG/vector)' : '') + '.');
+}
+
+/* janela do recorte: arrasta a caixa (ou as quinas) sobre a primeira imagem */
+function astRecorteDialogo() {
+  const todos = [...astSel];
+  const ids = todos.filter(id => { const a = astAssets.find(x => x.id === id); return a && a.kind === 'image'; });
+  const pulados = todos.length - ids.length;
+  if (!ids.length) { setStatus('Crop works on images — SVG and vectors are not cropped here.', true); return; }
+  const primeiro = astAssets.find(a => a.id === ids[0]);
+  const back = E('div', 'xdlg-back'); back.style.zIndex = '9950';
+  const box = E('div', 'xdlg'); box.style.cssText = 'width:min(94vw,620px);max-width:620px;text-align:center';
+  const titulo = E('h3', '', 'Crop');
+  const dica = E('div', '');
+  dica.style.cssText = 'font-size:12.5px;line-height:1.45;color:#9fb0c4;margin:4px 0 10px';
+  dica.textContent = ids.length === 1
+    ? 'Drag the box or its corners to choose the area.'
+    : 'The same area (in %) is applied to the ' + ids.length + ' selected images' + (pulados ? ' · ' + pulados + ' SVG/vector skipped' : '') + '.';
+  const palco = E('div', '');
+  palco.style.cssText = 'position:relative;display:inline-block;line-height:0;max-width:100%;user-select:none;touch-action:none';
+  const img = document.createElement('img');
+  img.style.cssText = 'display:block;max-width:100%;max-height:52vh;border-radius:8px';
+  img.alt = primeiro.name || 'asset';
+  img.src = astUrlDeAsset(primeiro) || '';
+  const caixa = E('div', '');
+  caixa.style.cssText = 'position:absolute;box-sizing:border-box;border:1.5px solid #7fb2ff;background:rgba(127,178,255,.12);cursor:move;touch-action:none';
+  palco.append(img, caixa);
+  let rc = { x: 0.06, y: 0.06, w: 0.88, h: 0.88 };
+  const leitura = E('div', '');
+  leitura.style.cssText = 'font-size:12px;color:#9fb0c4;margin:8px 0 2px';
+  const pinta = () => {
+    caixa.style.left = (rc.x * 100) + '%'; caixa.style.top = (rc.y * 100) + '%';
+    caixa.style.width = (rc.w * 100) + '%'; caixa.style.height = (rc.h * 100) + '%';
+    leitura.textContent = Math.round(rc.w * 100) + '% × ' + Math.round(rc.h * 100) + '% · left ' +
+      Math.round(rc.x * 100) + '% · top ' + Math.round(rc.y * 100) + '%';
+  };
+  for (const canto of ['nw', 'ne', 'sw', 'se']) {
+    const alca = E('div', '');
+    alca.dataset.canto = canto;
+    alca.style.cssText = 'position:absolute;width:16px;height:16px;margin:-8px;background:#7fb2ff;border-radius:3px;cursor:' +
+      (canto === 'nw' || canto === 'se' ? 'nwse-resize' : 'nesw-resize');
+    alca.style[canto.indexOf('n') >= 0 ? 'top' : 'bottom'] = '0';
+    alca.style[canto.indexOf('w') >= 0 ? 'left' : 'right'] = '0';
+    caixa.append(alca);
+  }
+  let arrasto = null;
+  const pega = (e, modo) => {
+    e.preventDefault(); e.stopPropagation();
+    arrasto = { modo, x: e.clientX, y: e.clientY, base: { x: rc.x, y: rc.y, w: rc.w, h: rc.h } };
+  };
+  caixa.addEventListener('pointerdown', e => pega(e, e.target.dataset.canto || 'move'));
+  palco.addEventListener('pointermove', e => {
+    if (!arrasto) return;
+    const r = palco.getBoundingClientRect();
+    if (!r.width || !r.height) return;
+    const dx = (e.clientX - arrasto.x) / r.width, dy = (e.clientY - arrasto.y) / r.height;
+    rc = arrasto.modo === 'move' ? arMoveRetangulo(arrasto.base, dx, dy) : arRedimensiona(arrasto.base, arrasto.modo, dx, dy);
+    pinta();
+  });
+  const solta = () => { arrasto = null; };
+  window.addEventListener('pointerup', solta);
+  window.addEventListener('pointercancel', solta);
+  const row = E('div', 'xbtns');
+  const bOk = document.createElement('button'); bOk.type = 'button'; bOk.className = 'primary';
+  bOk.textContent = ids.length === 1 ? 'Crop image' : 'Crop ' + ids.length + ' images';
+  bOk.addEventListener('click', () => { back.remove(); astRecorteAplicar(ids, rc, pulados); });
+  const bNo = document.createElement('button'); bNo.type = 'button'; bNo.textContent = 'Cancel';
+  bNo.addEventListener('click', () => back.remove());
+  row.append(bOk, bNo);
+  box.append(titulo, dica, palco, leitura, row);
+  back.append(box);
+  document.body.append(back);
+  pinta();
+  if (img.decode) img.decode().catch(() => {});
+}
+
 function astRenomearAsset(a) {
   if (!a) return;
   astNomeDialogo('Rename asset', a.name, async nome => {
@@ -20699,7 +20853,8 @@ function astTela() {
   const clipInfo = E('span', 'ast-selinfo'); clipInfo.id = 'astClipInfo';
   const bAdd = E('button', 'ast-btn primary', 'Add selected to project'); bAdd.type = 'button'; bAdd.id = 'astBtnAdd';
   bAdd.addEventListener('click', () => astInsereAssets([...astSel]));
-  const bCut = E('button', 'ast-btn', 'Crop'); bCut.type = 'button'; bCut.id = 'astBtnCut';
+  const bCut = E('button', 'ast-btn', 'Cut'); bCut.type = 'button'; bCut.id = 'astBtnCut';
+  bCut.title = 'Cut: open the target folder and use “Paste here”';
   bCut.addEventListener('click', () => { astClipIds = [...astSel]; astPinta(); setStatus('Asset(s) cut. Open the destination folder and tap “Paste here”.'); });
   const bPaste = E('button', 'ast-btn', 'Paste here'); bPaste.type = 'button'; bPaste.id = 'astBtnPaste';
   bPaste.addEventListener('click', async () => {
@@ -20717,10 +20872,17 @@ function astTela() {
   });
   const bLimpa = E('button', 'ast-btn', 'Clear selection'); bLimpa.type = 'button';
   bLimpa.addEventListener('click', () => { astSel.clear(); astPinta(); });
-  selbar.append(info, clipInfo, bAdd, bCut, bPaste, bRen, bDelS, bLimpa);
+  const bCrop = E('button', 'ast-btn', 'Crop'); bCrop.type = 'button'; bCrop.id = 'astBtnCrop';
+  bCrop.title = 'Crop the selected images — the same area (in %) for all of them';
+  bCrop.addEventListener('click', () => astRecorteDialogo());
+  const bMove = E('button', 'ast-btn', 'Move to…'); bMove.type = 'button'; bMove.id = 'astBtnMove';
+  bMove.title = 'Move the selected assets to another folder';
+  bMove.addEventListener('click', () => astMoverPara());
+  selbar.append(info, clipInfo, bAdd, bCrop, bCut, bPaste, bMove, bRen, bDelS, bLimpa);
   wrap.append(selbar);
 
   const grade = E('div', 'ast-grid'); grade.id = 'astGrade';
+  grade.addEventListener('pointerdown', e => { astUltimoToque = e.pointerType && e.pointerType !== 'mouse'; }, true);
   grade.addEventListener('click', async e => {
     const card = e.target.closest('[data-ast]');
     if (!card) return;
@@ -20735,8 +20897,22 @@ function astTela() {
       else if (actBtn.dataset.act === 'del') { try { await SS_DB.delAsset(a.id); } catch (err) {} astEsqueceURL(a.id); astSel.delete(a.id); await astRefresh(); }
       return;
     }
-    if (e.ctrlKey || e.metaKey) { astSel.has(a.id) ? astSel.delete(a.id) : astSel.add(a.id); }
+    const toque = astUltimoToque && !e.ctrlKey && !e.metaKey && !e.shiftKey;
+    if (e.shiftKey && astUltimoSel && astUltimoSel !== a.id && astAssets.some(x => x.id === astUltimoSel)) {
+      /* Shift: pega a faixa entre o último clicado e este, na ordem da grade */
+      const ordem = astFiltrados().map(x => x.id);
+      const i0 = ordem.indexOf(astUltimoSel), i1 = ordem.indexOf(a.id);
+      if (i0 >= 0 && i1 >= 0) {
+        if (!(e.ctrlKey || e.metaKey)) astSel.clear();
+        for (let i = Math.min(i0, i1); i <= Math.max(i0, i1); i++) astSel.add(ordem[i]);
+        astUltimoSel = a.id;
+        astPinta();
+        return;
+      }
+    }
+    if (e.ctrlKey || e.metaKey || (toque && astSel.size)) { astSel.has(a.id) ? astSel.delete(a.id) : astSel.add(a.id); }
     else astSel = new Set([a.id]);
+    astUltimoSel = a.id;
     astPinta();
   });
   grade.addEventListener('dblclick', e => {

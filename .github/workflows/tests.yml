@@ -20,6 +20,8 @@ jobs:
           node-version: '22'
       - name: Importação de Assets (sem ZIP, motivos, parada por cota)
         run: node tests/assets-import.test.mjs
+      - name: Assets · seleção múltipla, mover para pasta e recorte em lote
+        run: node tests/assets-select.test.mjs
       - name: Sessão e limpeza (teto de memória, atalhos de URL, apagar tudo)
         run: node tests/session.test.mjs
       - name: Menu radial de categorias (Shift+A → lista → volta)
