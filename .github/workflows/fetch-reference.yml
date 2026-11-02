@@ -42,21 +42,28 @@ jobs:
 
       - name: Guardar referência
         run: |
-          set -e
-          shopt -s nullglob
-          candidatos=(ref_extract/assets/index.html ref_extract/assets/public/index.html ref_extract/assets/www/index.html)
-          alvo=""
-          for c in "${candidatos[@]}"; do [ -f "$c" ] && alvo="$c" && break; done
-          if [ -z "$alvo" ]; then
-            alvo=$(find ref_extract -maxdepth 4 -name '*.html' | sort -k1 | tail -1)
-          fi
-          echo "HTML encontrado: $alvo"
+          set +e
+          rm -rf reference
           mkdir -p reference
-          cp "$alvo" reference/index-2.9.26.html
-          wc -c reference/index-2.9.26.html
-          # resumo do manifesto (versão do app de referência)
-          if command -v aapt >/dev/null 2>&1; then aapt dump badging ref.apk | head -5 || true; fi
-          rm -rf ref_extract ref.apk
+          # extrai tudo de novo (garantido) e registra a árvore
+          unzip -o -q ref.apk -d ref_extract
+          ( cd ref_extract && find . -type f | sort > ../reference/listing.txt )
+          ( cd ref_extract && ls -la assets assets/www 2>/dev/null >> ../reference/listing.txt )
+          echo "--- arquivos html encontrados ---" >> reference/listing.txt
+          find ref_extract -name '*.html' -exec ls -l {} \; >> reference/listing.txt
+          # copia os html (o da UI fica em assets/www/index.html)
+          for f in $(find ref_extract -name '*.html' -size -8M); do
+            base=$(echo "$f" | sed 's#ref_extract/##; s#/#__#g')
+            cp "$f" "reference/$base"
+            echo "copiado: $f -> reference/$base ($(wc -c < "$f") bytes)"
+          done
+          # copia qualquer js/css de assets (a camada mobile pode estar lá)
+          for f in $(find ref_extract/assets -name '*.js' -o -name '*.css' -size -2M 2>/dev/null); do
+            base=$(echo "$f" | sed 's#ref_extract/##; s#/#__#g')
+            [ -f "reference/$base" ] || cp "$f" "reference/$base"
+          done
+          ls -la reference | head -30
+          exit 0
 
       - name: Commit da referência
         run: |
