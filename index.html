@@ -6998,7 +6998,7 @@ uniform sampler2D uSrc;
 uniform vec2 uRes;
 uniform vec3 uCols[8];
 uniform vec2 uPins[8];
-uniform float uCount;
+uniform float uGpCount;
 uniform float uMid, uContrast, uMix, uPreserve, uDither, uSpatialMix, uCX, uCY, uScale, uAngle, uMeshWarp, uAngleDeg;
 uniform int uType;
 float spatialAt(vec2 p){
@@ -7045,7 +7045,7 @@ void main(){
     vec3 acc = vec3(0.0);
     float soma = 0.0;
     for (int i = 0; i < 8; i++) {
-      if (float(i) >= uCount) break;                 // usa só as cores escolhidas
+      if (float(i) >= uGpCount) break;                 // usa só as cores escolhidas
       float w = 1.0 / (pow(max(distance(pp, uPins[i]), 0.0008), k) + 0.0006);
       acc += uCols[i] * w;
       soma += w;
@@ -7057,9 +7057,9 @@ void main(){
     float tc = clamp(t, 0.0, 1.0);
     float g = (uMid > 0.001 && uMid < 0.999) ? log(0.5) / log(uMid) : 1.0;
     tc = pow(tc, g);
-    float xf = tc * (uCount - 1.0);
-    int i0 = max(0, min(int(floor(xf)), int(uCount) - 1));
-    int i1 = min(i0 + 1, int(uCount) - 1);
+    float xf = tc * (uGpCount - 1.0);
+    int i0 = max(0, min(int(floor(xf)), int(uGpCount) - 1));
+    int i1 = min(i0 + 1, int(uGpCount) - 1);
     col = mix(uCols[i0], uCols[i1], clamp(xf - float(i0), 0.0, 1.0));
   }
   if (uPreserve > 0.0) {
@@ -8363,7 +8363,12 @@ gl.enableVertexAttribArray(0);
 gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 0, 0);
 
 function uloc(P, name) {
-  if (!(name in P.loc)) P.loc[name] = gl.getUniformLocation(P.p, name);
+  if (!(name in P.loc)) {
+    let l = gl.getUniformLocation(P.p, name);
+    // Arrays: alguns drivers só respondem pelo primeiro elemento.
+    if (l === null && name.indexOf('[') < 0) l = gl.getUniformLocation(P.p, name + '[0]');
+    P.loc[name] = l;
+  }
   return P.loc[name];
 }
 
@@ -22284,7 +22289,7 @@ const RUN = {
       pinsFlat.push(q[0], q[1]);
     }
     draw('gradientMap', e, { uSrc: a.tex }, {
-      uRes: [W, H], uType: type, uCount: nCores, uCols: coresFlat, uPins: pinsFlat,
+      uRes: [W, H], uType: type, uGpCount: nCores, uCols: coresFlat, uPins: pinsFlat,
       uMid: clamp(p.midpoint / 100, 0, 1), uContrast: 1 + p.contrast / 100, uMix: p.mix / 100,
       uPreserve: p.preserveLuma / 100, uDither: p.dither / 100, uSpatialMix: p.spatialMix / 100,
       uCX: p.centerX / 100, uCY: p.centerY / 100, uScale: Math.max(0.08, p.scale / 100),
