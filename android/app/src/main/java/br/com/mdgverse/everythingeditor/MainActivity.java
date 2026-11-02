@@ -5,15 +5,11 @@ import android.app.Activity;
 import android.content.Intent;
 import android.content.pm.ApplicationInfo;
 import android.graphics.Color;
-import android.graphics.Insets;
 import android.net.Uri;
-import android.os.Build;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
 import android.view.ViewGroup;
-import android.view.Window;
-import android.view.WindowInsets;
 import android.webkit.ConsoleMessage;
 import android.webkit.ValueCallback;
 import android.webkit.WebChromeClient;
@@ -53,12 +49,8 @@ public class MainActivity extends Activity {
     protected void onCreate(Bundle state) {
         super.onCreate(state);
 
-        // Desenha de ponta a ponta e trata as barras do sistema por insets (Android 15 exige).
-        Window win = getWindow();
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-            win.setDecorFitsSystemWindows(false);
-        }
-
+        // targetSdk 34: o sistema reserva as barras e entrega ao WebView uma área
+        // limpa — é como o app de referência se comporta (sem compensar insets).
         FrameLayout root = new FrameLayout(this);
         root.setBackgroundColor(BG);
 
@@ -146,25 +138,6 @@ public class MainActivity extends Activity {
                 Log.d(TAG, "console: " + msg.message() + " (" + msg.lineNumber() + ")");
                 return true;
             }
-        });
-
-        root.setOnApplyWindowInsetsListener((v, insets) -> {
-            int left, top, right, bottom;
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-                Insets bars = insets.getInsets(WindowInsets.Type.systemBars() | WindowInsets.Type.displayCutout());
-                Insets ime = insets.getInsets(WindowInsets.Type.ime());
-                left = bars.left;
-                top = bars.top;
-                right = bars.right;
-                bottom = Math.max(bars.bottom, ime.bottom);
-            } else {
-                left = insets.getSystemWindowInsetLeft();
-                top = insets.getSystemWindowInsetTop();
-                right = insets.getSystemWindowInsetRight();
-                bottom = insets.getSystemWindowInsetBottom();
-            }
-            web.setPadding(left, top, right, bottom);
-            return insets;
         });
 
         web.loadUrl(START_URL);
