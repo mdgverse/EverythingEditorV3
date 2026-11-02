@@ -116,9 +116,6 @@ circle.pivot{fill:#16181d;stroke:var(--link);stroke-width:2;pointer-events:auto;
 circle.pivot:hover{stroke:var(--text-strong)}
 circle.pivot.sel{stroke:var(--text-strong);stroke-width:3;fill:var(--link)}
 circle.pivothit{fill:transparent;stroke:none;pointer-events:auto;cursor:grab}
-body.altkey circle.pivot{stroke:#ff6b6b;stroke-width:3}
-body.altkey circle.pivot.sel{stroke:#ff6b6b;fill:#ff6b6b}
-body.altkey circle.pivothit{cursor:not-allowed}
 path.tmp{fill:none;stroke:var(--text-strong);stroke-width:2;stroke-dasharray:6 4;opacity:.85}
 path.tmp.zipcut{stroke:var(--zip,#f5c542);stroke-dasharray:none;stroke-width:1.8;opacity:1}
 path.link.cut{stroke:var(--text-strong);stroke-width:3.4;opacity:1}
@@ -831,7 +828,7 @@ body input,body select,body textarea,.node input,.node select,.node textarea,.no
         <div id="nodes"></div>
         <svg id="zipLayer"></svg>
       </div>
-      <div class="hint">[ / ]: move the selected keys · Ctrl+D: duplicate keys · Middle mouse / Space + drag: pan · Alt + drag across wires: zip tie · Alt + click on a corner: remove · Wheel: zoom · Drag on empty space: select · Shift+A: add · Ctrl+X: cut · Ctrl+C: copy · Ctrl+V: paste · Ctrl+D: duplicate · Del: delete · Ctrl+Z: undo · Home: frame all · Timeline: I: key · K: play · ←→: frame · ↑↓: previous/next key</div>
+      <div class="hint">[ / ]: move the selected keys · Ctrl+D: duplicate keys · Middle mouse / Space + drag: pan · Alt + drag across wires: zip tie · Wheel: zoom · Drag on empty space: select · Shift+A: add · Ctrl+X: cut · Ctrl+C: copy · Ctrl+V: paste · Ctrl+D: duplicate · Del: delete · Ctrl+Z: undo · Home: frame all · Timeline: I: key · K: play · ←→: frame · ↑↓: previous/next key</div>
       <div id="grpMenu" class="add-menu grp-menu" hidden></div>
       <div id="addMenu" class="add-menu" hidden>
         <div id="addWheel" class="add-wheel">
@@ -7029,8 +7026,16 @@ void main(){
   if (uDither > 0.0) t = clamp(t + (hash(pix.x + 13.0, pix.y - 7.0) - 0.5) * uDither, 0.0, 1.0);
   vec3 col;
   if (uType == 3) {
-    /* Mesh: cada cor "vive" no seu pino; a mistura é por distância até ele */
-    vec2 pp = vec2(clamp(pix.x / max(1.0, uRes.x - 1.0), 0.0, 1.0), clamp(pix.y / max(1.0, uRes.y - 1.0), 0.0, 1.0));
+    /* Mesh: cada cor "vive" no seu pino; a mistura é por distância até ele.
+       O eixo Y do vUv cresce para baixo na textura, o contrário das
+       coordenadas do editor de pinos — daí o espelhamento vertical. Aqui a
+       linha é convertida para "origem no topo". (Este shader não inclui
+       FX4_COMMON, então a conta é feita na mão.)
+       O dithering entra como tremor de posição + ruído fino de cor. */
+    vec2 cp = vec2(pix.x, uRes.y - 1.0 - pix.y);
+    float jx = (hash(pix.x + 13.0, pix.y - 7.0) - 0.5) * uDither * 0.04;
+    float jy = (hash(pix.x - 5.0, pix.y + 11.0) - 0.5) * uDither * 0.04;
+    vec2 pp = clamp(vec2(cp.x / max(1.0, uRes.x - 1.0) + jx, cp.y / max(1.0, uRes.y - 1.0) + jy), 0.0, 1.0);
     float k = 5.5 - 4.15 * uMeshWarp;
     float w1 = 1.0 / (pow(max(distance(pp, uP1), 0.0008), k) + 0.0006);
     float w2 = 1.0 / (pow(max(distance(pp, uP2), 0.0008), k) + 0.0006);
@@ -7038,6 +7043,7 @@ void main(){
     float w4 = 1.0 / (pow(max(distance(pp, uP4), 0.0008), k) + 0.0006);
     float sw4 = w1 + w2 + w3 + w4;
     col = (uC1 * w1 + uC2 * w2 + uC3 * w3 + uC4 * w4) / max(sw4, 0.00001);
+    if (uDither > 0.0) col = clamp(col + (hash(pix.x + 31.0, pix.y + 7.0) - 0.5) * uDither * 0.10, 0.0, 1.0);
   } else if (t <= uMid) {
     float k = uMid <= 0.001 ? 1.0 : t / uMid;
     col = mix(uC1, uC2, k);
@@ -25920,7 +25926,7 @@ function insertPivotAt(l, pt) {
   return idx;
 }
 
-function deletePivot(l, idx, msg = 'Corner removed (Alt+click).') {
+function deletePivot(l, idx, msg = 'Corner removed.') {
   if (!l.pts || !l.pts[idx]) return false;
   l.pts.splice(idx, 1);
   if (!l.pts.length) delete l.pts;
@@ -25966,7 +25972,7 @@ function addPivotFromGesture(e, l) {
   if (idx < 0) return;
   commit();
   drawLinks();
-  setStatus('Corner created: drag to move; Alt+click removes it.');
+  setStatus('Corner created: drag to move; Delete removes it.');
   startPivotDrag(e, l, idx);
 }
 
@@ -25994,9 +26000,6 @@ function wireGesture(e, l) {
   window.addEventListener('pointercancel', cancel);
 }
 
-/* ==== PIVOT HIT (BEGIN) ==== */
-let lastPivotTap = null;                 // duplo toque na quina (celular)
-
 function onWirePointerDown(e) {
   const t = e.target;
   if (!t || !t.classList) return;
@@ -26004,17 +26007,7 @@ function onWirePointerDown(e) {
     if (e.button !== 0 && e.pointerType === 'mouse') return;
     e.stopPropagation();
     e.preventDefault();
-    if (e.altKey && !e.shiftKey) {                      // Alt + clique na quina: remove na hora
-      deletePivot(t.__link, t.__idx, 'Corner removed (Alt+click).');
-      return;
-    }
-    if (e.pointerType === 'touch' || e.pointerType === 'pen') {   // no celular não existe Alt
-      const agora = performance.now();
-      const dbl = lastPivotTap && lastPivotTap.link === t.__link && lastPivotTap.idx === t.__idx && agora - lastPivotTap.t < TAP_MS;
-      lastPivotTap = dbl ? null : { link: t.__link, idx: t.__idx, t: agora };
-      if (dbl) { deletePivot(t.__link, t.__idx, 'Corner removed (double tap).'); return; }
-    }
-    startPivotDrag(e, t.__link, t.__idx);
+    startPivotDrag(e, t.__link, t.__idx);      // clique seleciona/arrasta; Delete remove
     drawLinks();
     return;
   }
@@ -26031,23 +26024,6 @@ function onWirePointerDown(e) {
   wireGesture(e, l);
 }
 linksEl.addEventListener('pointerdown', onWirePointerDown);
-
-/* duplo clique do mouse na quina também remove */
-linksEl.addEventListener('dblclick', e => {
-  const t = e.target;
-  if (!t || !t.classList) return;
-  if (!(t.classList.contains('pivot') || t.classList.contains('pivothit'))) return;
-  e.stopPropagation();
-  e.preventDefault();
-  deletePivot(t.__link, t.__idx, 'Corner removed (double click).');
-});
-/* ==== PIVOT HIT (END) ==== */
-
-/* Alt pressionado: as quinas ficam vermelhas — o clique com Alt apaga */
-function altVisual(on) { document.body.classList.toggle('altkey', !!on); }
-window.addEventListener('keydown', e => { if (e.key === 'Alt' || e.altKey) altVisual(true); }, true);
-window.addEventListener('keyup', e => { if (!e.altKey) altVisual(false); }, true);
-window.addEventListener('blur', () => altVisual(false));
 // clicking away from a pivot clears its selection
 document.addEventListener('pointerdown', e => {
   const onRing = e.target.classList && e.target.classList.contains('zipthit');
@@ -28020,7 +27996,13 @@ function gpPinosDe(raw) {
 function gradAplicaVis(raiz, params) {
   if (!raiz || !raiz.querySelectorAll) return;
   const mesh = (params.mapType || 'linear') === 'mesh';
-  raiz.querySelectorAll('[data-pkey="gpins"],[data-pkey="gpReset"]').forEach(el => { el.style.display = mesh ? '' : 'none'; });
+  /* no Mesh só os pinos mandam: midpoint, ângulo, centro, escala e spatial mix não fazem nada */
+  const semEfeitoNoMesh = ['midpoint', 'angle', 'centerX', 'centerY', 'scale', 'spatialMix'];
+  raiz.querySelectorAll('[data-pkey]').forEach(el => {
+    const k = el.dataset.pkey;
+    if (k === 'gpins' || k === 'gpReset') { el.style.display = mesh ? '' : 'none'; return; }
+    if (semEfeitoNoMesh.includes(k)) el.style.display = mesh ? 'none' : '';
+  });
 }
 
 function makeGradientPins(n) {
