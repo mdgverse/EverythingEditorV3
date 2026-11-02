@@ -29,7 +29,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: JDK 17
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: '17'
@@ -39,14 +39,23 @@ jobs:
         with:
           gradle-version: '8.9'
 
+      # O runner do GitHub já vem com o Android SDK. Só instala o que faltar.
       - name: Android SDK
-        uses: android-actions/setup-android@v3
-
-      - name: Instalar platform 35
         run: |
-          yes | sdkmanager --licenses > /dev/null 2>&1 || true
-          sdkmanager --install "platforms;android-35" "build-tools;35.0.0" > /dev/null
-          sdkmanager --list_installed | head -20
+          set +e
+          SDL="${ANDROID_HOME:-${ANDROID_SDK_ROOT:-$HOME/Android/Sdk}}"
+          echo "SDK em: $SDL"
+          ls "$SDL/platforms" 2>/dev/null
+          ls "$SDL/build-tools" 2>/dev/null
+          SM="$SDL/cmdline-tools/latest/bin/sdkmanager"
+          [ -x "$SM" ] || SM="$(command -v sdkmanager)"
+          if [ ! -d "$SDL/platforms/android-35" ] || [ ! -d "$SDL/build-tools/35.0.0" ]; then
+            echo "Instalando platform 35 / build-tools 35…"
+            yes | "$SM" --licenses > /dev/null 2>&1
+            "$SM" --install "platforms;android-35" "build-tools;35.0.0" > /dev/null
+          fi
+          echo "android.home=$SDL" > /dev/null
+          exit 0
 
       # A chave fica no repositório para que as atualizações do app sejam aceitas
       # por cima da versão instalada (mesma assinatura em todos os builds).
