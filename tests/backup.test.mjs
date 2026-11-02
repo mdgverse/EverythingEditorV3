@@ -75,5 +75,18 @@ ok(/id="ssRestoreFile" type="file"|id="ssRestoreFile"[^>]*accept="\.json/.test(h
 ok(/bkBackupTudo\(\)\.catch/.test(html) && /bkRestaurarTudo\(arq\)\.catch/.test(html), 'falhas viram aviso em vez de travar');
 ok(/try \{ await ssRenderRecent\(\); \}/.test(html), 'a lista de projetos se refaz depois de restaurar');
 
+/* ---------- os mesmos botões dentro de Assets ---------- */
+{
+  const tela = extrai("const el = E('div', 'ast'); el.id = 'astScr';", "const drop = E('div', 'ast-drop'");
+  ok(/id = 'astBtnBackup'/.test(tela) && /'Backup all'/.test(tela), 'Assets tem Backup', tela.length);
+  ok(/id = 'astBtnRestore'/.test(tela) && /'Restore'/.test(tela), 'Assets tem Restore');
+  ok(/bBk\.addEventListener\('click', \(\) => \{ bkBackupTudo\(\)/.test(tela), 'o Backup de Assets usa a mesma função da Home');
+  ok(/bRs\.addEventListener\('click', \(\) => rsInp\.click\(\)\)/.test(tela), 'Restore de Assets abre o seletor de arquivo');
+  ok(/rsInp\.accept = '\.json,application\/json'/.test(tela), 'só aceita .json');
+  ok(/if \(arq\) bkRestaurarTudo\(arq\)/.test(tela), 'o arquivo escolhido vai para o mesmo restore');
+  ok(/acts\.append\(bBk, bRs, rsInp\)/.test(tela), 'os dois botões ficam na barra da biblioteca');
+  ok(!/SS_DB\.dump\(\)[\s\S]*SS_DB\.dump\(\)/.test(tela), 'nada de backup duplicado dentro de Assets');
+}
+
 const tudo = resumo();
 process.exit(tudo ? 0 : 1);

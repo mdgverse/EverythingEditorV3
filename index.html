@@ -21339,6 +21339,22 @@ function astTela() {
     catch (e) { setStatus('Could not delete the folder.', true); }
   });
   acts.append(bUp, bPasteHint, bVetor, bNova, bRenP, bDelP, fileInp);
+  /* Backup/Restore da biblioteca: usa o mesmo pacote da tela inicial
+     (projetos + pastas + Assets num .json só) */
+  const bBk = E('button', 'ast-btn', 'Backup all'); bBk.type = 'button'; bBk.id = 'astBtnBackup';
+  bBk.title = 'Projects, folders and this library in one .json';
+  bBk.addEventListener('click', () => { bkBackupTudo().catch(e => setStatus('Backup failed: ' + ((e && e.message) || e), true)); });
+  const bRs = E('button', 'ast-btn', 'Restore'); bRs.type = 'button'; bRs.id = 'astBtnRestore';
+  bRs.title = 'Bring a backup file into this browser';
+  const rsInp = document.createElement('input');
+  rsInp.type = 'file'; rsInp.hidden = true; rsInp.accept = '.json,application/json'; rsInp.id = 'astRestoreFile';
+  rsInp.addEventListener('change', () => {
+    const arq = rsInp.files && rsInp.files[0];
+    rsInp.value = '';
+    if (arq) bkRestaurarTudo(arq).catch(e => setStatus('Restore failed: ' + ((e && e.message) || e), true));
+  });
+  bRs.addEventListener('click', () => rsInp.click());
+  acts.append(bBk, bRs, rsInp);
   wrap.append(acts);
 
   const drop = E('div', 'ast-drop', 'Drag images or SVG here, or paste with Ctrl+V');
