@@ -1,8 +1,7 @@
 name: Fetch reference APK
 
 # Baixa o APK de referência (Drive), extrai o HTML que está dentro dele e
-# commita em reference/ para análise local. Workflow temporário: pode ser
-# removido depois que as medidas forem extraídas.
+# commita em reference/ para análise local. Workflow temporário.
 on:
   push:
     paths:
@@ -19,65 +18,69 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Baixar do Drive
+      - name: Baixar do Drive (com fallback)
         run: |
-          set -e
+          set +e
           FILE_ID="1Nk-EtFn_-mwqfDdyIp5D1P1oh-rwsDb1"      # everything-editor-2.9.26.apk
-          curl -sSL -o ref.apk "https://drive.google.com/uc?export=download&id=$FILE_ID"
-          ls -la ref.apk
-          file ref.apk
-          head -c 4 ref.apk | xxd
+          rm -rf reference; mkdir -p reference
+          : > reference/listing.txt
+
+          tenta() {
+            echo "--- tentativa: $1" | tee -a reference/listing.txt
+            curl -sSL --max-time 120 -A "Mozilla/5.0" -o ref.apk "$1"
+            echo "http/curl exit: $?" | tee -a reference/listing.txt
+            if [ -f ref.apk ] && [ "$(head -c 2 ref.apk)" = "PK" ]; then
+              echo "OK: zip válido ($(wc -c < ref.apk) bytes)" | tee -a reference/listing.txt
+              return 0
+            fi
+            echo "conteúdo recebido: $(head -c 300 ref.apk | tr -d '\n' | cut -c1-300)" | tee -a reference/listing.txt
+            return 1
+          }
+
+          tenta "https://drive.usercontent.google.com/download?id=$FILE_ID&export=download&confirm=t" ||
+          tenta "https://drive.google.com/uc?export=download&id=$FILE_ID&confirm=t" ||
+          tenta "https://drive.google.com/uc?id=$FILE_ID&export=download" ||
+          tenta "https://www.googleapis.com/drive/v3/files/$FILE_ID?alt=media&key=" ||
+          true
+
+          file ref.apk 2>&1 | tee -a reference/listing.txt
+          ls -la ref.apk 2>&1 | tee -a reference/listing.txt
+          exit 0
 
       - name: Extrair assets
         run: |
-          set -e
-          mkdir -p reference
-          echo "=== conteúdo do APK (assets/res relevante) ==="
-          unzip -l ref.apk | grep -Ei 'assets/|\.html|\.js|\.css|AndroidManifest' | head -60
-          echo
-          echo "=== extraindo ==="
-          unzip -o -q ref.apk -d ref_extract || true
-          ls -la ref_extract/assets 2>/dev/null || true
-          find ref_extract -maxdepth 3 -name "*.html" -o -maxdepth 3 -name "*.js" | head -20
-
-      - name: Guardar referência
-        run: |
           set +e
-          rm -rf reference
-          mkdir -p reference
-          # extrai tudo de novo (garantido) e registra a árvore
-          unzip -o -q ref.apk -d ref_extract
-          ( cd ref_extract && find . -type f | sort > ../reference/listing.txt )
-          ( cd ref_extract && ls -la assets assets/www 2>/dev/null >> ../reference/listing.txt )
-          echo "--- arquivos html encontrados ---" >> reference/listing.txt
-          find ref_extract -name '*.html' -exec ls -l {} \; >> reference/listing.txt
-          # copia os html (o da UI fica em assets/www/index.html)
-          for f in $(find ref_extract -name '*.html' -size -8M); do
-            base=$(echo "$f" | sed 's#ref_extract/##; s#/#__#g')
-            cp "$f" "reference/$base"
-            echo "copiado: $f -> reference/$base ($(wc -c < "$f") bytes)"
-          done
-          # copia qualquer js/css de assets (a camada mobile pode estar lá)
-          for f in $(find ref_extract/assets -name '*.js' -o -name '*.css' -size -2M 2>/dev/null); do
-            base=$(echo "$f" | sed 's#ref_extract/##; s#/#__#g')
-            [ -f "reference/$base" ] || cp "$f" "reference/$base"
-          done
-          ls -la reference | head -30
+          if [ "$(head -c 2 ref.apk 2>/dev/null)" = "PK" ]; then
+            ( cd . && unzip -o -q ref.apk -d ref_extract )
+            ( cd ref_extract && find . -type f | sort > ../reference/listing.txt )
+            for f in $(find ref_extract -name '*.html' -size -8M); do
+              base=$(echo "$f" | sed 's#ref_extract/##; s#/#__#g')
+              cp "$f" "reference/$base"
+              echo "html: $f -> reference/$base ($(wc -c < "$f") bytes)" >> reference/listing.txt
+            done
+          else
+            echo "sem zip para extrair" >> reference/listing.txt
+          fi
           exit 0
 
       - name: Commit da referência
         run: |
-          set -e
+          set +e
           git config user.name "ref-bot"
           git config user.email "ref-bot@users.noreply.github.com"
-          git add reference
-          git commit -m "chore(ref): HTML extraído do APK de referência 2.9.26" || echo "nada para commitar"
-          git push || echo "::warning::push falhou"
+          rm -f ref.apk
+          rm -rf ref_extract
+          git add -A reference
+          git commit -m "chore(ref): extração do APK de referência 2.9.26"
+          git push
+          exit 0
 
       - name: Resumo
+        if: always()
         run: |
           {
-            echo "### Referência extraída"
-            echo ""
-            echo "Arquivo: \`reference/index-2.9.26.html\` ($(wc -c < reference/index-2.9.26.html) bytes)"
+            echo "### Referência"
+            echo '```'
+            head -40 reference/listing.txt
+            echo '```'
           } >> "$GITHUB_STEP_SUMMARY"
