@@ -2,7 +2,7 @@
    A sessão guarda o projeto com as imagens em base64; acima do teto o app
    pergunta antes de abrir em vez de decodificar tudo e travar. */
 import fs from 'node:fs';
-import { ok, resumo } from './zip-kit.mjs';
+import { ok, resumo } from './kit.mjs';
 
 const html = fs.readFileSync('index.html', 'utf8');
 const marca = 'function astSessaoPesada(';
@@ -36,5 +36,46 @@ ok(/flags\.get\('safe'\) === '1'/.test(html), '?safe=1 existe');
 ok(/flags\.get\('limpar'\) === '1'/.test(html), '?limpar=1 existe');
 ok(/restaurar'\) === 'antiga'/.test(html), '?restaurar=antiga existe');
 ok(/ssSemSessao = true/.test(html), 'modo seguro não grava por cima da sessão');
+
+/* ---- limpeza completa (começar do zero) ---- */
+{
+  console.log('\nLimpeza completa');
+  const marca = 'async function astLimpezaCompleta()';
+  const pos = html.indexOf(marca);
+  ok(pos > 0, 'astLimpezaCompleta existe');
+  function recorta(src, inicio) {
+    const abre = src.indexOf('{', inicio);
+    let nivel = 0;
+    for (let i = abre; i < src.length; i++) {
+      if (src[i] === '{') nivel++;
+      else if (src[i] === '}') { nivel--; if (!nivel) return src.slice(inicio, i + 1); }
+    }
+    throw new Error('função sem fim');
+  }
+  const chamadas = { dbs: [], cachesApagados: [], ls: 0, ss: 0, sw: 0 };
+  const ambiente = {
+    indexedDB: {
+      databases: async () => [{ name: 'everything-editor-projects' }, { name: 'everything-editor-mobile' }],
+      deleteDatabase: nome => chamadas.dbs.push(nome)
+    },
+    window: { caches: { keys: async () => ['v1', 'v2'], delete: async k => chamadas.cachesApagados.push(k) } },
+    caches: { keys: async () => ['v1', 'v2'], delete: async k => chamadas.cachesApagados.push(k) },
+    navigator: { serviceWorker: { getRegistrations: async () => [{ unregister: async () => { chamadas.sw++; } }] } },
+    localStorage: { clear: () => { chamadas.ls++; } },
+    sessionStorage: { clear: () => { chamadas.ss++; } }
+  };
+  const limpa = new Function(...Object.keys(ambiente), recorta(html, pos) + '\nreturn astLimpezaCompleta;')(...Object.values(ambiente));
+  await limpa();
+  ok(chamadas.dbs.includes('everything-editor-projects'), 'apaga o banco de projetos/assets', chamadas.dbs);
+  ok(chamadas.dbs.includes('everything-editor-mobile'), 'apaga o banco da sessão', chamadas.dbs);
+  ok(chamadas.cachesApagados.length === 2, 'apaga o Cache Storage', chamadas.cachesApagados);
+  ok(chamadas.ls === 1 && chamadas.ss === 1, 'limpa localStorage e sessionStorage');
+  ok(chamadas.sw === 1, 'desregistra service workers');
+
+  ok(/EE_LIMPEZA_MARCA/.test(html) && /EE_LIMPEZA_PENDENTE/.test(html), 'marcadores da limpeza existem');
+  ok(/flags\.get\('reset'\) === '1'/.test(html), '?reset=1 reabre a limpeza');
+  ok(/Apagar tudo e começar/.test(html) && /Manter meus dados/.test(html), 'diálogo tem as duas opções');
+  ok(/Começar do zero\?/.test(html), 'título do diálogo presente');
+}
 
 process.exit(resumo() ? 0 : 1);
