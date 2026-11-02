@@ -1,4 +1,4 @@
-/* Menu radial de categorias (Shift+A): círculo → lista da categoria → seta de volta.
+/* Menu radial de categorias (Shift+A): anel de fatias → lista da categoria → seta de volta.
    Roda o bloco real do index.html (marcadores ADD MENU) num DOM mínimo. */
 import fs from 'node:fs';
 import { ok, resumo } from './kit.mjs';
@@ -23,15 +23,18 @@ function busca(raiz, sel) {
 
 function criaEl(tag = 'div') {
   const el = {
-    tagName: tag, parent: null, children: [], dataset: {}, _cls: new Set(), _txt: '',
-    hidden: false, title: '', type: '', value: '',
+    tagName: tag, parent: null, children: [], dataset: {}, attrs: {}, _cls: new Set(), _txt: '',
+    hidden: false, title: '', type: '', value: '', _path: null, _txtEl: null,
     _h: {},
     style: { setProperty(k, v) { this[k] = v; } },
     classList: {
       add: (...c) => c.forEach(x => el._cls.add(x)),
       remove: (...c) => c.forEach(x => el._cls.delete(x)),
       contains: c => el._cls.has(c),
+      toggle: (c, on) => { const v = on === undefined ? !el._cls.has(c) : !!on; if (v) el._cls.add(c); else el._cls.delete(c); return v; },
     },
+    setAttribute(k, v) { el.attrs[k] = String(v); },
+    getAttribute(k) { return k in el.attrs ? el.attrs[k] : null; },
     append(...k) { for (const x of k) { x.parent = el; el.children.push(x); } },
     remove() { if (el.parent) el.parent.children = el.parent.children.filter(c => c !== el); },
     addEventListener(t, f) { (el._h[t] || (el._h[t] = [])).push(f); },
@@ -44,11 +47,11 @@ function criaEl(tag = 'div') {
     get textContent() { return el._txt + el.children.map(c => c.textContent).join(''); },
     set textContent(v) { el._txt = String(v); el.children = []; },
   };
-  Object.defineProperty(el, 'innerHTML', { get() { return ''; }, set() { el.children = []; el._txt = ''; } });
   Object.defineProperty(el, 'className', {
     get() { return [...el._cls].join(' '); },
     set(v) { el._cls = new Set(String(v).split(/\s+/).filter(Boolean)); },
   });
+  Object.defineProperty(el, 'innerHTML', { get() { return ''; }, set() { el.children = []; el._txt = ''; } });
   return el;
 }
 
@@ -71,6 +74,10 @@ const CATS = {
 function monta() {
   const addMenu = criaEl('div'); addMenu.hidden = true;
   const addWheel = criaEl('div');
+  const addSvg = criaEl('svg');
+  const addSectors = criaEl('g');
+  addSvg.append(addSectors);
+  addWheel.append(addSvg);
   const addPanel = criaEl('div'); addPanel.hidden = true;
   const addSearch = criaEl('input');
   const addList = criaEl('div');
@@ -80,7 +87,12 @@ function monta() {
   const addHubTxt = criaEl('span');
   addWheel.append(addHub); addHub.append(addHubTxt);
 
-  const documentStub = { createElement: criaEl, body: criaEl('body'), addEventListener() {} };
+  const documentStub = {
+    createElement: criaEl,
+    createElementNS: (ns, tag) => criaEl(tag),
+    body: criaEl('body'),
+    addEventListener() {},
+  };
   const viewEl = { getBoundingClientRect: () => ({ left: 0, top: 0, width: 1200, height: 900 }) };
   const inseridos = [];
 
@@ -88,6 +100,7 @@ function monta() {
   const fabrica = new Function(
     'document', 'window', 'E', 'clamp', 'CATS', 'NODE_TYPES', 'MACHINE_HIDDEN_PICK', 'noDesativado', 'outputNode',
     'addMenu', 'addSearch', 'addList', 'addWheel', 'addPanel', 'addBack', 'addTitle', 'addHub', 'addHubTxt',
+    'addSvg', 'addSectors',
     'viewEl', 'screenToWorld', 'sortTypesByTitle', 'addNodeAt', 'drawLinks', 'commit', 'requestRender', 'linkTo', 'connect',
     'let addPos = { x: 0, y: 0 };\nlet pendingLink = null;\n' + src +
     '\nreturn { openAddMenu, hideAddMenu, abrirLista, voltarCategorias, renderAddWheel, renderAddList,' +
@@ -100,36 +113,46 @@ function monta() {
     (v, a, b) => Math.min(b, Math.max(a, v)),
     CATS, NODE_TYPES, {}, () => false, () => null,
     addMenu, addSearch, addList, addWheel, addPanel, addBack, addTitle, addHub, addHubTxt,
+    addSvg, addSectors,
     viewEl, (x, y) => ({ x, y }),
     entradas => entradas.sort((a, b) => a[1].title.localeCompare(b[1].title)),
-    (t) => inseridos.push(t), () => {}, () => {}, () => {}, () => false, () => {}
+    t => inseridos.push(t), () => {}, () => {}, () => {}, () => false, () => {}
   );
-  return { api, addMenu, addWheel, addPanel, addList, addBack, addTitle, addSearch, addHub, inseridos };
+  return { api, addMenu, addWheel, addSvg, addSectors, addPanel, addList, addBack, addTitle, addSearch, addHub, inseridos };
 }
 
 /* ---------- testes ---------- */
 console.log('menu radial de categorias');
 
 {
-  const { api, addWheel, addPanel } = monta();
+  const { api, addSectors, addPanel, addSvg } = monta();
   api.openAddMenu(600, 400);
-  const cats = addWheel.querySelectorAll('.add-cat');
-  ok(api.view === 'wheel', 'Shift+A abre no círculo');
+  const fatias = addSectors.children;
+  ok(api.view === 'wheel', 'Shift+A abre no anel');
   ok(addPanel.hidden === true, 'a lista começa escondida');
-  ok(cats.length === 4, 'um botão por categoria com nós disponíveis', cats.length);
-  ok(cats.every(b => b.dataset.cat), 'cada botão guarda a categoria');
-  ok(cats.every(b => b.style['--wx'] && b.style['--wy']), 'cada botão recebe a posição no círculo');
-  ok(cats.filter(b => b.classList.contains('hi')).length === 1, 'exatamente um item destacado');
-  const rotulos = cats.map(b => b.textContent).join('|');
-  ok(rotulos.includes('Input') && rotulos.includes('Composite'), 'rótulos das categorias no círculo', rotulos);
-  ok(cats.some(b => /rgba\(/.test(b.style.background)), 'cada categoria usa a sua cor');
+  ok(addSvg.getAttribute('viewBox') !== null, 'o anel é desenhado em SVG');
+  ok(fatias.length === 4, 'uma fatia por categoria com nós disponíveis', fatias.length);
+  ok(fatias.every(g => g.dataset.cat), 'cada fatia guarda a categoria');
+  ok(fatias.every(g => g._path && /^M[\d.,]+ A[\d.]+/.test(g._path.getAttribute('d') || '')), 'cada categoria é um setor do anel');
+  ok(fatias.filter(g => g.classList.contains('hi')).length === 1, 'exatamente uma fatia destacada');
+  const rotulos = fatias.map(g => g.textContent).join('|');
+  ok(rotulos.includes('Input') && rotulos.includes('Composite'), 'nomes escritos dentro das fatias', rotulos);
+  ok(fatias.some(g => /rgba\(/.test(g._path.getAttribute('fill') || '')), 'cada fatia usa a cor da categoria');
+
+  /* geometria: em ordem, sem sobreposição e sem buraco */
+  const ang = fatias.map(g => [Number(g.dataset.a0), Number(g.dataset.a1)]);
+  ok(ang.every(([a0, a1]) => a1 > a0), 'cada fatia tem abertura positiva');
+  ok(Math.abs(ang[0][0] + 90) < 3, 'a primeira fatia começa no topo', ang[0][0]);
+  ok(ang.every((v, i) => i === 0 || v[0] >= ang[i - 1][1]), 'fatias em ordem e sem sobreposição');
+  ok(ang.every((v, i) => i === 0 || v[0] - ang[i - 1][1] < 4), 'vão entre fatias é mínimo (anel contínuo)');
+  const cobertura = ang.reduce((t, [a0, a1]) => t + (a1 - a0), 0);
+  ok(cobertura > 360 - fatias.length * 4.5 && cobertura <= 360, 'as fatias cobrem o anel inteiro', cobertura);
 }
 
 {
-  const { api, addWheel, addPanel, addList, addTitle } = monta();
+  const { api, addSectors, addPanel, addList, addTitle } = monta();
   api.openAddMenu(600, 400);
-  const alvo = addWheel.querySelectorAll('.add-cat').find(b => b.dataset.cat === 'filter');
-  alvo.fire('click');
+  addSectors.children.find(b => b.dataset.cat === 'filter').fire('click');
   ok(api.view === 'list', 'escolher categoria troca para a lista');
   ok(api.cat === 'filter', 'a categoria escolhida fica ativa', api.cat);
   ok(addPanel.hidden === false, 'a lista aparece');
@@ -140,20 +163,20 @@ console.log('menu radial de categorias');
 }
 
 {
-  const { api, addWheel, addPanel, addBack } = monta();
+  const { api, addSectors, addPanel, addBack } = monta();
   api.openAddMenu(600, 400);
-  addWheel.querySelectorAll('.add-cat').find(b => b.dataset.cat === 'compose').fire('click');
+  addSectors.children.find(b => b.dataset.cat === 'compose').fire('click');
   addBack.fire('click');
-  ok(api.view === 'wheel', 'a seta do topo volta ao círculo');
+  ok(api.view === 'wheel', 'a seta do topo volta ao anel');
   ok(addPanel.hidden === true, 'a lista esconde ao voltar');
-  ok(addWheel.hidden === false && addWheel.querySelectorAll('.add-cat').length === 4, 'círculo remontado');
+  ok(addSectors.children.length === 4, 'anel remontado');
 }
 
 {
-  const { api, addWheel, addList } = monta();
+  const { api, addSectors, addList } = monta();
   api.openAddMenu(600, 400, { outId: 'n1' });   // arrastando uma saída
-  const cats = addWheel.querySelectorAll('.add-cat').map(b => b.dataset.cat);
-  ok(!cats.includes('input'), 'categoria sem entrada livre sai do círculo', cats.join(','));
+  const cats = addSectors.children.map(b => b.dataset.cat);
+  ok(!cats.includes('input'), 'categoria sem entrada livre sai do anel', cats.join(','));
   api.abrirLista('filter');
   ok(addList.querySelectorAll('.add-item').length === 2, 'a lista segue o filtro do link pendente');
 }
