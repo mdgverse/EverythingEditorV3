@@ -20837,12 +20837,6 @@ function astEstilo() {
     '.ast-msg{margin:0 0 10px;padding:9px 11px;border-radius:9px;background:#1f2530;border:1px solid #2f3947;color:#cfd8e3;font-size:12.5px;line-height:1.4}',
     '.ast-msg.err{background:#3a2222;border-color:#6a3333;color:#f0c9c9}',
     '.ast-msg[hidden]{display:none}',
-    '.ast-prog{position:fixed;left:12px;right:12px;bottom:14px;z-index:9660;display:flex;align-items:center;gap:10px;background:var(--panel,#262626);border:1px solid var(--line,#3a3a3a);border-radius:12px;padding:10px 12px;box-shadow:0 10px 30px rgba(0,0,0,.55);font-size:13px;color:var(--text-strong,#fff)}',
-    '.ast-prog[hidden]{display:none}',
-    '.ast-prog-t{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}',
-    '.ast-prog-bar{flex:0 0 120px;height:6px;border-radius:3px;background:#3a3f47;overflow:hidden}',
-    '.ast-prog-bar i{display:block;height:100%;width:0;background:var(--brand,#ff9c3a);transition:width .18s linear}',
-    'body.mobile .ast-prog{bottom:76px}',
     '.astpick{position:fixed;inset:0;z-index:9800;background:rgba(8,9,12,.72);display:flex;align-items:center;justify-content:center;padding:14px}',
     '.astpick-box{background:var(--bg,#15171b);border:1px solid var(--line,#333);border-radius:12px;max-width:860px;width:100%;max-height:88vh;overflow:auto;padding:14px}',
   ].join('\n');
@@ -20981,356 +20975,6 @@ function astErroDeCota(e) {
   return n === 'QuotaExceededError' || /quota/i.test(n + ' ' + m);
 }
 
-/* ==== ASSET ZIP READER (BEGIN) ====
-   Leitor de ZIP que NÃO carrega o arquivo inteiro na memória: usa File.slice()
-   para ler o fim do arquivo (EOCD), depois o diretório central e, por fim, cada
-   arquivo individualmente. Suporta ZIP64, "data descriptor", métodos 0 (stored)
-   e 8 (deflate, com plano B em JS puro). Nomes em UTF-8 (flag 0x800) ou CP437.
-   Testado por tests/asset-zip.test.mjs. */
-const ASTZIP = (() => {
-  const SIG_LOCAL = 0x04034b50, SIG_CENTRAL = 0x02014b50, SIG_EOCD = 0x06054b50;
-  const SIG_EOCD64 = 0x06064b50, SIG_LOC64 = 0x07064b50;
-  const MAX_CD = 64 * 1048576;          /* diretório central: teto de 64 MB */
-  const MIME = { png: 'image/png', jpg: 'image/jpeg', jpeg: 'image/jpeg', webp: 'image/webp', gif: 'image/gif',
-                 avif: 'image/avif', bmp: 'image/bmp', svg: 'image/svg+xml' };
-
-  /* metade alta do CP437 (0x80-0xFF) — nomes antigos sem flag UTF-8 */
-  const CP437 = 'ÇüéâäàåçêëèïîìÄÅÉæÆôöòûùÿÖÜ¢£¥₧ƒáíóúñÑªº¿⌐¬½¼¡«»░▒▓│┤╡╢╖╕╣║╗╝╜╛┐' +
-                '└┴┬├─┼╞╟╚╔╩╦╠═╬╧╨╤╥╙╘╒╓╫╪┘┌█▄▌▐▀αßΓπΣσµτΦΘΩδ∞φε∩≡±≥≤⌠⌡÷≈°∙·√ⁿ²■\u00A0';
-  const utf8 = new TextDecoder('utf-8', { fatal: true });
-  function decNome(bytes, utf8Flag) {
-    if (!bytes.length) return '';
-    if (utf8Flag) { try { return utf8.decode(bytes); } catch (e) { /* marcado UTF-8 mas inválido */ } }
-    else { try { return utf8.decode(bytes); } catch (e) { /* sem flag e não é UTF-8: CP437 */ } }
-    let s = '';
-    for (const b of bytes) s += b < 0x80 ? String.fromCharCode(b) : CP437[b - 0x80] || String.fromCharCode(b);
-    return s;
-  }
-
-  /* ---------- DEFLATE puro (RFC 1951), plano B sem DecompressionStream ---------- */
-  const LEN_BASE = [3,4,5,6,7,8,9,10,11,13,15,17,19,23,27,31,35,43,51,59,67,83,99,115,131,163,195,227,258];
-  const LEN_EXTR = [0,0,0,0,0,0,0,0,1,1,1,1,2,2,2,2,3,3,3,3,4,4,4,4,5,5,5,5,0];
-  const DIST_BASE = [1,2,3,4,5,7,9,13,17,25,33,49,65,97,129,193,257,385,513,769,1025,1537,2049,3073,
-                     4097,6145,8193,12289,16385,24577];
-  const DIST_EXTR = [0,0,0,0,1,1,2,2,3,3,4,4,5,5,6,6,7,7,8,8,9,9,10,10,11,11,12,12,13,13];
-  const CL_ORDEM = [16,17,18,0,8,7,9,6,10,5,11,4,12,3,13,2,14,1,15];
-
-  function inflarRaw(src) {
-    let pos = 0, bitbuf = 0, bitcnt = 0;
-    let out = new Uint8Array(Math.max(1024, src.length * 3)), o = 0;
-    const cresce = n => {
-      if (o + n <= out.length) return;
-      let tam = out.length;
-      while (tam < o + n) tam *= 2;
-      const novo = new Uint8Array(tam); novo.set(out.subarray(0, o)); out = novo;
-    };
-    const need = n => { while (bitcnt < n) { if (pos >= src.length) throw new Error('deflate truncado'); bitbuf |= src[pos++] << bitcnt; bitcnt += 8; } };
-    const bits = n => { if (!n) return 0; need(n); const v = bitbuf & ((1 << n) - 1); bitbuf >>>= n; bitcnt -= n; return v; };
-    const huff = tam => {
-      let max = 0;
-      for (let i = 0; i < tam.length; i++) if (tam[i] > max) max = tam[i];
-      const cnt = new Array(max + 2).fill(0);
-      for (let i = 0; i < tam.length; i++) if (tam[i]) cnt[tam[i]]++;
-      const next = new Array(max + 2).fill(0);
-      let code = 0;
-      for (let l = 1; l <= max; l++) { code = (code + cnt[l - 1]) << 1; next[l] = code; }
-      const map = new Map();
-      for (let i = 0; i < tam.length; i++) if (tam[i]) map.set(tam[i] * 65536 + next[tam[i]]++, i);
-      return { map, max };
-    };
-    const dec = h => {
-      let code = 0;
-      for (let len = 1; len <= h.max; len++) {
-        code = (code << 1) | bits(1);
-        const s = h.map.get(len * 65536 + code);
-        if (s !== undefined) return s;
-      }
-      throw new Error('código Huffman inválido');
-    };
-    let fixoLit = null, fixoDist = null;
-    for (;;) {
-      const fim = bits(1), tipo = bits(2);
-      if (tipo === 0) {                     /* sem compressão */
-        bitbuf = 0; bitcnt = 0;
-        const lo = src[pos] | (src[pos + 1] << 8), hi = src[pos + 2] | (src[pos + 3] << 8);
-        if (lo !== (hi ^ 0xFFFF)) throw new Error('bloco stored inválido');
-        pos += 4; cresce(lo); out.set(src.subarray(pos, pos + lo), o); o += lo; pos += lo;
-      } else if (tipo === 3) {
-        throw new Error('bloco deflate inválido');
-      } else {
-        let lit, dist;
-        if (tipo === 1) {
-          if (!fixoLit) {
-            const l = new Array(288).fill(8);
-            for (let i = 144; i < 256; i++) l[i] = 9;
-            for (let i = 256; i < 280; i++) l[i] = 7;
-            fixoLit = huff(l); fixoDist = huff(new Array(30).fill(5));
-          }
-          lit = fixoLit; dist = fixoDist;
-        } else {
-          const hlit = bits(5) + 257, hdist = bits(5) + 1, hclen = bits(4) + 4;
-          const cl = new Array(19).fill(0);
-          for (let i = 0; i < hclen; i++) cl[CL_ORDEM[i]] = bits(3);
-          const clh = huff(cl);
-          const tam = new Array(hlit + hdist).fill(0);
-          for (let i = 0; i < hlit + hdist;) {
-            const s = dec(clh);
-            if (s < 16) { tam[i++] = s; }
-            else if (s === 16) { if (!i) throw new Error('repetição inválida'); const p = tam[i - 1], n = 3 + bits(2); for (let k = 0; k < n; k++) tam[i++] = p; }
-            else if (s === 17) { const n = 3 + bits(3); for (let k = 0; k < n; k++) tam[i++] = 0; }
-            else { const n = 11 + bits(7); for (let k = 0; k < n; k++) tam[i++] = 0; }
-          }
-          lit = huff(tam.slice(0, hlit)); dist = huff(tam.slice(hlit));
-        }
-        for (;;) {
-          const sim = dec(lit);
-          if (sim < 256) { cresce(1); out[o++] = sim; continue; }
-          if (sim === 256) break;
-          const li = sim - 257;
-          if (li >= LEN_BASE.length) throw new Error('símbolo de comprimento inválido');
-          const comp = LEN_BASE[li] + bits(LEN_EXTR[li]);
-          const ds = dec(dist);
-          if (ds >= DIST_BASE.length) throw new Error('distância inválida');
-          const d = DIST_BASE[ds] + bits(DIST_EXTR[ds]);
-          if (d > o) throw new Error('distância além do início');
-          cresce(comp);
-          for (let k = 0; k < comp; k++, o++) out[o] = out[o - d];
-        }
-      }
-      if (fim) break;
-    }
-    return out.subarray(0, o);
-  }
-
-  /* ---------- acesso aleatório ao File ---------- */
-  async function ler(file, ini, fim) {
-    ini = Math.max(0, Math.min(ini, file.size));
-    fim = Math.max(ini, Math.min(fim, file.size));
-    if (fim <= ini) return new Uint8Array(0);
-    return new Uint8Array(await file.slice(ini, fim).arrayBuffer());
-  }
-  async function inflar(u8, metodo) {
-    if (metodo === 0) return u8;
-    if (metodo !== 8) throw new Error('compressão ' + metodo + ' não suportada (use deflate ou stored)');
-    if (typeof DecompressionStream === 'function') {
-      try {
-        const fluxo = new Blob([u8]).stream().pipeThrough(new DecompressionStream('deflate-raw'));
-        return new Uint8Array(await new Response(fluxo).arrayBuffer());
-      } catch (e) { /* cai no plano B */ }
-    }
-    return inflarRaw(u8);
-  }
-
-  /* PK\x03\x04 ? (distingue ZIP de qualquer outro arquivo, mesmo sem extensão) */
-  async function pareceZip(file) {
-    if (!file || typeof file.slice !== 'function') return false;
-    if (file.size < 22) return false;
-    try {
-      const b = await ler(file, 0, 4);
-      return b.length === 4 && b[0] === 0x50 && b[1] === 0x4B && b[2] === 3 && b[3] === 4;
-    } catch (e) { return false; }
-  }
-
-  /* varredura sequencial de cabeçalhos locais (ZIP com diretório central quebrado) */
-  async function porCabecalhos(file) {
-    const entradas = [];
-    let pos = 0;
-    while (pos + 30 <= file.size && entradas.length < 20000) {
-      const cab = await ler(file, pos, pos + 30);
-      const dv = new DataView(cab.buffer, cab.byteOffset, cab.byteLength);
-      if (dv.getUint32(0, true) !== SIG_LOCAL) {
-        const jan = await ler(file, pos, Math.min(pos + 1048576, file.size));
-        let achou = -1;
-        for (let i = 0; i + 4 <= jan.length; i++) if (jan[i] === 0x50 && jan[i + 1] === 0x4B && jan[i + 2] === 3 && jan[i + 3] === 4) { achou = i; break; }
-        if (achou < 0) { pos += jan.length; continue; }
-        pos += achou; continue;
-      }
-      const flags = dv.getUint16(6, true), metodo = dv.getUint16(8, true);
-      let tamC = dv.getUint32(18, true), tamU = dv.getUint32(22, true);
-      const nLen = dv.getUint16(26, true), xLen = dv.getUint16(28, true);
-      const iniDados = pos + 30 + nLen + xLen;
-      const nome = decNome(await ler(file, pos + 30, pos + 30 + nLen), !!(flags & 0x800));
-      if (flags & 8 || !tamC) {
-        /* tamanhos só no data descriptor: acha o próximo cabeçalho e recorta o descritor */
-        const jan = await ler(file, iniDados, Math.min(iniDados + 8388608, file.size));
-        let corte = jan.length;
-        for (let i = 0; i + 4 <= jan.length; i++) {
-          if (jan[i] === 0x50 && jan[i + 1] === 0x4B &&
-              ((jan[i + 2] === 3 && jan[i + 3] === 4) || (jan[i + 2] === 1 && jan[i + 3] === 2))) { corte = i; break; }
-        }
-        for (let k = Math.max(0, corte - 24); k + 4 <= corte; k++) {
-          if (jan[k] === 0x50 && jan[k + 1] === 0x4B && jan[k + 2] === 7 && jan[k + 3] === 8) { corte = k; break; }
-        }
-        tamC = corte;
-      }
-      entradas.push({ nome, metodo, tamC, tamU, offLocal: pos, cripto: !!(flags & 1), dir: /\/$/.test(nome) });
-      pos = iniDados + tamC;
-    }
-    return entradas;
-  }
-
-  async function abre(file) {
-    if (!file || typeof file.slice !== 'function') throw new Error('arquivo inválido');
-    const tailLen = Math.min(file.size, 22 + 65536 + 4096);
-    const tail = await ler(file, file.size - tailLen, file.size);
-    const dv = new DataView(tail.buffer, tail.byteOffset, tail.byteLength);
-    let eocd = -1;
-    for (let i = tail.length - 22; i >= 0; i--) if (dv.getUint32(i, true) === SIG_EOCD) { eocd = i; break; }
-    if (eocd < 0) {
-      const alt = await porCabecalhos(file);
-      if (!alt.length) throw new Error('não é um ZIP válido (sem diretório central)');
-      return { entradas: alt, zip64: false, via: 'cabeçalhos' };
-    }
-    let total = dv.getUint16(eocd + 10, true);
-    let cdSize = dv.getUint32(eocd + 12, true);
-    let cdOff = dv.getUint32(eocd + 16, true);
-    let zip64 = false;
-    if (cdOff === 0xFFFFFFFF || cdSize === 0xFFFFFFFF || total === 0xFFFF) {
-      const locPos = eocd - 20;
-      if (locPos >= 0 && dv.getUint32(locPos, true) === SIG_LOC64) {
-        const off64 = Number(dv.getBigUint64(locPos + 8, true));
-        const b64 = await ler(file, off64, off64 + 56);
-        const d64 = new DataView(b64.buffer, b64.byteOffset, b64.byteLength);
-        if (b64.length >= 56 && d64.getUint32(0, true) === SIG_EOCD64) {
-          total = Number(d64.getBigUint64(32, true));
-          cdSize = Number(d64.getBigUint64(40, true));
-          cdOff = Number(d64.getBigUint64(48, true));
-          zip64 = true;
-        }
-      }
-      if (!zip64) throw new Error('ZIP64 sem localizador válido');
-    }
-    if (cdSize > MAX_CD) throw new Error('diretório central grande demais (' + Math.round(cdSize / 1048576) + ' MB)');
-    const cd = await ler(file, cdOff, cdOff + cdSize);
-    const dc = new DataView(cd.buffer, cd.byteOffset, cd.byteLength);
-    const entradas = [];
-    let pos = 0;
-    for (let n = 0; n < total; n++) {
-      if (pos + 46 > cd.length || dc.getUint32(pos, true) !== SIG_CENTRAL) break;
-      const flags = dc.getUint16(pos + 8, true), metodo = dc.getUint16(pos + 10, true);
-      let tamC = dc.getUint32(pos + 20, true), tamU = dc.getUint32(pos + 24, true);
-      const nLen = dc.getUint16(pos + 28, true), xLen = dc.getUint16(pos + 30, true), cLen = dc.getUint16(pos + 32, true);
-      let offLocal = dc.getUint32(pos + 42, true);
-      const nome = decNome(cd.subarray(pos + 46, pos + 46 + nLen), !!(flags & 0x800));
-      /* ZIP64: campos saturados vêm no extra 0x0001, nesta ordem */
-      const campos = [];
-      if (tamU === 0xFFFFFFFF) campos.push('tamU');
-      if (tamC === 0xFFFFFFFF) campos.push('tamC');
-      if (offLocal === 0xFFFFFFFF) campos.push('off');
-      if (campos.length) {
-        let q = pos + 46 + nLen; const fim = q + xLen;
-        while (q + 4 <= fim) {
-          const id = dc.getUint16(q, true), sz = dc.getUint16(q + 2, true);
-          if (id === 0x0001) {
-            let r = q + 4;
-            for (const c of campos) {
-              if (r + 8 > q + 4 + sz) break;
-              const v = Number(dc.getBigUint64(r, true));
-              if (c === 'tamU') tamU = v; else if (c === 'tamC') tamC = v; else offLocal = v;
-              r += 8;
-            }
-            break;
-          }
-          q += 4 + sz;
-        }
-      }
-      pos += 46 + nLen + xLen + cLen;
-      entradas.push({ nome, metodo, tamC, tamU, offLocal, cripto: !!(flags & 1), dir: /\/$/.test(nome) });
-    }
-    if (!entradas.length) {
-      const alt = await porCabecalhos(file);
-      if (alt.length) return { entradas: alt, zip64, via: 'cabeçalhos' };
-    }
-    return { entradas, zip64, via: 'central' };
-  }
-
-  async function leEntrada(file, e) {
-    if (e.cripto) throw new Error('arquivo criptografado');
-    const cab = await ler(file, e.offLocal, e.offLocal + 30);
-    if (cab.length < 30) throw new Error('cabeçalho local truncado');
-    const dv = new DataView(cab.buffer, cab.byteOffset, cab.byteLength);
-    const nLen = dv.getUint16(26, true), xLen = dv.getUint16(28, true);
-    const ini = e.offLocal + 30 + nLen + xLen;
-    const dados = await ler(file, ini, ini + e.tamC);
-    if (dados.length < e.tamC) throw new Error('dados truncados');
-    return inflar(dados, e.metodo);
-  }
-
-  return { abre, leEntrada, inflar, inflarRaw, decNome, pareceZip, CP437, MIME };
-})();
-/* ==== ASSET ZIP READER (END) ==== */
-
-function astEhZip(file) { return !!(file && (/zip/i.test(file.type || '') || /\.zip$/i.test(file.name || ''))); }
-
-/* ---- pastas da biblioteca: hierarquia de verdade (pasta dentro de pasta) ---- */
-async function astPastaCtx() {
-  let pastas = [];
-  try { pastas = (await SS_DB.listAssetFolders()) || []; } catch (e) {}
-  const mapa = new Map();                       /* caminho minúsculo → id */
-  const porPai = new Map();                     /* pai → [pastas] */
-  for (const f of pastas) {
-    const pai = f.parentId || '';
-    if (!porPai.has(pai)) porPai.set(pai, []);
-    porPai.get(pai).push(f);
-  }
-  const caminhoDe = id => {
-    const partes = []; let atual = pastas.find(f => f.id === id);
-    let guarda = 0;
-    while (atual && guarda++ < 40) { partes.unshift(atual.name); atual = atual.parentId ? pastas.find(f => f.id === atual.parentId) : null; }
-    return partes.join('/').toLowerCase();
-  };
-  for (const f of pastas) mapa.set(caminhoDe(f.id), f.id);
-  return { pastas, mapa, porPai };
-}
-async function astGarantePasta(caminho, ctx) {
-  const partes = String(caminho || '').split('/').map(s => s.trim()).filter(Boolean);
-  if (!partes.length) return null;
-  let pai = null, acumulado = '';
-  for (const parte of partes) {
-    acumulado = acumulado ? acumulado + '/' + parte : parte;
-    const chave = acumulado.toLowerCase();
-    if (ctx.mapa.has(chave)) { pai = ctx.mapa.get(chave); continue; }
-    const irmaos = ctx.porPai.get(pai || '') || [];
-    const achou = irmaos.find(f => String(f.name).toLowerCase() === parte.toLowerCase());
-    if (achou) { ctx.mapa.set(chave, achou.id); pai = achou.id; continue; }
-    const nova = { id: astId(), name: parte, parentId: pai || undefined, created: Date.now(), updated: Date.now() };
-    await SS_DB.putAssetFolder(nova);
-    ctx.pastas.push(nova);
-    if (!ctx.porPai.has(nova.parentId || '')) ctx.porPai.set(nova.parentId || '', []);
-    ctx.porPai.get(nova.parentId || '').push(nova);
-    ctx.mapa.set(chave, nova.id);
-    pai = nova.id;
-  }
-  return pai;
-}
-
-/* ---- barra de progresso da importação (visível no celular também) ---- */
-let astProgBox = null, astCancela = false;
-function astProgUI() {
-  if (astProgBox && astProgBox.isConnected) return astProgBox;
-  const box = document.createElement('div');
-  box.className = 'ast-prog'; box.hidden = true;
-  const txt = document.createElement('span'); txt.className = 'ast-prog-t';
-  const bar = document.createElement('div'); bar.className = 'ast-prog-bar';
-  const fill = document.createElement('i'); bar.append(fill);
-  const bc = document.createElement('button'); bc.type = 'button'; bc.className = 'ast-btn'; bc.textContent = 'Cancel';
-  bc.addEventListener('click', () => { astCancela = true; bc.textContent = 'Cancelando…'; bc.disabled = true; });
-  box.append(txt, bar, bc);
-  document.body.append(box);
-  astProgBox = box;
-  return box;
-}
-function astProgresso(texto, fracao) {
-  const box = astProgUI();
-  box.hidden = false;
-  box.querySelector('.ast-prog-t').textContent = texto;
-  box.querySelector('.ast-prog-bar i').style.width = Math.round(Math.max(0, Math.min(1, fracao || 0)) * 100) + '%';
-  box.querySelector('button').textContent = 'Cancel';
-  box.querySelector('button').disabled = false;
-}
-function astProgressoFim() { if (astProgBox) astProgBox.hidden = true; }
-
-/* ---- diálogo de confirmação para lotes grandes ---- */
 function astConfirma(titulo, linhas, botoes) {
   return new Promise(resolve => {
     const back = document.createElement('div'); back.className = 'xdlg-back'; back.style.zIndex = '9900';
@@ -21352,248 +20996,31 @@ function astConfirma(titulo, linhas, botoes) {
 }
 
 /* ---- motivos legíveis para o resumo ---- */
-function astMotivoDe(erro) {
-  const m = String((erro && erro.message) || erro || '').toLowerCase();
-  if (m.includes('svg inválido') || m.includes('svg invalido')) return 'SVG inválido';
-  if (m.includes('unsupported format')) return 'formato não suportado';
-  if (m.includes('criptograf')) return 'criptografado';
-  if (m.includes('quota')) return 'sem espaço no navegador';
-  const nome = (erro && erro.name) || '';
-  return 'falha ao importar' + (nome && nome !== 'Error' ? ' (' + nome + ')' : '');
-}
-function astResumoTexto(ok, falhou, deZip, motivos) {
-  const partes = [];
-  if (ok) partes.push(ok + (ok === 1 ? ' asset na biblioteca' : ' assets na biblioteca') + (deZip ? ' (' + deZip + ' de ZIP)' : ''));
-  const lista = motivos ? [...motivos.entries()].filter(([m]) => m) : [];
-  const ignorados = lista.reduce((soma, [, n]) => soma + n, 0) || falhou;
-  if (ignorados) {
-    const nomes = lista.slice(0, 4).map(([m, n]) => (n > 1 ? m + ' ×' + n : m)).join(', ');
-    partes.push(ignorados + ' ignorado' + (ignorados === 1 ? '' : 's') + (nomes ? ': ' + nomes : ''));
-  }
-  return partes.filter(Boolean).join(' · ') || 'Nada para importar.';
-}
-
-/* ---- importa um ZIP ---- */
-async function astImportaZip(file, alvo, ctx) {
-  const res = { ok: 0, falhou: 0, motivos: new Map() };
-  const acrescenta = (m, n) => { res.motivos.set(m, (res.motivos.get(m) || 0) + (n || 1)); };
-
-  astCancela = false;
-  astProgresso('Lendo ' + (file.name || 'ZIP') + '…', 0.02);
-  let arq;
-  try { arq = await ASTZIP.abre(file); }
-  catch (e) {
-    astProgressoFim(); res.falhou++; acrescenta('ZIP ilegível (' + (e && e.message || e) + ')');
-    setStatus('Não consegui ler o ZIP ' + (file.name || '') + ': ' + (e && e.message || e), true);
-    return res;
-  }
-
-  const itens = [];
-  let totalEntradas = 0, bytes = 0;
-  for (const e of arq.entradas) {
-    if (e.dir) continue;
-    totalEntradas++;
-    const nome = String(e.nome || '').replace(/\\/g, '/');
-    if (/(^|\/)__MACOSX\//.test(nome) || /(^|\/)\._/.test(nome) || /(^|\/)\.DS_Store$/i.test(nome) || /(^|\/)Thumbs\.db$/i.test(nome)) continue;
-    const partes = nome.split('/').filter(p => p && p !== '.' && p !== '..');
-    if (!partes.length) continue;
-    const base = partes[partes.length - 1];
-    if (base.startsWith('.')) continue;
-    const ext = (base.split('.').pop() || '').toLowerCase();
-    const mime = ASTZIP.MIME[ext];
-    if (e.cripto) { acrescenta('criptografado'); continue; }
-    if (!mime) { acrescenta('formato .' + (ext || '?')); continue; }
-    if (!e.tamU || e.tamU > 64 * 1048576) { acrescenta('maior que 64 MB'); continue; }
-    itens.push({ entrada: e, base, ext, mime, pasta: partes.slice(0, -1).join('/'), tamU: e.tamU });
-    bytes += e.tamU;
-  }
-
-  if (!itens.length) {
-    astProgressoFim();
-    res.falhou = Math.max(1, totalEntradas);
-    setStatus((file.name || 'ZIP') + ': nenhuma imagem ou SVG para importar (' + astResumoTexto(0, res.falhou, 0, res.motivos) + ')', true);
-    return res;
-  }
-
-  /* cota de armazenamento: não começar uma importação que não cabe */
-  let cabem = itens.length;
-  try {
-    if (navigator.storage && navigator.storage.estimate) {
-      const est = await navigator.storage.estimate();
-      const livre = Math.max(0, (est.quota || 0) - (est.usage || 0));
-      if (livre > 0) {
-        let acc = 0, n = 0;
-        for (const it of itens) {
-          const custo = it.tamU * 1.42 + 60000;      /* base64 do data URL + miniatura */
-          if (acc + custo > livre * 0.85) break;
-          acc += custo; n++;
-        }
-        cabem = Math.max(1, n);
-      }
-    }
-  } catch (e) {}
-
-  let limite = itens.length;
-  if (itens.length > 150 || bytes > 120 * 1048576 || cabem < itens.length) {
-    const mb = n => astFmtTam(n);
-    const linhas = [
-      (file.name || 'ZIP') + ': ' + totalEntradas.toLocaleString('pt-BR') + ' arquivos, ' + mb(bytes) + ' de imagens/SVG.',
-      arq.zip64 ? 'ZIP64 detectado (lido por pedaços, sem carregar tudo na memória).' : '',
-      cabem < itens.length ? 'O navegador só tem espaço para ~' + cabem.toLocaleString('pt-BR') + ' destes.' : ''
-    ].filter(Boolean);
-    astProgressoFim();
-    const escolha = await astConfirma('Importar do ZIP', linhas, ['Importar ' + itens.length.toLocaleString('pt-BR'), 'Só os primeiros 200', 'Cancelar']);
-    if (escolha === -1 || escolha === 2) { astProgressoFim(); setStatus('Importação do ZIP cancelada.'); return res; }
-    if (escolha === 1) limite = Math.min(200, itens.length);
-  }
-  limite = Math.min(limite, cabem);
-
-  for (let i = 0; i < limite; i++) {
-    if (astCancela) break;
-    const it = itens[i];
-    astProgresso('Importando ' + (i + 1) + ' de ' + limite + ' — ' + it.base, (i + 1) / limite);
-    try {
-      const dados = await ASTZIP.leEntrada(file, it.entrada);
-      const arqMini = new File([dados], it.base, { type: it.mime });
-      const destino = it.pasta ? await astGarantePasta(it.pasta, ctx) : alvo;
-      const a = await astAssetDeArquivo(arqMini, destino);
-      await SS_DB.putAsset(a);
-      res.ok++;
-    } catch (e) {
-      if (astErroDeCota(e)) {
-        acrescenta('sem espaço no navegador', limite - i);
-        setStatus('Acabou o espaço do navegador depois de ' + res.ok + ' arquivo(s). Libere espaço (apague assets grandes) e importe o resto depois.', true);
-        astProgressoFim(); astMostraCota();
-        return res;
-      }
-      res.falhou++;
-      const msg = String(e && e.message || e);
-      acrescenta(msg.includes('criptograf') ? 'criptografado' : msg.includes('compressão') ? msg : astMotivoDe(e));
-    }
-    if (i % 4 === 3) await new Promise(r => setTimeout(r, 0));   /* deixa a tela respirar */
-  }
-  const faltaram = itens.length - limite;
-  if (faltaram > 0) acrescenta('ficaram ' + faltaram + ' fora do lote', 1);
-  astProgressoFim();
-  return res;
-}
-
-/* arrastar pasta: percorre a árvore de FileSystemEntry e guarda o caminho relativo */
-const astCaminhoRel = new WeakMap();
-async function astArquivosDaArvore(entradas) {
-  const saida = [];
-  const lerEntrada = entry => new Promise(res => { try { entry.file(f => res(f), () => res(null)); } catch (e) { res(null); } });
-  const percorre = async (entry, prefixo) => {
-    if (entry.isFile) {
-      const f = await lerEntrada(entry);
-      if (f) { astCaminhoRel.set(f, prefixo + entry.name); saida.push(f); }
-      return;
-    }
-    if (entry.isDirectory) {
-      const reader = entry.createReader();
-      const lote = () => new Promise(res => { try { reader.readEntries(r => res(r || []), () => res([])); } catch (e) { res([]); } });
-      for (;;) {
-        const filhos = await lote();
-        if (!filhos.length) break;
-        for (const sub of filhos) await percorre(sub, prefixo + entry.name + '/');
-      }
-    }
-  };
-  for (const e of [...(entradas || [])]) {
-    if (e) await percorre(e, '');
-  }
-  return saida;
-}
-
 async function astAddFiles(files, folderId) {
   const alvo = folderId !== undefined ? folderId : (astFolderSel !== 'all' && astFolderSel !== 'none' ? astFolderSel : null);
   const lista = [...(files || [])];
-  let ok = 0, falhou = 0, deZip = 0;
-  const motivos = new Map();
-  const soma = (m, n) => motivos.set(m, (motivos.get(m) || 0) + (n || 1));
-  if (!lista.length) { setStatus('Nenhum arquivo selecionado.', true); return 0; }
-  const ctx = await astPastaCtx();
-  /* a pasta escolhida pode ter sido apagada: nesse caso importa na raiz */
-  const alvoOk = (alvo && ctx.pastas.some(f => f.id === alvo)) ? alvo : null;
-  if (alvo && !alvoOk) { astFolderSel = 'all'; setStatus('A pasta de destino não existe mais — importando na raiz.', true); }
-
-  /* separa ZIP de arquivos soltos (pasta inteira entra pelos soltos, com caminho relativo) */
-  const zips = [], soltos = [];
+  let ok = 0, falhou = 0, zip = 0;
   for (const f of lista) {
-    let ehZip = astEhZip(f);
-    if (!ehZip && f && f.size > 22) { try { ehZip = await ASTZIP.pareceZip(f); } catch (e) {} }
-    (ehZip ? zips : soltos).push(f);
-  }
-
-  if (soltos.length) {
-    const bytes = soltos.reduce((t, f) => t + (f.size || 0), 0);
-    /* quanto ainda cabe no armazenamento do navegador (imagens viram data URL) */
-    let cabem = soltos.length;
+    /* ZIP não é aceito nesta versão: o editor importa imagens e SVG */
+    if (/\.zip$/i.test(f.name || '') || /zip/i.test(f.type || '')) { zip++; continue; }
     try {
-      if (navigator.storage && navigator.storage.estimate) {
-        const est = await navigator.storage.estimate();
-        const livre = Math.max(0, (est.quota || 0) - (est.usage || 0));
-        if (livre > 0) {
-          let acc = 0, n = 0;
-          for (const f of soltos) {
-            const custo = (f.size || 0) * 1.42 + 60000;
-            if (acc + custo > livre * 0.85) break;
-            acc += custo; n++;
-          }
-          cabem = Math.max(0, n);
-          if (!cabem) {
-            astProgressoFim();
-            setStatus('Sem espaço no navegador para estes arquivos (' + astFmtTam(livre) + ' livres). Libere espaço ou importe menos de uma vez.', true);
-            return 0;
-          }
-        }
+      const a = await astAssetDeArquivo(f, alvo);
+      await SS_DB.putAsset(a);
+      ok++;
+    } catch (e) {
+      falhou++;
+      try { console.warn('[assets] falhou:', f && f.name, e); } catch (err) {}
+      if (astErroDeCota(e)) {
+        setStatus('Sem espaço no navegador: ' + ok + ' asset(s) importado(s). Apague assets grandes e tente de novo.', true);
+        break;
       }
-    } catch (e) {}
-    if (soltos.length > 200 || bytes > 150 * 1048576 || cabem < soltos.length) {
-      const linhas = [
-        soltos.length.toLocaleString('pt-BR') + ' arquivo' + (soltos.length === 1 ? '' : 's') + ', ' + astFmtTam(bytes) + '.',
-        'As subpastas viram pastas na biblioteca. Dá para cancelar no meio pela barra de progresso.'
-      ];
-      if (cabem < soltos.length) linhas.push('O navegador só tem espaço para ~' + cabem.toLocaleString('pt-BR') + ' destes.');
-      const escolha = await astConfirma('Importar arquivos', linhas, ['Importar ' + soltos.length.toLocaleString('pt-BR'), 'Só os primeiros 200', 'Cancelar']);
-      if (escolha === -1 || escolha === 2) { astProgressoFim(); setStatus('Importação cancelada.'); return 0; }
-      if (escolha === 1 && soltos.length > 200) soltos.length = 200;
     }
-    if (cabem < soltos.length) soltos.length = Math.max(1, Math.min(soltos.length, cabem));
-    astCancela = false;
-    let cancelado = false;
-    for (let i = 0; i < soltos.length; i++) {
-      if (astCancela) { cancelado = true; break; }
-      const f = soltos[i];
-      astProgresso('Importando ' + (i + 1) + ' de ' + soltos.length + ' — ' + (f.name || 'arquivo'), (i + 1) / soltos.length);
-      try {
-        const rel = String(astCaminhoRel.get(f) || f.webkitRelativePath || '').replace(/\\/g, '/');
-        const pastaRel = rel.includes('/') ? rel.slice(0, rel.lastIndexOf('/')) : '';
-        const destino = pastaRel ? await astGarantePasta(pastaRel, ctx) : alvoOk;
-        const a = await astAssetDeArquivo(f, destino);
-        await SS_DB.putAsset(a); ok++;
-      } catch (e) {
-        try { console.warn('[assets] falhou:', f && f.name, e); } catch (err) {}
-        if (astErroDeCota(e)) { soma('sem espaço no navegador', soltos.length - i); astProgressoFim(); setStatus('Acabou o espaço do navegador depois de ' + ok + ' arquivo(s). Libere espaço (apague assets grandes) e tente de novo.', true); await astMostraCota(); return ok; }
-        falhou++; soma(astMotivoDe(e));
-      }
-      /* deixa a tela respirar e mostra os cartões conforme entram */
-      if (i % 4 === 3) await new Promise(r => setTimeout(r, 0));
-      if (i % 24 === 23 && document.getElementById('astScr')) astPinta();
-    }
-    astProgressoFim();
-    if (cancelado) soma('cancelado pelo usuário', Math.max(1, soltos.length - ok - falhou));
   }
-
-  for (const f of zips) {
-    const r = await astImportaZip(f, alvoOk, ctx);
-    ok += r.ok; falhou += r.falhou; deZip += r.ok;
-    for (const [m, n] of r.motivos) soma(m, n);
-  }
-
-  setStatus(astResumoTexto(ok, falhou, deZip, motivos), !ok && !!falhou);
-  try { console.info('[assets] importação:', { ok, falhou, deZip, soltos: soltos.length, zips: zips.length, motivos: [...motivos.entries()] }); } catch (e) {}
-  astMostraCota();
+  const partes = [];
+  if (ok) partes.push(ok + (ok === 1 ? ' asset na biblioteca' : ' assets na biblioteca'));
+  if (falhou) partes.push(falhou + ' ignorado' + (falhou === 1 ? '' : 's') + ' (use imagem ou SVG)');
+  if (zip) partes.push('ZIP não é aceito — envie as imagens direto');
+  setStatus(partes.join(' · ') || 'Nada para importar.', !ok && (falhou > 0 || zip > 0));
   if (document.getElementById('astScr')) { if (ok) astLimpaBusca(); await astRefresh(); }
   return ok;
 }
@@ -21664,34 +21091,6 @@ async function astMigraAssets() {
   } finally { astMigrando = false; }
   if (convertidos) astPinta();
 }
-/* Monta a lista de pastas em ordem de árvore. Pastas órfãs (o pai não existe
-   mais) e ciclos aparecem no nível raiz em vez de desaparecerem da tela. */
-function astArvorePastas(pastas) {
-  const lista = [...(pastas || [])];
-  const ids = new Set(lista.map(f => f.id));
-  const filhos = new Map();
-  for (const f of lista) {
-    let pai = f.parentId;
-    if (pai === f.id || (pai && !ids.has(pai))) pai = null;     /* órfã ou ciclo curto */
-    const chave = pai || '';
-    if (!filhos.has(chave)) filhos.set(chave, []);
-    filhos.get(chave).push(f);
-  }
-  const saida = [], vistos = new Set();
-  const anda = (pai, nivel) => {
-    const grupo = (filhos.get(pai) || []).slice().sort((a, b) => String(a.name).localeCompare(String(b.name)));
-    for (const f of grupo) {
-      if (vistos.has(f.id)) continue;                            /* protege contra ciclo longo */
-      vistos.add(f.id);
-      saida.push({ f, nivel });
-      if (nivel < 24) anda(f.id, nivel + 1);
-    }
-  };
-  anda('', 0);
-  for (const f of lista) if (!vistos.has(f.id)) { vistos.add(f.id); saida.push({ f, nivel: 0 }); }
-  return saida;
-}
-
 function astFiltrados() {
   const q = astQuery.trim().toLowerCase();
   return astAssets.filter(a => {
@@ -21716,12 +21115,7 @@ function astPinta() {
   };
   chip(pastasEl, 'all', 'All', astAssets.length, astFolderSel, 'pasta');
   chip(pastasEl, 'none', 'No folder', astAssets.filter(a => !a.folderId).length, astFolderSel, 'pasta');
-  /* filha aparece logo depois da mãe, recuada; órfãs entram na raiz */
-  const caminhada = astArvorePastas(astFolders);
-  for (const { f, nivel } of caminhada) {
-    const quantos = astAssets.filter(a => a.folderId === f.id).length;
-    chip(pastasEl, f.id, (nivel ? '· '.repeat(nivel) : '') + f.name, quantos, astFolderSel, 'pasta');
-  }
+  for (const f of astFolders) chip(pastasEl, f.id, f.name, astAssets.filter(a => a.folderId === f.id).length, astFolderSel, 'pasta');
   tiposEl.textContent = '';
   chip(tiposEl, 'all', 'All', astAssets.length, astKindSel, 'tipo');
   chip(tiposEl, 'image', 'Images', astAssets.filter(a => a.kind === 'image').length, astKindSel, 'tipo');
@@ -21812,20 +21206,10 @@ function astTela() {
   const acts = E('div', 'ast-tools');
   const fileInp = document.createElement('input');
   fileInp.type = 'file'; fileInp.multiple = true; fileInp.hidden = true;
-  fileInp.accept = 'image/*,.svg,.zip,application/zip,application/x-zip-compressed,application/x-zip,.ZIP';
+  fileInp.accept = 'image/*,.svg';
   fileInp.addEventListener('change', () => { astAddFiles(fileInp.files); fileInp.value = ''; });
-  /* pasta inteira (webkitdirectory): as subpastas entram como pastas na biblioteca */
-  const folderInp = document.createElement('input');
-  folderInp.type = 'file'; folderInp.multiple = true; folderInp.hidden = true;
-  folderInp.setAttribute('webkitdirectory', ''); folderInp.setAttribute('directory', '');
-  folderInp.addEventListener('change', () => { astAddFiles(folderInp.files); folderInp.value = ''; });
   const bUp = E('button', 'ast-btn primary', 'Upload files…'); bUp.type = 'button';
   bUp.addEventListener('click', () => fileInp.click());
-  const bFolder = E('button', 'ast-btn', 'Upload folder…'); bFolder.type = 'button'; bFolder.id = 'astBtnFolder';
-  bFolder.title = 'Send a whole folder: the subfolders become folders in the library';
-  bFolder.addEventListener('click', () => folderInp.click());
-  const aceitaPasta = (() => { try { return 'webkitdirectory' in document.createElement('input'); } catch (e) { return false; } })();
-  if (!aceitaPasta) { bFolder.hidden = true; bFolder.style.display = 'none'; }
   const bPasteHint = E('button', 'ast-btn', 'Paste (Ctrl+V)'); bPasteHint.type = 'button';
   bPasteHint.addEventListener('click', () => { const d = document.getElementById('astDrop'); if (d) d.focus(); setStatus('Paste with Ctrl+V (the image/SVG goes to the open folder).'); });
   const bVetor = E('button', 'ast-btn', 'Save selected vector'); bVetor.type = 'button';
@@ -21833,8 +21217,7 @@ function astTela() {
   bVetor.addEventListener('click', astSalvarVetor);
   const bNova = E('button', 'ast-btn'); bNova.type = 'button'; bNova.append(folderIcon(), document.createTextNode('New folder'));
   bNova.addEventListener('click', () => astNomeDialogo('New folder', '', async nome => {
-    const pai = (astFolderSel !== 'all' && astFolderSel !== 'none') ? astFolderSel : undefined;
-    const f = { id: astId(), name: nome, parentId: pai, created: Date.now(), updated: Date.now() };
+    const f = { id: astId(), name: nome, created: Date.now(), updated: Date.now() };
     try { await SS_DB.putAssetFolder(f); astFolderSel = f.id; await astRefresh(); setStatus('Folder created: ' + nome); }
     catch (e) { setStatus('Could not create the folder.', true); }
   }));
@@ -21849,31 +21232,15 @@ function astTela() {
     try { await SS_DB.delAssetFolder(f.id); astFolderSel = 'all'; await astRefresh(); setStatus('Folder deleted. The assets went to “No folder”.'); }
     catch (e) { setStatus('Could not delete the folder.', true); }
   });
-  acts.append(bUp, bFolder, bPasteHint, bVetor, bNova, bRenP, bDelP, fileInp, folderInp);
+  acts.append(bUp, bPasteHint, bVetor, bNova, bRenP, bDelP, fileInp);
   wrap.append(acts);
 
-  const drop = E('div', 'ast-drop', 'Drag images, SVG or ZIP here, or paste with Ctrl+V');
+  const drop = E('div', 'ast-drop', 'Drag images or SVG here, or paste with Ctrl+V');
   drop.id = 'astDrop'; drop.tabIndex = 0;
   drop.addEventListener('click', () => fileInp.click());
   drop.addEventListener('dragover', e => { e.preventDefault(); drop.classList.add('over'); });
   drop.addEventListener('dragleave', () => drop.classList.remove('over'));
-  drop.addEventListener('drop', e => {
-    e.preventDefault(); drop.classList.remove('over');
-    const itens = e.dataTransfer && e.dataTransfer.items;
-    /* As FileSystemEntry precisam ser obtidas AGORA: depois de um await o
-       DataTransfer já foi liberado e elas vêm nulas. */
-    const entradas = itens && itens.length
-      ? [...itens].map(it => { try { return it.webkitGetAsEntry ? it.webkitGetAsEntry() : null; } catch (err) { return null; } }).filter(Boolean)
-      : [];
-    if (entradas.some(en => en.isDirectory)) {
-      astArquivosDaArvore(entradas).then(arqs => {
-        if (arqs && arqs.length) astAddFiles(arqs);
-        else astAddFiles(e.dataTransfer && e.dataTransfer.files);
-      }).catch(() => astAddFiles(e.dataTransfer && e.dataTransfer.files));
-      return;
-    }
-    astAddFiles(e.dataTransfer && e.dataTransfer.files);
-  });
+  drop.addEventListener('drop', e => { e.preventDefault(); drop.classList.remove('over'); astAddFiles(e.dataTransfer && e.dataTransfer.files); });
   wrap.append(drop);
 
   const selbar = E('div', 'ast-selbar');
@@ -30278,17 +29645,9 @@ const SS_DB = (() => {
     listAssetFolders: () => run('assetFolders', 'readonly', s => s.getAll()),
     putAssetFolder: folder => run('assetFolders', 'readwrite', s => s.put(folder)),
     async delAssetFolder(id) {
-      const alvo = await run('assetFolders', 'readonly', s => s.get(id));
-      const pai = alvo ? (alvo.parentId || null) : null;
       await run('assetFolders', 'readwrite', s => s.delete(id));
-      const pastas = await run('assetFolders', 'readonly', s => s.getAll());
-      for (const f of pastas || []) {
-        if (f && f.parentId === id) { if (pai) f.parentId = pai; else delete f.parentId; f.updated = Date.now(); await run('assetFolders', 'readwrite', s => s.put(f)); }
-      }
       const all = await run('assets', 'readonly', s => s.getAll());
-      for (const a of all || []) {
-        if (a && a.folderId === id) { if (pai) a.folderId = pai; else delete a.folderId; a.updated = Date.now(); await run('assets', 'readwrite', s => s.put(a)); }
-      }
+      for (const a of all || []) if (a && a.folderId === id) { delete a.folderId; await run('assets', 'readwrite', s => s.put(a)); }
     },
     listAssets: () => run('assets', 'readonly', s => s.getAll()),
     getAsset: id => run('assets', 'readonly', s => s.get(id)),
@@ -34053,6 +33412,33 @@ window.mobileSaveNow = () => { saveSessionNow(); return true; };
 document.addEventListener('visibilitychange', () => { if (document.hidden) saveSessionNow(); });
 window.addEventListener('pagehide', () => { saveSessionNow(); });
 
+/* ============ limpeza completa (começar do zero) ============
+   Marca no localStorage impede que ela se repita; ?reset=1 força de novo. */
+const EE_LIMPEZA_MARCA = 'everything-editor:limpeza-v1';
+const EE_LIMPEZA_PENDENTE = 'everything-editor:limpeza-pendente';
+
+async function astLimpezaCompleta() {
+  /* IndexedDB: projetos, assets e a sessão da versão anterior */
+  const nomes = ['everything-editor-projects', 'everything-editor-mobile', 'everything-editor'];
+  try {
+    if (indexedDB.databases) {
+      const dbs = await indexedDB.databases();
+      for (const d of dbs || []) if (d && d.name && /^everything-editor/i.test(d.name) && !nomes.includes(d.name)) nomes.push(d.name);
+    }
+  } catch (e) {}
+  for (const nome of nomes) { try { indexedDB.deleteDatabase(nome); } catch (e) {} }
+  /* Cache Storage + service workers */
+  try { if (window.caches) { for (const k of await caches.keys()) await caches.delete(k); } } catch (e) {}
+  try {
+    if (navigator.serviceWorker && navigator.serviceWorker.getRegistrations) {
+      for (const r of await navigator.serviceWorker.getRegistrations()) await r.unregister();
+    }
+  } catch (e) {}
+  /* preferências locais */
+  try { localStorage.clear(); } catch (e) {}
+  try { sessionStorage.clear(); } catch (e) {}
+}
+
 /* A sessão anterior guarda o projeto inteiro com as imagens em base64.
    Restaurar um projeto grande decodifica tudo de uma vez e o navegador morre
    com "Out of Memory" antes de mostrar a tela (foi o erro relatado no site).
@@ -34066,6 +33452,34 @@ function astSessaoPesada(tamanhoBytes, limiteMb) {
 
 async function restoreSession() {
   const flags = (() => { try { return new URLSearchParams(location.search); } catch (e) { return new URLSearchParams(''); } })();
+
+  /* ---- limpeza completa pedida pelo usuário ----
+     1ª passada: pergunta; 2ª passada (após reload): apaga com nada aberto ainda */
+  try {
+    if (localStorage.getItem(EE_LIMPEZA_PENDENTE) === '1') {
+      await astLimpezaCompleta();
+      try { localStorage.setItem(EE_LIMPEZA_MARCA, '1'); } catch (e) {}
+      sessionRestoring = false;
+      location.replace(location.pathname + (flags.get('debug') === '1' ? '?debug=1' : ''));
+      return;
+    }
+    const primeira = (() => { try { return localStorage.getItem(EE_LIMPEZA_MARCA) !== '1'; } catch (e) { return false; } })();
+    if (primeira || flags.get('reset') === '1') {
+      const escolha = await astConfirma('Começar do zero?', [
+        'Esta versão pode apagar tudo o que está guardado neste navegador:',
+        'projetos, biblioteca de assets, sessão anterior, caches e preferências locais.',
+        'Escolha "Manter meus dados" para continuar sem apagar nada.'
+      ], ['Apagar tudo e começar', 'Manter meus dados']);
+      try { localStorage.setItem(EE_LIMPEZA_MARCA, '1'); } catch (e) {}
+      if (escolha === 0) {
+        try { localStorage.setItem(EE_LIMPEZA_PENDENTE, '1'); } catch (e) {}
+        sessionRestoring = false;
+        location.reload();
+        return;
+      }
+    }
+  } catch (e) {}
+
   const querBackup = flags.get('restaurar') === 'antiga';
   if (flags.get('limpar') === '1') { try { await PERSIST.put(PERSIST.KEY, null); } catch (e) {} }
   if (flags.get('safe') === '1' || flags.get('limpar') === '1') {

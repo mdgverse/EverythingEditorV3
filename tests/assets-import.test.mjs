@@ -1,16 +1,14 @@
-/* Testa a importação de Assets (ZIP → pastas) sem navegador:
-   extrai o bloco do index.html e injeta stubs de DOM/IndexedDB. */
+/* Importação da biblioteca de Assets (versão sem ZIP) — roda sem navegador. */
 import fs from 'node:fs';
-import { zipar, ok, resumo } from './zip-kit.mjs';
+import { ok, resumo, arquivo } from './kit.mjs';
 
 const html = fs.readFileSync('index.html', 'utf8');
-const ini = html.indexOf('/* ==== ASSET IMPORT (BEGIN) ====');
+const ini = html.indexOf('/* ==== ASSET IMPORT (BEGIN) ==== */');
 const fim = html.indexOf('async function astAddSvgTexto');
 if (ini < 0 || fim < 0) throw new Error('bloco de importação não encontrado');
-const bloco = html.slice(ini, fim);
 
-/* ---------------- stubs ---------------- */
 const pastas = new Map(), assets = new Map();
+let falharPara = null, erroCota = null;
 const SS_DB = {
   listAssetFolders: async () => [...pastas.values()],
   putAssetFolder: async f => { pastas.set(f.id, { ...f }); },
@@ -25,78 +23,72 @@ const stubs = {
   astFolderSel: 'all',
   astId: (() => { let n = 0; return () => 'id' + (++n); })(),
   astFmtTam: n => (n / 1048576).toFixed(1) + ' MB',
-  astAssetDeArquivo: async (file, folderId) => ({ id: 'a' + Math.random().toString(36).slice(2, 8), name: file.name, kind: /svg/.test(file.name) ? 'svg' : 'image', folderId: folderId || undefined, size: file.size }),
+  astAssetDeArquivo: async (file, folderId) => {
+    if (falharPara && file.name === falharPara) throw erroCota;
+    if (/psd$/i.test(file.name)) throw new Error('unsupported format');
+    return { id: 'a' + Math.random().toString(36).slice(2, 8), name: file.name, folderId: folderId || undefined, size: file.size };
+  },
   astLimpaBusca: () => {},
-  document: { getElementById: () => null, createElement: () => ({ style: {}, classList: { toggle() {}, contains: () => false }, append() {}, addEventListener() {}, querySelector: () => ({ style: {}, textContent: '' }), setAttribute() {} }), body: { append() {} }, head: { append() {} } },
+  document: { getElementById: () => null },
   navigator: { storage: { estimate: async () => ({ quota: 4e9, usage: 1e6 }) } },
 };
+const app = new Function(...Object.keys(stubs), html.slice(ini, fim) + '\nreturn { astAddFiles, astErroDeCota };')(...Object.values(stubs));
 
-const fabrica = new Function(...Object.keys(stubs), bloco + '\nreturn { astAddFiles, astImportaZip, ASTZIP };');
-const app = fabrica(...Object.values(stubs));
+const png = Buffer.from('\x89PNG\r\n\x1a\n' + 'A'.repeat(200));
 
-/* ---------------- casos ---------------- */
-const png = Buffer.from('\x89PNG\r\n\x1a\n' + 'A'.repeat(3000));
-
-function arquivo(buf, nome) { return new File([buf], nome, { type: 'application/zip' }); }
-
-/* 1 — ZIP com subpastas cria a hierarquia certa */
+/* 1 — importa imagens e SVG */
 {
-  console.log('ZIP com subpastas → hierarquia de pastas');
-  const zip = zipar([
-    { nome: 'texturas/', dados: '' },
-    { nome: 'texturas/papel/fundo.png', dados: png },
-    { nome: 'texturas/papel/grão.png', dados: png },
-    { nome: 'texturas/madeira/ripas.png', dados: png },
-    { nome: 'icones/seta.svg', dados: '<svg xmlns="http://www.w3.org/2000/svg"/>' },
-    { nome: '__MACOSX/._fundo.png', dados: 'lixo' },
-    { nome: '.DS_Store', dados: 'lixo' }
+  console.log('Importar imagens e SVG');
+  status.length = 0;
+  const n = await app.astAddFiles([
+    arquivo('fundo.png', png, 'image/png'),
+    new File([png], 'foto.jpg', { type: 'image/jpeg' }),
+    new File(['<svg xmlns="http://www.w3.org/2000/svg"/>'], 'seta.svg', { type: 'image/svg+xml' })
   ]);
-  const ok0 = await app.astAddFiles([arquivo(zip, 'Textures.zip')]);
-  ok(ok0 === 4, 'importou 4 assets (3 PNG + 1 SVG)', ok0);
-  const nomes = [...pastas.values()].map(f => f.name);
-  ok(nomes.includes('texturas'), 'criou a pasta "texturas"');
-  ok(nomes.includes('papel'), 'criou a subpasta "papel"');
-  ok(nomes.includes('madeira'), 'criou a subpasta "madeira"');
-  ok(!nomes.some(n => n.includes('/') || n.includes(' / ')), 'não criou pasta com barra no nome', nomes);
-  const papel = [...pastas.values()].find(f => f.name === 'papel');
-  const texturas = [...pastas.values()].find(f => f.name === 'texturas');
-  ok(!!papel && papel.parentId === texturas.id, 'papel é filha de texturas', papel && papel.parentId);
-  const fundo = [...assets.values()].find(a => a.name === 'fundo.png');
-  ok(!!fundo && fundo.folderId === papel.id, 'fundo.png ficou dentro de papel');
-  ok([...assets.values()].length === 4, 'nenhum lixo do macOS virou asset', [...assets.values()].length);
+  ok(n === 3, 'importou os 3 arquivos', n);
+  ok(assets.size === 3, 'biblioteca com 3 assets');
+  ok(/3 assets/.test(status.join(' ')), 'status resume a importação', status.join(' | '));
 }
 
-/* 2 — formatos não suportados são contados com motivo */
+/* 2 — ZIP não é mais aceito */
 {
-  console.log('\nZIP com formatos não suportados');
+  console.log('\nZIP é recusado');
   status.length = 0;
-  const zip = zipar([
-    { nome: 'pack/foto.psd', dados: Buffer.alloc(500) },
-    { nome: 'pack/foto.heic', dados: Buffer.alloc(500) },
-    { nome: 'pack/ok.png', dados: png }
-  ]);
   const antes = assets.size;
-  const n = await app.astAddFiles([arquivo(zip, 'pack.zip')]);
-  ok(n === 1, 'importou só o PNG', n);
-  ok(assets.size === antes + 1, 'biblioteca cresceu 1');
-  const msg = status.join(' | ');
-  ok(/psd/.test(msg) && /heic/.test(msg), 'mensagem cita os formatos ignorados', msg);
+  const n = await app.astAddFiles([new File([Buffer.from('PK\x03\x04lixo')], 'texturas.zip', { type: 'application/zip' })]);
+  ok(n === 0, 'nada importado do ZIP', n);
+  ok(assets.size === antes, 'biblioteca não muda');
+  ok(status.some(s => /ZIP não é aceito/i.test(s)), 'avisa que ZIP não é aceito', status.join(' | '));
 }
 
-/* 3 — ZIP ilegível não explode, só avisa */
+/* 3 — formato não suportado é contado */
 {
-  console.log('\nArquivo que finge ser ZIP');
+  console.log('\nFormato não suportado');
   status.length = 0;
-  const n = await app.astAddFiles([arquivo(Buffer.from('isto nao e um zip de verdade'), 'quebrado.zip')]);
-  ok(n === 0, 'nada importado');
-  ok(status.some(s => /ZIP/i.test(s)), 'avisou o problema', status.join(' | '));
+  const antes = assets.size;
+  const n = await app.astAddFiles([new File([Buffer.from('x')], 'camadas.psd', { type: '' })]);
+  ok(n === 0, 'não importa PSD');
+  ok(assets.size === antes, 'biblioteca não muda');
+  ok(status.some(s => /ignorado/i.test(s)), 'mensagem cita arquivo ignorado', status.join(' | '));
 }
 
-/* 4 — arquivo solto continua funcionando */
+/* 4 — cota estourada para a importação na hora */
 {
-  console.log('\nArquivo solto (sem ZIP)');
-  const n = await app.astAddFiles([new File([png], 'solto.png', { type: 'image/png' })]);
-  ok(n === 1, 'importou o PNG solto');
+  console.log('\nCota estourada no meio');
+  status.length = 0;
+  const erro = new Error('The quota has been exceeded.');
+  erro.name = 'QuotaExceededError';
+  ok(app.astErroDeCota(erro) === true, 'astErroDeCota reconhece QuotaExceededError');
+  const antes = assets.size;
+  falharPara = 'b.png'; erroCota = erro;
+  const n = await app.astAddFiles([
+    new File([png], 'a.png', { type: 'image/png' }),
+    new File([png], 'b.png', { type: 'image/png' })
+  ]);
+  ok(n === 1, 'para depois do primeiro arquivo', n);
+  ok(assets.size === antes + 1, 'só o primeiro entrou');
+  ok(status.some(s => /Sem espaço/i.test(s)), 'avisa falta de espaço', status.join(' | '));
+  ok(app.astErroDeCota(new Error('qualquer outra coisa')) === false, 'erro comum não é confundido com cota');
 }
 
 process.exit(resumo() ? 0 : 1);

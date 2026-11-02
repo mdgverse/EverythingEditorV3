@@ -11,18 +11,14 @@ on:
 
 jobs:
   assets:
-    name: Leitor de ZIP + importação de Assets
+    name: Assets e sessão
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - name: Leitor de ZIP (deflate, stored, ZIP64, data descriptor, CP437)
-        run: node tests/asset-zip.test.mjs
-      - name: Importação de Assets (hierarquia de pastas, resumo, erros)
+      - name: Importação de Assets (sem ZIP, motivos, parada por cota)
         run: node tests/assets-import.test.mjs
-      - name: Árvore de pastas (órfãs visíveis, sem ciclo infinito)
-        run: node tests/folders.test.mjs
-      - name: Restauração de sessão (teto de memória e atalhos de URL)
+      - name: Sessão e limpeza (teto de memória, atalhos de URL, apagar tudo)
         run: node tests/session.test.mjs
