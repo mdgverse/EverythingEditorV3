@@ -25985,14 +25985,17 @@ function orthoPath(v, sharpAt) {
 }
 
 function linkD(l, S, T) {
+  /* a quina vem primeiro: um fio com zip tie estava ignorando os pivôs e a
+     quina virava só uma bolinha parada em cima do fio */
+  if (l.pts && l.pts.length) return orthoPath(routeVerts(S, l.pts, T));
   if (l.zt) return zipD(S, l.zt, T);
-  return l.pts && l.pts.length ? orthoPath(routeVerts(S, l.pts, T)) : bezier(S, T);
+  return bezier(S, T);
 }
 
 // samples of the real link shape (node-insertion detection over the link)
 function linkSamples(l, S, T) {
   const out = [];
-  if (l.zt) return zipSamples(S, l.zt, T);
+  if (l.zt && !(l.pts && l.pts.length)) return zipSamples(S, l.zt, T);
   if (!(l.pts && l.pts.length)) {
     if (WIRE_CURVE.mode === 'straight' || WIRE_CURVE.mode === 'ortho') {
       const v = WIRE_CURVE.mode === 'straight' ? [S, T] : routeVerts(S, [], T);
@@ -26131,12 +26134,36 @@ function startPivotDrag(e, l, idx) {
   window.addEventListener('pointercancel', up);
 }
 
+/* desloca um ponto na perpendicular do fio: usado quando a quina cairia em
+   cima do próprio traçado (fio reto/ortogonal) e não daria para ver nada */
+function pivotPerp(S, T, p, off) {
+  const dx = T.x - S.x, dy = T.y - S.y, len = Math.hypot(dx, dy) || 1;
+  return { x: Math.round(p.x - (dy / len) * off), y: Math.round(p.y + (dx / len) * off) };
+}
+
 function addPivotFromGesture(e, l) {
+  /* fio dentro de um zip tie: a quina sai do pacote (senão o ancoradouro
+     continuaria mandando no traçado) */
+  let saiuDoTie = false;
+  if (l.zt) {
+    const t = l.zt, k = linkKey(l);
+    t.keys = t.keys.filter(x => x !== k);
+    setZt(l, null);
+    saiuDoTie = !!t.keys.length;
+    if (!t.keys.length) removeZipTie(t.id, '');
+    else bindZipTies();
+  }
+  const sa = socketEl(l.from, 'out', l.out || 0), sb = socketEl(l.to, 'in', l.input);
+  const S = sa ? socketCenter(sa) : null, T = sb ? socketCenter(sb) : null;
+  const antes = S && T ? linkD(l, S, T) : '';
   const idx = insertPivotAt(l, screenToWorld(e.clientX, e.clientY));
   if (idx < 0) return;
+  /* clique em cima de um fio já reto: o traçado não mudaria nada — desloca um
+     pouco para a quina aparecer de verdade e poder ser arrastada */
+  if (S && T && linkD(l, S, T) === antes) l.pts[idx] = pivotPerp(S, T, l.pts[idx], 24);
   commit();
   drawLinks();
-  setStatus('Corner created: drag to move; Delete removes it.');
+  setStatus(saiuDoTie ? 'Corner created (this wire left its zip tie).' : 'Corner created: drag to move; Delete removes it.');
   startPivotDrag(e, l, idx);
 }
 
@@ -34276,7 +34303,9 @@ if (/[?&]debug=1/.test(location.search)) {
     get multi() { return multi; },
     get mS() { return mS; },
     get previewId() { return previewId; },
-    fn: { createNode, runFill, fillDesenha, readResult, fillAngGraus, commit },
+    fn: { createNode, runFill, fillDesenha, readResult, fillAngGraus, commit,
+          drawLinks, linkD, routeVerts, insertPivotAt, pivotPerp, deletePivot,
+          get selPivot() { return selPivot; } },
     gl: () => gl,
   };
 }
