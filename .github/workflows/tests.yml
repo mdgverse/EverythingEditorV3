@@ -1,0 +1,24 @@
+name: Tests
+
+on:
+  push:
+    paths:
+      - 'index.html'
+      - 'tests/**'
+      - '.github/workflows/tests.yml'
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  assets:
+    name: Leitor de ZIP + importação de Assets
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Leitor de ZIP (deflate, stored, ZIP64, data descriptor, CP437)
+        run: node tests/asset-zip.test.mjs
+      - name: Importação de Assets (hierarquia de pastas, resumo, erros)
+        run: node tests/assets-import.test.mjs
