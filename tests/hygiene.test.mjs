@@ -54,6 +54,24 @@ ok(!/'\.recov'/.test(html), 'o seletor .recov saiu da checagem de foco do timeli
   ok(orfas.length === 0, 'nenhuma função/constante órfã', orfas.join(', '));
 }
 
+/* ---------- todo programa de shader usado existe no dicionário ----------
+   Pega a classe de erro que quebrou o "Spin Focus Light Leak" na 3.0.1:
+   pointOp/draw pedindo um nome que não está em SHADERS (undefined.p no draw). */
+{
+  console.log('\nProgramas de shader');
+  const ini = html.indexOf('const SHADERS = {');
+  const bloco = ini < 0 ? '' : html.slice(ini, html.indexOf('\n};\n', ini));
+  const chaves = new Set(html.match(/SHADERS\.([A-Za-z_]\w*)\s*=/g)?.map(x => x.replace(/SHADERS\.|\s*=/g, '')) || []);
+  for (const m of bloco.matchAll(/^ {2}([A-Za-z_]\w*): /gm)) chaves.add(m[1]);
+  ok(chaves.size > 50, 'dicionário de shaders lido', chaves.size);
+  const usos = new Set([...html.matchAll(/pointOp\([^,()]+, *'(\w+)'/g)].map(m => m[1]));
+  for (const m of html.matchAll(/\bdraw\('(\w+)'/g)) usos.add(m[1]);
+  const faltando = [...usos].filter(n => !chaves.has(n)).sort();
+  ok(usos.size > 50, 'usos de pointOp/draw encontrados', usos.size);
+  ok(faltando.length === 0, 'todo draw/pointOp aponta para um shader que existe', faltando.join(', '));
+  ok(!/world = null|qTime/.test(bloco), 'dicionário íntegro');
+}
+
 /* ---------- arquivos ---------- */
 ok(!existe('reference'), 'pasta reference/ apagada (1,3 MB que ia para o site)');
 ok(!existe('.github/workflows/fetch-reference.yml'), 'workflow que baixava a referência apagado');
