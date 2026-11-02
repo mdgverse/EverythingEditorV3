@@ -4,7 +4,7 @@ import fs from 'node:fs';
 import { zipar, ok, resumo } from './zip-kit.mjs';
 
 const html = fs.readFileSync('index.html', 'utf8');
-const ini = html.indexOf('/* ==== ASSET ZIP READER (BEGIN) ====');
+const ini = html.indexOf('/* ==== ASSET IMPORT (BEGIN) ====');
 const fim = html.indexOf('async function astAddSvgTexto');
 if (ini < 0 || fim < 0) throw new Error('bloco de importação não encontrado');
 const bloco = html.slice(ini, fim);

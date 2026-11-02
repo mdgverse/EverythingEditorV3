@@ -22,3 +22,5 @@ jobs:
         run: node tests/asset-zip.test.mjs
       - name: Importação de Assets (hierarquia de pastas, resumo, erros)
         run: node tests/assets-import.test.mjs
+      - name: Árvore de pastas (órfãs visíveis, sem ciclo infinito)
+        run: node tests/folders.test.mjs

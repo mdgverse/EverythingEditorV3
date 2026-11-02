@@ -20832,6 +20832,8 @@ function astEstilo() {
     '.ast-bts{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:auto}',
     '.ast-bts .ast-btn{min-width:0;min-height:32px;padding:0 6px;font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}',
     '.ast-vazio{color:#8d96a4;font-size:13px;padding:18px 2px}',
+    '.ast-cota{font-size:11.5px;color:#8d96a4;margin-left:auto;white-space:nowrap}',
+    '.ast-cota.aviso{color:#e2b45c}',
     '.ast-msg{margin:0 0 10px;padding:9px 11px;border-radius:9px;background:#1f2530;border:1px solid #2f3947;color:#cfd8e3;font-size:12.5px;line-height:1.4}',
     '.ast-msg.err{background:#3a2222;border-color:#6a3333;color:#f0c9c9}',
     '.ast-msg[hidden]{display:none}',
@@ -20896,28 +20898,89 @@ function astThumbDe(url) {
     img.src = url;
   });
 }
+/* Miniatura a partir de um Blob/File usando URL temporária (sem base64). */
+async function astThumbDeBlob(blob) {
+  let url = '';
+  try { url = URL.createObjectURL(blob); return await astThumbDe(url); }
+  finally { if (url) { try { URL.revokeObjectURL(url); } catch (e) {} } }
+}
+/* O asset guarda os BYTES originais (Blob) + miniatura pequena. Antes era o
+   arquivo inteiro em base64 (data URL), que inflava 42% e estourava a cota. */
 async function astAssetDeArquivo(file, folderId) {
   const nome = file.name || 'asset';
   const ehSvg = /image\/svg/i.test(file.type || '') || /\.svg$/i.test(nome);
   if (ehSvg) {
     const texto = await astLerTexto(file);
     if (!/<svg[\s>]/i.test(texto)) throw new Error('svg inválido');
-    const url = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(texto);
-    const t = await astThumbDe(url);
-    return { id: astId(), name: nome, kind: 'svg', mime: 'image/svg+xml', folderId: folderId || undefined, dataUrl: url, thumb: t.thumb, w: t.w, h: t.h, size: file.size || texto.length, created: Date.now(), updated: Date.now() };
+    const blob = new Blob([texto], { type: 'image/svg+xml' });
+    const t = await astThumbDeBlob(blob);
+    return { id: astId(), name: nome, kind: 'svg', mime: 'image/svg+xml', folderId: folderId || undefined, blob, thumb: t.thumb, w: t.w, h: t.h, size: blob.size, created: Date.now(), updated: Date.now() };
   }
   if (/^image\//i.test(file.type || '') || /\.(png|jpe?g|webp|gif|avif|bmp)$/i.test(nome)) {
-    const url = await astLerDataUrl(file);
-    const t = await astThumbDe(url);
-    return { id: astId(), name: nome, kind: 'image', mime: file.type || 'image/png', folderId: folderId || undefined, dataUrl: url, thumb: t.thumb, w: t.w, h: t.h, size: file.size || url.length, created: Date.now(), updated: Date.now() };
+    const blob = file.slice ? file.slice(0, file.size, file.type || 'image/png') : file;
+    const t = await astThumbDeBlob(blob);
+    return { id: astId(), name: nome, kind: 'image', mime: file.type || 'image/png', folderId: folderId || undefined, blob, thumb: t.thumb, w: t.w, h: t.h, size: file.size || blob.size, created: Date.now(), updated: Date.now() };
   }
   throw new Error('unsupported format');
+}
+/* URL para exibir um asset: miniatura se houver, senão o blob sob demanda.
+   Registros antigos (dataUrl) continuam funcionando. */
+const astBlobURLs = new Map();
+function astUrlDeAsset(a) {
+  if (!a) return '';
+  if (a.thumb) return a.thumb;
+  if (a.dataUrl) return a.dataUrl;
+  if (a.blob) {
+    let u = astBlobURLs.get(a.id);
+    if (!u) { try { u = URL.createObjectURL(a.blob); astBlobURLs.set(a.id, u); } catch (e) { return ''; } }
+    return u;
+  }
+  return '';
+}
+function astEsqueceURL(id) {
+  const u = astBlobURLs.get(id);
+  if (u) { try { URL.revokeObjectURL(u); } catch (e) {} astBlobURLs.delete(id); }
 }
 function astLimpaBusca() {
   astQuery = '';
   const inp = document.querySelector('#astScr input[type="search"]');
   if (inp) inp.value = '';
 }
+/* ==== ASSET IMPORT (BEGIN) ==== */
+/* Armazenamento: sem persist() o navegador pode apagar a biblioteca e os
+   projetos quando o espaço aperta (era o "erro de cache / perdi o progresso"). */
+let astPersistencia = null;
+async function astPedePersistencia() {
+  try {
+    if (!navigator.storage || !navigator.storage.persist) { astPersistencia = false; return false; }
+    if (navigator.storage.persisted) astPersistencia = await navigator.storage.persisted();
+    if (!astPersistencia) astPersistencia = await navigator.storage.persist();
+    return !!astPersistencia;
+  } catch (e) { astPersistencia = false; return false; }
+}
+async function astMostraCota() {
+  const el = document.getElementById('astCota');
+  if (!el) return;
+  try {
+    if (!navigator.storage || !navigator.storage.estimate) { el.textContent = ''; return; }
+    const est = await navigator.storage.estimate();
+    if (astPersistencia === null) await astPedePersistencia();
+    const usado = astFmtTam(est.usage || 0), total = astFmtTam(est.quota || 0);
+    el.textContent = 'Armazenamento: ' + usado + ' de ' + total + (astPersistencia ? ' · protegido' : ' · não protegido');
+    el.classList.toggle('aviso', !astPersistencia);
+    el.title = astPersistencia
+      ? 'O navegador não vai apagar seus dados para liberar espaço.'
+      : 'Sem armazenamento persistente o navegador pode apagar seus dados se o espaço acabar.';
+  } catch (e) { el.textContent = ''; }
+}
+/* pedido único, na abertura: evita que o navegador apague projetos e assets */
+(async () => { try { await astPedePersistencia(); } catch (e) {} })();
+
+function astErroDeCota(e) {
+  const n = String((e && e.name) || ''), m = String((e && e.message) || '');
+  return n === 'QuotaExceededError' || /quota/i.test(n + ' ' + m);
+}
+
 /* ==== ASSET ZIP READER (BEGIN) ====
    Leitor de ZIP que NÃO carrega o arquivo inteiro na memória: usa File.slice()
    para ler o fim do arquivo (EOCD), depois o diretório central e, por fim, cada
@@ -21397,9 +21460,15 @@ async function astImportaZip(file, alvo, ctx) {
       await SS_DB.putAsset(a);
       res.ok++;
     } catch (e) {
+      if (astErroDeCota(e)) {
+        acrescenta('sem espaço no navegador', limite - i);
+        setStatus('Acabou o espaço do navegador depois de ' + res.ok + ' arquivo(s). Libere espaço (apague assets grandes) e importe o resto depois.', true);
+        astProgressoFim(); astMostraCota();
+        return res;
+      }
       res.falhou++;
       const msg = String(e && e.message || e);
-      acrescenta(msg.includes('criptograf') ? 'criptografado' : msg.includes('compressão') ? msg : 'falha ao extrair');
+      acrescenta(msg.includes('criptograf') ? 'criptografado' : msg.includes('compressão') ? msg : astMotivoDe(e));
     }
     if (i % 4 === 3) await new Promise(r => setTimeout(r, 0));   /* deixa a tela respirar */
   }
@@ -21444,6 +21513,9 @@ async function astAddFiles(files, folderId) {
   const soma = (m, n) => motivos.set(m, (motivos.get(m) || 0) + (n || 1));
   if (!lista.length) { setStatus('Nenhum arquivo selecionado.', true); return 0; }
   const ctx = await astPastaCtx();
+  /* a pasta escolhida pode ter sido apagada: nesse caso importa na raiz */
+  const alvoOk = (alvo && ctx.pastas.some(f => f.id === alvo)) ? alvo : null;
+  if (alvo && !alvoOk) { astFolderSel = 'all'; setStatus('A pasta de destino não existe mais — importando na raiz.', true); }
 
   /* separa ZIP de arquivos soltos (pasta inteira entra pelos soltos, com caminho relativo) */
   const zips = [], soltos = [];
@@ -21497,10 +21569,14 @@ async function astAddFiles(files, folderId) {
       try {
         const rel = String(astCaminhoRel.get(f) || f.webkitRelativePath || '').replace(/\\/g, '/');
         const pastaRel = rel.includes('/') ? rel.slice(0, rel.lastIndexOf('/')) : '';
-        const destino = pastaRel ? await astGarantePasta(pastaRel, ctx) : alvo;
+        const destino = pastaRel ? await astGarantePasta(pastaRel, ctx) : alvoOk;
         const a = await astAssetDeArquivo(f, destino);
         await SS_DB.putAsset(a); ok++;
-      } catch (e) { falhou++; soma(astMotivoDe(e)); try { console.warn('[assets] falhou:', f && f.name, e); } catch (err) {} }
+      } catch (e) {
+        try { console.warn('[assets] falhou:', f && f.name, e); } catch (err) {}
+        if (astErroDeCota(e)) { soma('sem espaço no navegador', soltos.length - i); astProgressoFim(); setStatus('Acabou o espaço do navegador depois de ' + ok + ' arquivo(s). Libere espaço (apague assets grandes) e tente de novo.', true); await astMostraCota(); return ok; }
+        falhou++; soma(astMotivoDe(e));
+      }
       /* deixa a tela respirar e mostra os cartões conforme entram */
       if (i % 4 === 3) await new Promise(r => setTimeout(r, 0));
       if (i % 24 === 23 && document.getElementById('astScr')) astPinta();
@@ -21510,22 +21586,23 @@ async function astAddFiles(files, folderId) {
   }
 
   for (const f of zips) {
-    const r = await astImportaZip(f, alvo, ctx);
+    const r = await astImportaZip(f, alvoOk, ctx);
     ok += r.ok; falhou += r.falhou; deZip += r.ok;
     for (const [m, n] of r.motivos) soma(m, n);
   }
 
   setStatus(astResumoTexto(ok, falhou, deZip, motivos), !ok && !!falhou);
   try { console.info('[assets] importação:', { ok, falhou, deZip, soltos: soltos.length, zips: zips.length, motivos: [...motivos.entries()] }); } catch (e) {}
+  astMostraCota();
   if (document.getElementById('astScr')) { if (ok) astLimpaBusca(); await astRefresh(); }
   return ok;
 }
 async function astAddSvgTexto(texto, nome) {
   if (!/<svg[\s>]/i.test(texto || '')) return 0;
-  const url = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(texto);
-  const t = await astThumbDe(url);
+  const blob = new Blob([texto], { type: 'image/svg+xml' });
+  const t = await astThumbDeBlob(blob);
   const alvo = (astFolderSel !== 'all' && astFolderSel !== 'none') ? astFolderSel : null;
-  await SS_DB.putAsset({ id: astId(), name: nome || 'svg-colado.svg', kind: 'svg', mime: 'image/svg+xml', folderId: alvo || undefined, dataUrl: url, thumb: t.thumb, w: t.w, h: t.h, size: texto.length, created: Date.now(), updated: Date.now() });
+  await SS_DB.putAsset({ id: astId(), name: nome || 'svg-colado.svg', kind: 'svg', mime: 'image/svg+xml', folderId: alvo || undefined, blob, thumb: t.thumb, w: t.w, h: t.h, size: blob.size, created: Date.now(), updated: Date.now() });
   setStatus('SVG colado na biblioteca.');
   if (document.getElementById('astScr')) { astLimpaBusca(); await astRefresh(); }
   return 1;
@@ -21554,8 +21631,64 @@ async function astRefresh() {
   astFolders.sort((a, b) => String(a.name).localeCompare(String(b.name)));
   astAssets.sort((a, b) => (b.updated || 0) - (a.updated || 0));
   for (const id of [...astSel]) if (!astAssets.some(a => a.id === id)) astSel.delete(id);
+  /* pasta selecionada que não existe mais (apagada em outra aba) volta para "All" */
+  if (astFolderSel !== 'all' && astFolderSel !== 'none' && !astFolders.some(f => f.id === astFolderSel)) astFolderSel = 'all';
+  astMigraAssets();
   astPinta();
+  astMostraCota();
 }
+/* Registros antigos guardavam o arquivo inteiro em base64 (dataUrl). Converte
+   para Blob aos poucos, em segundo plano, liberando espaço sem perder nada. */
+let astMigrando = false;
+async function astMigraAssets() {
+  if (astMigrando) return;
+  const pendentes = astAssets.filter(a => !a.blob && a.dataUrl && a.kind !== 'vetor');
+  if (!pendentes.length) return;
+  astMigrando = true;
+  let convertidos = 0;
+  try {
+    for (const a of pendentes.slice(0, 20)) {
+      try {
+        const blob = await (await fetch(a.dataUrl)).blob();
+        if (!blob.size) continue;
+        const novo = { ...a, blob, mime: a.mime || blob.type || 'image/png' };
+        delete novo.dataUrl;
+        await SS_DB.putAsset(novo);
+        a.blob = novo.blob; delete a.dataUrl;
+        convertidos++;
+      } catch (e) { break; }
+    }
+  } finally { astMigrando = false; }
+  if (convertidos) astPinta();
+}
+/* Monta a lista de pastas em ordem de árvore. Pastas órfãs (o pai não existe
+   mais) e ciclos aparecem no nível raiz em vez de desaparecerem da tela. */
+function astArvorePastas(pastas) {
+  const lista = [...(pastas || [])];
+  const ids = new Set(lista.map(f => f.id));
+  const filhos = new Map();
+  for (const f of lista) {
+    let pai = f.parentId;
+    if (pai === f.id || (pai && !ids.has(pai))) pai = null;     /* órfã ou ciclo curto */
+    const chave = pai || '';
+    if (!filhos.has(chave)) filhos.set(chave, []);
+    filhos.get(chave).push(f);
+  }
+  const saida = [], vistos = new Set();
+  const anda = (pai, nivel) => {
+    const grupo = (filhos.get(pai) || []).slice().sort((a, b) => String(a.name).localeCompare(String(b.name)));
+    for (const f of grupo) {
+      if (vistos.has(f.id)) continue;                            /* protege contra ciclo longo */
+      vistos.add(f.id);
+      saida.push({ f, nivel });
+      if (nivel < 24) anda(f.id, nivel + 1);
+    }
+  };
+  anda('', 0);
+  for (const f of lista) if (!vistos.has(f.id)) { vistos.add(f.id); saida.push({ f, nivel: 0 }); }
+  return saida;
+}
+
 function astFiltrados() {
   const q = astQuery.trim().toLowerCase();
   return astAssets.filter(a => {
@@ -21580,21 +21713,8 @@ function astPinta() {
   };
   chip(pastasEl, 'all', 'All', astAssets.length, astFolderSel, 'pasta');
   chip(pastasEl, 'none', 'No folder', astAssets.filter(a => !a.folderId).length, astFolderSel, 'pasta');
-  /* pastas em ordem de árvore: filha aparece logo depois da mãe, recuada */
-  const filhos = new Map();
-  for (const f of astFolders) {
-    const pai = f.parentId || '';
-    if (!filhos.has(pai)) filhos.set(pai, []);
-    filhos.get(pai).push(f);
-  }
-  const caminhada = [];
-  const anda = (pai, nivel) => {
-    for (const f of (filhos.get(pai) || []).slice().sort((a, b) => String(a.name).localeCompare(String(b.name)))) {
-      caminhada.push({ f, nivel });
-      anda(f.id, nivel + 1);
-    }
-  };
-  anda('', 0);
+  /* filha aparece logo depois da mãe, recuada; órfãs entram na raiz */
+  const caminhada = astArvorePastas(astFolders);
   for (const { f, nivel } of caminhada) {
     const quantos = astAssets.filter(a => a.folderId === f.id).length;
     chip(pastasEl, f.id, (nivel ? '· '.repeat(nivel) : '') + f.name, quantos, astFolderSel, 'pasta');
@@ -21610,7 +21730,7 @@ function astPinta() {
     const card = E('div', 'ast-card' + (astSel.has(a.id) ? ' sel' : ''));
     card.dataset.ast = a.id;
     const th = E('div', 'ast-thumb');
-    const srcImg = a.thumb || a.dataUrl || '';
+    const srcImg = astUrlDeAsset(a);
     if (srcImg) { const im = document.createElement('img'); im.src = srcImg; im.alt = a.name; im.loading = 'lazy'; th.append(im); }
     else th.append(E('span', 'ast-sem', a.kind === 'svg' ? 'SVG' : a.kind === 'vetor' ? 'VET' : 'IMG'));
     card.append(th);
@@ -21674,7 +21794,9 @@ function astTela() {
   busca.className = 'ast-in'; busca.type = 'search'; busca.placeholder = 'Search asset (name…)';
   busca.addEventListener('input', () => { astQuery = busca.value; astPinta(); });
   const qtd = E('span', 'ast-qtd'); qtd.id = 'astQtd';
-  tools.append(busca, qtd);
+  const cota = E('span', 'ast-cota'); cota.id = 'astCota';
+  tools.append(busca, qtd, cota);
+  astPedePersistencia().then(astMostraCota);
   wrap.append(tools);
   const pastas = E('div', 'ast-chips'); pastas.id = 'astPastas';
   const tipos = E('div', 'ast-chips'); tipos.id = 'astTipos';
@@ -21769,7 +21891,7 @@ function astTela() {
   bRen.addEventListener('click', () => astRenomearAsset(astAssets.find(x => astSel.has(x.id))));
   const bDelS = E('button', 'ast-btn', 'Delete'); bDelS.type = 'button'; bDelS.id = 'astBtnDelSel';
   bDelS.addEventListener('click', async () => {
-    for (const id of [...astSel]) { try { await SS_DB.delAsset(id); } catch (e) {} astSel.delete(id); }
+    for (const id of [...astSel]) { try { await SS_DB.delAsset(id); } catch (e) {} astEsqueceURL(id); astSel.delete(id); }
     await astRefresh(); setStatus('Asset(s) excluído(s).');
   });
   const bLimpa = E('button', 'ast-btn', 'Clear selection'); bLimpa.type = 'button';
@@ -21789,7 +21911,7 @@ function astTela() {
       if (actBtn.dataset.act === 'use') astInsereAssets([a.id]);
       else if (actBtn.dataset.act === 'ren') astRenomearAsset(a);
       else if (actBtn.dataset.act === 'cut') { astClipIds = [a.id]; astSel = new Set([a.id]); astPinta(); setStatus('Asset cut. Open the destination folder and tap “Paste here”.'); }
-      else if (actBtn.dataset.act === 'del') { try { await SS_DB.delAsset(a.id); } catch (err) {} astSel.delete(a.id); await astRefresh(); }
+      else if (actBtn.dataset.act === 'del') { try { await SS_DB.delAsset(a.id); } catch (err) {} astEsqueceURL(a.id); astSel.delete(a.id); await astRefresh(); }
       return;
     }
     if (e.ctrlKey || e.metaKey) { astSel.has(a.id) ? astSel.delete(a.id) : astSel.add(a.id); }
@@ -21810,8 +21932,11 @@ function astTela() {
 
 /* ---------- insert the asset into the project ---------- */
 async function astFileDeAsset(a) {
-  const resp = await fetch(a.dataUrl);
-  const blob = await resp.blob();
+  let blob = a.blob;
+  if (!blob) {
+    const resp = await fetch(a.dataUrl);
+    blob = await resp.blob();
+  }
   let nome = a.name || 'asset';
   if (a.kind === 'svg' && !/\.svg$/i.test(nome)) nome += '.svg';
   return new File([blob], nome, { type: a.mime || blob.type || 'image/png' });
@@ -21913,7 +22038,7 @@ function astPickerAbrir(op) {
     for (const a of lista) {
       const card = E('button', 'ast-card'); card.type = 'button';
       const th = E('div', 'ast-thumb');
-      const srcImg = a.thumb || a.dataUrl || '';
+      const srcImg = astUrlDeAsset(a);
       if (srcImg) { const im = document.createElement('img'); im.src = srcImg; im.alt = a.name; th.append(im); }
       else th.append(E('span', 'ast-sem', a.kind === 'svg' ? 'SVG' : 'VET'));
       card.append(th, E('div', 'ast-nm', a.name), E('div', 'ast-meta', astTipoRotulo(a) + (a.w && a.h ? ' · ' + a.w + '×' + a.h : '')));
@@ -30260,12 +30385,23 @@ async function ssSaveNow() {
   try {
     const m = await ssSaveProject(ssCurName || 'Untitled project');
     setStatus(m ? 'Project saved.' : 'Nothing to save.', !m);
-  } catch (e) { setStatus('Could not save the project.', true); }
+  } catch (e) { setStatus(astErroDeCota(e) ? 'Sem espaço no navegador: use "Salvar grafo" para guardar o projeto em arquivo.' : 'Could not save the project.', true); }
+}
+let ssCotaAvisada = 0;
+/* autosave e abas salvam sozinhos: se a cota estourar, avisa em vez de sumir com o projeto */
+function ssAvisoCota(e) {
+  if (!astErroDeCota(e)) return false;
+  const agora = Date.now();
+  if (!ssCotaAvisada || agora - ssCotaAvisada > 60000) {
+    ssCotaAvisada = agora;
+    setStatus('Sem espaço no navegador: o projeto NÃO está sendo salvo. Apague assets grandes na biblioteca ou use "Salvar grafo" para guardar em arquivo.', true);
+  }
+  return true;
 }
 function ssSoon() {
   if (!ssCurId || !nodes.size || (typeof sessionRestoring !== 'undefined' && sessionRestoring)) return;
   clearTimeout(ssSoonTimer);
-  ssSoonTimer = setTimeout(() => { ssSaveProject().catch(() => {}); }, 2000);
+  ssSoonTimer = setTimeout(() => { ssSaveProject().catch(e => ssAvisoCota(e)); }, 2000);
 }
 const _ssCommitBase = commit;
 commit = function () { _ssCommitBase(); ssSoon(); };
@@ -30315,7 +30451,7 @@ function tabsSnapshotAtual() {
     const meta = { id: ssCurId, name: ssCurName || 'Untitled project', updated: Date.now(), thumb: null };
     try { meta.thumb = ssThumb(); } catch (_) {}
     const pid = ssCurId;
-    SS_DB.getMeta(pid).then(old => { if (old && old.folderId) meta.folderId = old.folderId; return SS_DB.put(meta, json); }).catch(() => {});
+    SS_DB.getMeta(pid).then(old => { if (old && old.folderId) meta.folderId = old.folderId; return SS_DB.put(meta, json); }).catch(e => ssAvisoCota(e));
   } catch (_) {}
 }
 async function tabsSwitch(id) {
