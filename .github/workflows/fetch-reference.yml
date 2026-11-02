@@ -63,6 +63,25 @@ jobs:
           fi
           exit 0
 
+      - name: Analisar a casca nativa do APK
+        run: |
+          set +e
+          {
+            echo "=== aapt badging ==="
+            (aapt2 dump badging ref.apk 2>&1 || aapt dump badging ref.apk 2>&1) | head -25
+            echo
+            echo "=== aapt xmltree (manifest) ==="
+            (aapt2 dump xmltree --file AndroidManifest.xml ref.apk 2>&1 || true) | head -60
+            echo
+            echo "=== strings do classes.dex (WebView / bridge) ==="
+            unzip -o -q ref.apk classes.dex -d ref_extract
+            strings ref_extract/classes.dex | grep -iE 'setInitialScale|setTextZoom|setUseWideViewPort|setLoadWithOverviewMode|setSupportZoom|setBuiltInZoomControls|setDisplayZoomControls|setDefaultFontSize|userAgent|viewport|immersive|setSystemUiVisibility|setDecorFitsSystemWindows|AndroidSave|AndroidBridge|native-shim|assets/www|setAllowFileAccess|setDomStorageEnabled|setMediaPlayback' | sort -u | head -60
+            echo
+            echo "=== strings do native-shim.js (primeiras linhas) ==="
+            head -c 1200 ref_extract/assets/www/native-shim.js 2>/dev/null || unzip -p ref.apk assets/www/native-shim.js 2>/dev/null | head -c 1200
+          } > reference/native.txt 2>&1
+          exit 0
+
       - name: Commit da referência
         run: |
           set +e
