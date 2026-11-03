@@ -36,6 +36,8 @@ jobs:
         run: node tests/pivot.test.mjs
       - name: Efeito Spin Focus Light Leak (Editor 3.0)
         run: node tests/spin-focus.test.mjs
+      - name: Efeito Perspective Warp (Editor 3.1 · Perspectivo)
+        run: node tests/perspective.test.mjs
       - name: Versão (VERSION = telinha = APK)
         run: node tests/version.test.mjs
       - name: Higiene (código morto, CSS sem uso, reference/ fora)
