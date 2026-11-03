@@ -13,7 +13,7 @@ console.log('versão do app: ' + (versao || '(sem VERSION)'));
 
 /* ---------- o arquivo VERSION ---------- */
 ok(/^\d+\.\d+\.\d+$/.test(versao), 'VERSION existe e é x.y.z', versao);
-ok(versao === '3.1.2', 'versão publicada é 3.1.2', versao);
+ok(versao === '3.2.0', 'versão publicada é 3.2.0', versao);
 
 /* ---------- a telinha mostra o mesmo número ---------- */
 ok(new RegExp("const APP_VERSION = '" + versao.replace(/\./g, '\\.') + "'").test(html), 'index.html tem APP_VERSION igual ao VERSION');

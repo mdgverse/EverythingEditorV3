@@ -17,13 +17,13 @@ console.log('Perspective Warp (Perspectivo)');
 const def = recorta('  perspectiveWarp: {', '  flip: { title: \'Mirror\'');
 ok(/title: 'Perspective Warp'/.test(def), 'nome do nó', 'title');
 ok(/cat: 'transform'/.test(def), 'entra em Transform (junto do Warp / Puppet)');
-ok(/inputs: \['S1', 'S2', 'S3', 'S4'\]/.test(def), 'quatro sockets de imagem', 'sockets');
-ok(/ENUM\('sockets', 'Sockets', \[\['1', '1 socket'\], \['2', '2 sockets'\], \['3', '3 sockets'\], \['4', '4 sockets'\]\], '1'\)/.test(def),
-  'quantos sockets estão ativos (1 a 4)', 'contagem');
-ok(/ENUM\('slot', 'Editing', \[\['1', 'Socket 1'\], \['2', 'Socket 2'\], \['3', 'Socket 3'\], \['4', 'Socket 4'\]\], '1'\)/.test(def),
-  'seletor do socket em edição', 'slot');
-ok(/ENUM\('saida', 'Output', \[\['comp', 'Composited'\], \['1', 'Socket 1 only'\], \['2', 'Socket 2 only'\], \['3', 'Socket 3 only'\], \['4', 'Socket 4 only'\]\], 'comp'\)/.test(def),
-  'saída composta ou socket isolado', 'saida');
+ok(/inputs: \['S1', 'S2', 'S3', 'S4'\]/.test(def), 'sockets de imagem (base; a lista real é dinâmica)', 'sockets');
+ok(/\{ type: 'hidden', key: 'sockets', label: 'Sockets', def: '1' \}/.test(def)
+  && /\{ type: 'hidden', key: 'slot', label: 'Editing socket', def: '1' \}/.test(def)
+  && /\{ type: 'hidden', key: 'saida', label: 'Output', def: 'comp' \}/.test(def),
+  'contagem, socket em edição e saída saem dos selects (abas + e − cuidam disso)', 'dinamico');
+ok(!/ENUM\('sockets'/.test(def) && !/ENUM\('slot'/.test(def) && !/ENUM\('saida'/.test(def),
+  'o teto fixo de 4 sockets saiu da definição do nó', 'sem teto');
 ok(/\{ type: 'hidden', key: 'slots'/.test(def), 'dados por socket guardados fora dos controles', 'slots');
 ok(/kw: '[^']*perspective[^']*sphere[^']*'/.test(def), 'palavras-chave para a busca', 'kw');
 
@@ -184,10 +184,13 @@ const passa = new Function('perspH', 'perspFitMap', 'pointOp', corpoMapa + '\nre
     .replace(/^\s*perspectiveWarp:\s*/, '')
     .replace(/,\s*$/, '');
   const chama = [];
-  const roda = new Function('perspAplica', 'perspSlotOf', 'perspSobre', 'const f = ' + corpo + '; return f;')(
+  const fonteQtd = recorta('const PERSP_MAX =', 'function perspLeitura');
+  const perspQtd = new Function(fonteQtd + '\nreturn perspQtd;')();
+  const roda = new Function('perspAplica', 'perspSlotOf', 'perspSobre', 'perspQtd', 'const f = ' + corpo + '; return f;')(
     (a, p) => { chama.push({ w: a.w, slot: p.slot }); return { w: a.w, parte: chama.length }; },
     (n, i) => ({ slot: i }),
-    (a, b) => ({ w: a.w, sobre: [a, b] })
+    (a, b) => ({ w: a.w, sobre: [a, b] }),
+    perspQtd
   );
   const ent = w => ({ w, h: w });
 
@@ -212,6 +215,15 @@ const passa = new Function('perspH', 'perspFitMap', 'pointOp', corpoMapa + '\nre
   chama.length = 0;
   const vazio = roda({ params: { sockets: '4', saida: 'comp' } }, [null, null, null, null]);
   ok(vazio === null, 'sem entrada ligada o nó não produz imagem');
+
+  chama.length = 0;
+  const sete = roda({ params: { sockets: '7', saida: 'comp' } },
+    [ent(1), ent(2), ent(3), ent(4), ent(5), ent(6), ent(7)]);
+  ok(chama.length === 7 && chama[6].slot === 7, 'passa de 4 sockets: todos entram no composto', String(chama.length));
+
+  chama.length = 0;
+  const ultimo = roda({ params: { sockets: '6', saida: '6' } }, [ent(1), ent(2), ent(3), ent(4), ent(5), ent(6)]);
+  ok(chama.length === 1 && chama[0].slot === 6, 'saída isolada aceita socket acima de 4', JSON.stringify(chama));
 }
 
 /* ---------- parâmetros por socket (troca de slot) ---------- */
@@ -223,11 +235,11 @@ const passa = new Function('perspH', 'perspFitMap', 'pointOp', corpoMapa + '\nre
       ? { key: k, type: 'enum' }
       : { key: k, type: 'num', min: k === 'horiz' || k === 'vert' ? -89 : 0, max: k === 'horiz' || k === 'vert' ? 89 : 1000 });
   const api = new Function('clamp', 'NODE_TYPES',
-    fonteSlots + '\nreturn { perspLeitura, perspSlots, perspSlotOf, perspTrocSlot };')(
+    fonteSlots + '\nreturn { perspLeitura, perspSlots, perspSlotOf, perspTrocSlot, perspQtd, perspReindexa, perspMoldaSaida };')(
     (v, a, b) => Math.min(b, Math.max(a, Number(v))),
     { perspectiveWarp: { params: defs } }
   );
-  const n = { params: { slot: '1', modo: 'persp', horiz: 0, vert: 0, depth: 100, zoom: 100,
+  const n = { params: { sockets: '4', slot: '1', modo: 'persp', horiz: 0, vert: 0, depth: 100, zoom: 100,
     amount: 95, radius: 60, centerX: 50, centerY: 50, clip: '0', slots: '' }, ui: {} };
 
   api.perspTrocSlot(n);
@@ -249,6 +261,103 @@ const passa = new Function('perspH', 'perspFitMap', 'pointOp', corpoMapa + '\nre
   const p2 = api.perspSlotOf(n, 2), p1 = api.perspSlotOf(n, 1);
   ok(p1.horiz === 40 && p2.horiz === -25, 'cada socket lê o seu próprio conjunto', p1.horiz + '/' + p2.horiz);
   ok(p1.modo === 'persp' && p2.depth === 100, 'modo/profundidade também são por socket');
+
+  /* quantidade de sockets: dinâmica, com teto */
+  const q = v => api.perspQtd({ params: { sockets: v } });
+  ok(q('1') === 1 && q('4') === 4 && q('9') === 9, 'a contagem vem dos parâmetros (não trava em 4)', [q('1'), q('4'), q('9')].join('/'));
+  ok(q('0') === 1 && q('-3') === 1 && q('abc') === 1 && q(undefined) === 1, 'contagem inválida cai em 1 socket');
+  ok(q('99') === 12, 'contagem absurda respeita o teto de 12 (' + q('99') + ')', 'teto');
+  const n5 = { params: { sockets: '5', slot: '5', modo: 'persp', horiz: 0, vert: 0, depth: 100, zoom: 100,
+    amount: 95, radius: 60, centerX: 50, centerY: 50, clip: '0', slots: '' }, ui: {} };
+  api.perspTrocSlot(n5);
+  ok(n5.runtime.perspSlot === 5, 'socket 5 pode ser editado (antes travava em 4)', String(n5.runtime.perspSlot));
+
+  /* remover um socket: o mapa anda para baixo e a saída se ajusta */
+  const mapa = { 1: { horiz: 10 }, 2: { horiz: 20 }, 3: { horiz: 30 } };
+  const sem2 = api.perspReindexa(mapa, 2);
+  ok(JSON.stringify(sem2) === JSON.stringify({ 1: { horiz: 10 }, 2: { horiz: 30 } }),
+    'remover o socket 2 puxa o 3 para o lugar dele', JSON.stringify(sem2));
+  ok(JSON.stringify(api.perspReindexa(mapa, 1)) === JSON.stringify({ 1: { horiz: 20 }, 2: { horiz: 30 } }),
+    'remover o primeiro desce todos');
+  ok(JSON.stringify(api.perspReindexa(mapa, 9)) === JSON.stringify(mapa), 'índice inexistente não mexe no mapa');
+  ok(JSON.stringify(api.perspReindexa({}, 1)) === '{}', 'mapa vazio continua vazio');
+  ok(api.perspMoldaSaida('comp', 2) === 'comp', 'saída composta continua composta');
+  ok(api.perspMoldaSaida('3', 2) === '2', 'solo à frente do removido desce junto');
+  ok(api.perspMoldaSaida('1', 2) === '1', 'solo atrás do removido não muda');
+  ok(api.perspMoldaSaida('2', 2) === 'comp', 'solo do socket removido volta para composta');
+}
+
+/* ---------- adicionar / remover sockets (3.2.0) ---------- */
+{
+  console.log('\nSockets dinâmicos');
+  ok(/if \(n\.type === 'perspectiveWarp'\) \{\s*const cnt = perspQtd\(n\);/.test(html),
+    'nodeInputs monta S1..Sn a partir da contagem', 'nodeInputs');
+  ok(/function syncPerspSockets\(n\)/.test(html) && /existing\.forEach\(r => r\.remove\(\)\)/.test(html),
+    'as entradas do nó são refeitas ao mudar a contagem', 'sync');
+  ok(/if \(toNode && toNode\.type === 'perspectiveWarp' && input >= perspQtd\(toNode\)/.test(html),
+    'fio ligado num socket novo já abre o socket', 'connect');
+  ok(/alvo\.type === 'perspectiveWarp'\) livre = perspAddSocket\(alvo\)/.test(html),
+    'soltar o fio no corpo do nó cria mais um socket', 'drop');
+
+  const fonteAux = recorta('const PERSP_CHAVES =', 'const RUN = {')
+    + recorta('function perspAddSocket(n) {', 'function hexRgb01(h)');
+  const defsP = ['modo', 'horiz', 'vert', 'depth', 'zoom', 'amount', 'radius', 'centerX', 'centerY', 'clip']
+    .map(k => (k === 'modo' || k === 'clip')
+      ? { key: k, type: 'enum' }
+      : { key: k, type: 'num', min: k === 'horiz' || k === 'vert' ? -89 : 0, max: k === 'horiz' || k === 'vert' ? 89 : 1000 });
+  const liga = [];
+  const avisos = [];
+  const api = new Function('clamp', 'NODE_TYPES', 'links', 'removeLink', 'syncPerspSockets', 'perspAtualizaUI',
+    'markDirty', 'requestRender', 'commit', 'setStatus',
+    fonteAux + '\nreturn { perspAddSocket, perspDelSocket, perspQtd };')(
+    (v, a, b) => Math.min(b, Math.max(a, Number(v))),
+    { perspectiveWarp: { params: defsP } },
+    liga,
+    l => { const i = liga.indexOf(l); if (i >= 0) liga.splice(i, 1); },
+    () => {}, () => {}, () => {}, () => {}, () => {},
+    m => avisos.push(m)
+  );
+  const node = () => ({ params: { sockets: '2', slot: '1', modo: 'persp', horiz: 0, vert: 0, depth: 100,
+    zoom: 100, amount: 95, radius: 60, centerX: 50, centerY: 50, clip: '0', slots: '', saida: 'comp' }, ui: {} });
+
+  const a = node();
+  const idxNovo = api.perspAddSocket(a);
+  ok(idxNovo === 2 && a.params.sockets === '3', 'adicionar socket sobe a contagem (devolve o índice do novo)', a.params.sockets);
+  ok(a.params.slot === '3', 'o socket novo já fica em edição', a.params.slot);
+  ok(a.runtime.perspSlot === 3, 'a troca de socket é registrada (nada é perdido no caminho)', String(a.runtime.perspSlot));
+
+  const cheio = node();
+  cheio.params.sockets = '12';
+  ok(api.perspAddSocket(cheio) === -1 && cheio.params.sockets === '12', 'no teto o botão não faz nada');
+  ok(avisos.some(m => /limit/.test(m)), 'o aviso do teto aparece na barra de status', avisos.join(' | '));
+
+  const d = node();
+  d.runtime = { perspSlot: 2 };
+  d.params.sockets = '3';
+  d.params.slot = '2';
+  d.params.saida = '3';
+  d.params.slots = JSON.stringify({ 1: { horiz: 10 }, 3: { horiz: 30 } });
+  liga.push({ from: 9, to: d.id, input: 0 }, { from: 9, to: d.id, input: 1 }, { from: 9, to: d.id, input: 2 });
+  ok(api.perspDelSocket(d, 2) === true, 'remover o socket em edição funciona');
+  ok(d.params.sockets === '2', 'a contagem cai', d.params.sockets);
+  ok(JSON.stringify(JSON.parse(d.params.slots)) === JSON.stringify({ 1: { horiz: 10 }, 2: { horiz: 30 } }),
+    'os ajustes dos sockets de cima descem uma casa', d.params.slots);
+  ok(d.params.saida === '2', 'a saída que apontava para o socket 3 passa a apontar para o 2', d.params.saida);
+  ok(liga.length === 2 && !liga.some(l => l.input === 2), 'o fio do socket removido sai e os outros descem', JSON.stringify(liga));
+
+  const um = node();
+  um.params.sockets = '1';
+  liga.length = 0;
+  ok(api.perspDelSocket(um, 1) === false && um.params.sockets === '1', 'sempre sobra pelo menos um socket');
+
+  /* projeto salvo com fio num socket que a contagem não cobre: o socket volta */
+  const antigo = node();
+  antigo.id = 77;
+  antigo.params.sockets = '1';
+  liga.length = 0;
+  liga.push({ from: 5, to: 77, input: 0 }, { from: 6, to: 77, input: 3 });
+  ok(api.perspQtd(antigo) === 4 && antigo.params.sockets === '4',
+    'fio antigo num socket acima da contagem reabre o socket', antigo.params.sockets);
 }
 
 /* ---------- visualizador interno do nó (3.1.1) ---------- */
@@ -265,8 +374,15 @@ const passa = new Function('perspH', 'perspFitMap', 'pointOp', corpoMapa + '\nre
   ok(/const arte = pviewArte\(n, ativo - 1\);/.test(vis), 'desenha a arte do socket em edição (ou a grade de teste)', 'arte');
   ok(/const p = perspSlotOf\(n, ativo\);/.test(vis), 'o preview usa os parâmetros do socket em edição', 'params');
   ok(/const b = E\('button', 'pview-tab'/.test(vis), 'uma aba por socket no visualizador', 'abas');
-  ok(/setParam\(n, def\('slot'\), String\(i\)\)/.test(vis) && /perspTrocSlot\(n\);/.test(vis),
+  ok(/n\.params\.slot = String\(i\);\s*perspTrocSlot\(n\);/.test(vis),
     'clicar na aba troca o socket em edição', 'troca');
+  ok(/const mais = E\('button', 'pview-tab add', '\+'\)/.test(vis) && /perspAddSocket\(n\)/.test(vis),
+    'aba + adiciona socket (como o Layers adiciona camada)', 'add');
+  ok(/const menos = E\('button', 'pview-tab del', '−'\)/.test(vis) && /perspDelSocket\(n, ativo\)/.test(vis),
+    'aba − remove o socket em edição', 'del');
+  ok(/selSaida\.append\(o0\)/.test(vis) && /o\.textContent = 'Socket ' \+ i \+ ' only'/.test(vis),
+    'a saída lista composta + todos os sockets criados', 'saida');
+  ok(/n\.ui\.saida = pintaSaida;/.test(vis), 'trocar/adicionar socket atualiza a lista da saída', 'ui');
   ok(/solo === String\(i\) \? ' solo' : ''/.test(vis), 'aba marca o socket que está na saída', 'solo');
   ok(/\? 'Output: composited' : 'Output: socket ' \+ solo \+ ' only'/.test(vis), 'a dica mostra a saída escolhida');
   ok(/const uv = perspMapUV\(p, asp, m, px, py\);/.test(vis), 'cada pixel do preview passa pelo mesmo mapa do shader', 'mapa');
