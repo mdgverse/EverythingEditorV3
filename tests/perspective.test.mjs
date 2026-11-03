@@ -33,6 +33,8 @@ const controles = [
   ['Vertical ±90°', /NUM\('vert', 'Vertical ±90°', -89, 89, 0, 1\)/],
   ['Depth', /NUM\('depth', 'Depth', 5, 150, 100\)|NUM\('depth', 'Depth', 5, 150, 100\)/],
   ['Zoom', /NUM\('zoom', 'Zoom', 40, 260, 100\)/],
+  ['Position X (%)', /NUM\('posX', 'Position X \(%\)', -100, 100, 0, 1\)/],
+  ['Position Y (%)', /NUM\('posY', 'Position Y \(%\)', -100, 100, 0, 1\)/],
   ['Sphere amount', /NUM\('amount', 'Sphere amount',/],
   ['Sphere radius', /NUM\('radius', 'Sphere radius',/],
   ['Center X', /NUM\('centerX', 'Center X', 0, 100, 50\)/],
@@ -53,12 +55,16 @@ ok(/float ang = HALFPI \* clamp\(uAmount, 0\.05, 1\.0\);/.test(sh), 'abertura an
 ok(/float phi = asin\(clamp\(pc\.y \* sAng, -1\.0, 1\.0\)\);/.test(sh), 'esfera: desfaz a latitude por asin (normalizada por sin A)', 'phi');
 ok(/vec2 a = vec2\(lam, phi\) \/ ang;/.test(sh), 'λ e φ normalizados pela abertura (borda da arte = borda da esfera)');
 ok(/dot\(pc, pc\) > 1\.0/.test(sh), 'fora do disco da esfera');
-ok(/uClip > 0\.5 \? vec4\(0\.0\) : texture\(uSrc, vUv\)/.test(sh), 'Clip On = transparência, Off = mantém o plano');
+ok(/uClip > 0\.5 \? vec4\(0\.0\) : texture\(uSrc, vUv - uShift/.test(sh), 'Clip On = transparência, Off = mantém o plano (seguindo a posição XY)');
 ok(/uv\.x < 0\.0 \|\| uv\.x > 1\.0 \|\| uv\.y < 0\.0 \|\| uv\.y > 1\.0/.test(sh), 'fora da fonte = alpha 0 (sem arrastar borda)');
 ok(/float rShort = min\(asp, 1\.0\) \/ m;/.test(sh), 'raio da esfera em espaço métrico (bola redonda em qualquer proporção)', 'rShort');
 ok(/uv = uCenter \+ a \* vec2\(s \* m \/ \(2\.0 \* asp\), s \* m \* 0\.5\);/.test(sh), 'quadrado da arte em volta do disco vira UV da fonte', 'quadrado');
 ok(/float m = max\(asp, 1\.0\);/.test(sh), 'normaliza pelo maior lado (círculo continua redondo)');
 ok(/uniform int uMode;/.test(sh), 'uMode é int no GLSL (INT_UNIFORMS manda uniform1i)');
+ok(/uniform vec2 uCenter, uShift;/.test(sh), 'uniforme da posição XY do socket', 'uShift');
+ok(/p -= uShift;/.test(sh), 'a posição XY desloca o ponto antes do mapa (o plano anda inteiro)', 'shift');
+ok(/texture\(uSrc, vUv - uShift \* vec2\(m \/ \(2\.0 \* asp\), m \* 0\.5\)\)/.test(sh),
+  'esfera sem clip: o fundo anda junto com o socket', 'fundo');
 const chaves = (sh.match(/\{/g) || []).length === (sh.match(/\}/g) || []).length;
 ok(chaves, 'chaves equilibradas no GLSL');
 
@@ -144,8 +150,9 @@ const H0 = perspH(0, 0, 100);
 
 /* ---------- um passe: uniformes ---------- */
 const corpoMapa = recorta('function perspAplica(a, p) {', 'function perspSobre(a, b) {');
-const passa = new Function('perspH', 'perspFitMap', 'pointOp', corpoMapa + '\nreturn perspAplica;')(
-  perspH, perspFitMap, (a, prog, u) => ({ prog, u })
+const fonteDesloca = recorta('function perspDesloca(', '/* um passe de perspectiva');
+const passa = new Function('perspH', 'perspFitMap', 'perspDesloca', 'pointOp', corpoMapa + '\nreturn perspAplica;')(
+  perspH, perspFitMap, new Function(fonteDesloca + '\nreturn perspDesloca;')(), (a, prog, u) => ({ prog, u })
 );
 
 {
@@ -158,6 +165,27 @@ const passa = new Function('perspH', 'perspFitMap', 'pointOp', corpoMapa + '\nre
   ok(r.u.uHx.join() === [fin[0], fin[3], fin[6]].join() && r.u.uHz.join() === [fin[2], fin[5], fin[8]].join(),
     'passa a inversa reenquadrada nas três colunas');
   ok(Math.abs(r.u.uCenter[0] - 0.5) < 1e-9 && Math.abs(r.u.uCenter[1] - 0.5) < 1e-9, 'centro 50/50 = meio da fonte');
+  ok(Array.isArray(r.u.uShift) && r.u.uShift[0] === 0 && r.u.uShift[1] === 0,
+    'sem posição XY o deslocamento é zero (3.2.0 intacta)', JSON.stringify(r.u.uShift));
+}
+
+{
+  /* posição XY: % da arte → espaço métrico (x sobre a largura, y sobre a altura) */
+  const desp = new Function(fonteDesloca + '\nreturn perspDesloca;')();
+  ok(JSON.stringify(desp({}, 1.6, 1.6)) === '[0,0]', 'sem posX/posY não desloca nada');
+  const d = desp({ posX: 50, posY: 25 }, 1.6, 1.6);
+  ok(Math.abs(d[0] - 1.0) < 1e-9 && Math.abs(d[1] - 0.3125) < 1e-9,
+    '50% da largura e 25% da altura viram espaço métrico', d.join('/'));
+  const quad = desp({ posX: 100, posY: 100 }, 1, 1);
+  ok(Math.abs(quad[0] - 2) < 1e-9 && Math.abs(quad[1] - 2) < 1e-9, '100% = a própria largura/altura', quad.join('/'));
+  const neg = desp({ posX: -50, posY: -25 }, 1, 1);
+  ok(neg[0] < 0 && neg[1] < 0, 'valores negativos andam para a esquerda/baixo');
+
+  const r = passa({ w: 1600, h: 1000 },
+    { modo: 'persp', horiz: 0, vert: 0, depth: 100, zoom: 100, posX: 50, posY: 25,
+      amount: 95, radius: 60, centerX: 50, centerY: 50, clip: '0' });
+  ok(Math.abs(r.u.uShift[0] - 1.0) < 1e-9 && Math.abs(r.u.uShift[1] - 0.3125) < 1e-9,
+    'o passe leva a posição XY para o shader', r.u.uShift.join('/'));
 }
 
 {
@@ -230,7 +258,7 @@ const passa = new Function('perspH', 'perspFitMap', 'pointOp', corpoMapa + '\nre
 {
   const fonteSlots = recorta('const PERSP_CHAVES =', '/* um passe de perspectiva sobre uma entrada */')
     + recorta('function perspTrocSlot(n) {', 'const RUN = {');
-  const defs = ['modo', 'horiz', 'vert', 'depth', 'zoom', 'amount', 'radius', 'centerX', 'centerY', 'clip']
+  const defs = ['modo', 'horiz', 'vert', 'depth', 'zoom', 'posX', 'posY', 'amount', 'radius', 'centerX', 'centerY', 'clip']
     .map(k => (k === 'modo' || k === 'clip')
       ? { key: k, type: 'enum' }
       : { key: k, type: 'num', min: k === 'horiz' || k === 'vert' ? -89 : 0, max: k === 'horiz' || k === 'vert' ? 89 : 1000 });
@@ -261,6 +289,18 @@ const passa = new Function('perspH', 'perspFitMap', 'pointOp', corpoMapa + '\nre
   const p2 = api.perspSlotOf(n, 2), p1 = api.perspSlotOf(n, 1);
   ok(p1.horiz === 40 && p2.horiz === -25, 'cada socket lê o seu próprio conjunto', p1.horiz + '/' + p2.horiz);
   ok(p1.modo === 'persp' && p2.depth === 100, 'modo/profundidade também são por socket');
+
+  /* a posição XY é de cada socket */
+  n.params.posX = 30;
+  n.params.slot = '2';
+  api.perspTrocSlot(n);
+  ok(JSON.parse(n.params.slots)['1'].posX === 30, 'a posição XY do socket 1 é guardada', n.params.slots);
+  n.params.posX = -45;
+  n.params.slot = '1';
+  api.perspTrocSlot(n);
+  ok(n.params.posX === 30, 'voltar ao socket 1 devolve a posição dele', String(n.params.posX));
+  ok(JSON.parse(n.params.slots)['2'].posX === -45, 'o socket 2 guarda a posição própria');
+  ok(api.perspSlotOf(n, 2).posX === -45 && api.perspSlotOf(n, 1).posX === 30, 'cada socket lê a sua posição');
 
   /* quantidade de sockets: dinâmica, com teto */
   const q = v => api.perspQtd({ params: { sockets: v } });
@@ -392,6 +432,17 @@ const passa = new Function('perspH', 'perspFitMap', 'pointOp', corpoMapa + '\nre
   ok(/const chave = n\.params\.modo === 'sphere' \? 'radius' : 'depth';/.test(vis), 'roda muda Depth (na esfera, o raio)', 'wheel');
   ok(/setParam\(n, def\('centerX'\), arrasto\.cx \+ dx \/ 1\.8\)/.test(vis), 'na esfera o arrasto move o centro', 'centro');
   ok(/ev\.shiftKey \? 0\.2 : 1/.test(vis), 'Shift = ajuste fino');
+  ok(/mover: !!ev\.altKey/.test(vis) && /if \(arrasto\.mover \|\| ev\.altKey\)/.test(vis),
+    'Alt + arrastar move o socket em XY (o arrasto normal segue nos ângulos)', 'alt');
+  ok(/setParam\(n, def\('posX'\), arrasto\.px \+ dw\)/.test(vis) && /setParam\(n, def\('posY'\), arrasto\.py - dh\)/.test(vis),
+    'o arrasto converte pixels em % de largura/altura', 'xy');
+  ok(/const dw = \(ev\.clientX - arrasto\.x\) \/ arrasto\.w \* 100 \* k;/.test(vis),
+    'uma largura do canvas = 100% de deslocamento', 'escala-xy');
+  ok(/setParam\(n, def\('posX'\), 0\);\s*setParam\(n, def\('posY'\), 0\);/.test(vis),
+    'duplo clique zera a posição XY junto com o resto', 'reset');
+  ok(/Alt \+ drag \(or 2 fingers\) moves it in XY/.test(vis), 'a dica ensina o gesto');
+  ok(/if \(ev\.pointerType === 'touch'\) dedos\+\+/.test(vis) && /mover: !!ev\.altKey \|\| dedos >= 2/.test(vis),
+    'no toque (APK) dois dedos fazem o mesmo que o Alt', 'dedos');
   ok(/requestAnimationFrame\(\(\) => \{ pendente = false;/.test(vis), 'redesenho coalescido por frame (não trava o arrasto)', 'raf');
   ok(/dica\.textContent = \(solo === 'comp'/.test(vis) && /esfera\s*\?/.test(vis), 'a dica muda com o modo');
 
@@ -408,6 +459,24 @@ const passa = new Function('perspH', 'perspFitMap', 'pointOp', corpoMapa + '\nre
       erro = Math.max(erro, Math.abs(uv[0] - u), Math.abs(uv[1] - v));
     }
     ok(erro < 1e-9, 'preview em 0° devolve o mesmo ponto (identidade)', 'erro ' + erro.toExponential(1));
+  }
+  {
+    /* Alt + arrastar = posição XY: o preview usa a mesma conta do shader */
+    const meio = perspMapUV({ modo: 'persp', horiz: 0, vert: 0, depth: 100, zoom: 100, posX: 50, posY: 25 }, asp, m, 0, 0);
+    ok(meio && Math.abs(meio[0] - 0.0) < 1e-9 && Math.abs(meio[1] - 0.25) < 1e-9,
+      'posição XY desloca a amostra do preview (50% / 25%)', String(meio));
+    const zero = perspMapUV({ modo: 'persp', horiz: 0, vert: 0, depth: 100, zoom: 100, posX: 0, posY: 0 }, asp, m, 0, 0);
+    ok(zero && Math.abs(zero[0] - 0.5) < 1e-9 && Math.abs(zero[1] - 0.5) < 1e-9,
+      'sem posição XY o preview não muda nada', String(zero));
+    const bola = { modo: 'sphere', amount: 95, radius: 60, centerX: 50, centerY: 50 };
+    const esq = perspMapUV(Object.assign({ posX: 10 }, bola), asp, m, 0, 0);
+    ok(esq && esq[0] < 0.5, 'na esfera a posição XY move a bola inteira (o conteúdo dela acompanha)', String(esq));
+    const s10 = [10 / 100 * 2 * asp / m, 0];
+    const centroBola = perspMapUV(Object.assign({ posX: 10 }, bola), asp, m, s10[0], s10[1]);
+    ok(centroBola && Math.abs(centroBola[0] - 0.5) < 1e-6 && Math.abs(centroBola[1] - 0.5) < 1e-6,
+      'o centro da bola deslocada continua mostrando o centro da arte', String(centroBola));
+    const fora = perspMapUV({ modo: 'sphere', amount: 95, radius: 60, centerX: 50, centerY: 50, posX: 300 }, asp, m, 0, 0);
+    ok(fora === null, 'empurrar a bola para fora do quadro devolve null (o chamador decide)');
   }
   {
     const p0 = { modo: 'persp', horiz: 40, vert: 0, depth: 70, zoom: 100 };
