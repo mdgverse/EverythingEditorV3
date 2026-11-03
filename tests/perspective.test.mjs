@@ -17,7 +17,14 @@ console.log('Perspective Warp (Perspectivo)');
 const def = recorta('  perspectiveWarp: {', '  flip: { title: \'Mirror\'');
 ok(/title: 'Perspective Warp'/.test(def), 'nome do nó', 'title');
 ok(/cat: 'transform'/.test(def), 'entra em Transform (junto do Warp / Puppet)');
-ok(/inputs: \['Image'\]/.test(def), 'recebe imagem de qualquer nó');
+ok(/inputs: \['S1', 'S2', 'S3', 'S4'\]/.test(def), 'quatro sockets de imagem', 'sockets');
+ok(/ENUM\('sockets', 'Sockets', \[\['1', '1 socket'\], \['2', '2 sockets'\], \['3', '3 sockets'\], \['4', '4 sockets'\]\], '1'\)/.test(def),
+  'quantos sockets estão ativos (1 a 4)', 'contagem');
+ok(/ENUM\('slot', 'Editing', \[\['1', 'Socket 1'\], \['2', 'Socket 2'\], \['3', 'Socket 3'\], \['4', 'Socket 4'\]\], '1'\)/.test(def),
+  'seletor do socket em edição', 'slot');
+ok(/ENUM\('saida', 'Output', \[\['comp', 'Composited'\], \['1', 'Socket 1 only'\], \['2', 'Socket 2 only'\], \['3', 'Socket 3 only'\], \['4', 'Socket 4 only'\]\], 'comp'\)/.test(def),
+  'saída composta ou socket isolado', 'saida');
+ok(/\{ type: 'hidden', key: 'slots'/.test(def), 'dados por socket guardados fora dos controles', 'slots');
 ok(/kw: '[^']*perspective[^']*sphere[^']*'/.test(def), 'palavras-chave para a busca', 'kw');
 
 const controles = [
@@ -135,20 +142,18 @@ const H0 = perspH(0, 0, 100);
   ok(Math.abs(cx) < 1e-9 && Math.abs(cy) < 1e-9, 'bbox do plano deformado centrado no quadro', cx.toFixed(6));
 }
 
-/* ---------- executor: uniformes ---------- */
-const corpo = recorta('  perspectiveWarp: (n, [a]) => {', '  brightness: (n, [a]) => {')
-  .replace(/^\s*perspectiveWarp:\s*/, '')
-  .replace(/,\s*$/, '');
-const roda = new Function('perspH', 'mat3InvertCols', 'perspFitMap', 'pointOp', 'const f = ' + corpo + '; return f;')(
-  perspH, mat3InvertCols, perspFitMap, (a, prog, u) => ({ prog, u })
+/* ---------- um passe: uniformes ---------- */
+const corpoMapa = recorta('function perspAplica(a, p) {', 'function perspSobre(a, b) {');
+const passa = new Function('perspH', 'perspFitMap', 'pointOp', corpoMapa + '\nreturn perspAplica;')(
+  perspH, perspFitMap, (a, prog, u) => ({ prog, u })
 );
 
 {
-  const r = roda({ params: { modo: 'persp', horiz: 20, vert: -10, depth: 100, zoom: 100, amount: 95, radius: 60, centerX: 50, centerY: 50, clip: '0' } },
-    [{ w: 1600, h: 1000 }]);
-  ok(r.prog === 'perspectiveFx', 'executor chama o shader perspectiveFx', r.prog);
+  const r = passa({ w: 1600, h: 1000 },
+    { modo: 'persp', horiz: 20, vert: -10, depth: 100, zoom: 100, amount: 95, radius: 60, centerX: 50, centerY: 50, clip: '0' });
+  ok(r.prog === 'perspectiveFx', 'cada socket passa pelo shader perspectiveFx', r.prog);
   ok(r.u.uMode === 0, 'modo perspectiva = uMode 0');
-  ok(Math.abs(r.u.uAspect - 1.6) < 1e-9, 'uAspect vem do tamanho de entrada', r.u.uAspect);
+  ok(Math.abs(r.u.uAspect - 1.6) < 1e-9, 'uAspect vem do tamanho da entrada', r.u.uAspect);
   const fin = perspFitMap(perspH(20, -10, 100), 1.6, 1.6);
   ok(r.u.uHx.join() === [fin[0], fin[3], fin[6]].join() && r.u.uHz.join() === [fin[2], fin[5], fin[8]].join(),
     'passa a inversa reenquadrada nas três colunas');
@@ -156,21 +161,94 @@ const roda = new Function('perspH', 'mat3InvertCols', 'perspFitMap', 'pointOp', 
 }
 
 {
-  const r = roda({ params: { modo: 'sphere', horiz: 0, vert: 0, depth: 100, zoom: 100, amount: 80, radius: 40, centerX: 25, centerY: 75, clip: '1' } },
-    [{ w: 1000, h: 1000 }]);
+  const r = passa({ w: 1000, h: 1000 },
+    { modo: 'sphere', horiz: 0, vert: 0, depth: 100, zoom: 100, amount: 80, radius: 40, centerX: 25, centerY: 75, clip: '1' });
   ok(r.u.uMode === 1, 'modo esfera = uMode 1');
   ok(Math.abs(r.u.uAmount - 0.8) < 1e-9 && Math.abs(r.u.uRadius - 0.4) < 1e-9, 'amount/radius em 0..1');
   ok(r.u.uClip === 1, 'clip ligado chega como 1');
-  // 25% / 75%: x à esquerda e y para baixo (vUv cresce para cima, logo y negativo)
   ok(Math.abs(r.u.uCenter[0] - 0.25) < 1e-9 && Math.abs(r.u.uCenter[1] - 0.25) < 1e-9,
     'centerX/centerY viram UV da fonte (75% de cima = 0.25 de baixo)', r.u.uCenter.join());
 }
 
 {
-  const r = roda({ params: { modo: 'persp', horiz: 0, vert: 0, depth: 100, zoom: 250 } }, [{ w: 800, h: 800 }]);
+  const r = passa({ w: 800, h: 800 }, { modo: 'persp', horiz: 0, vert: 0, depth: 100, zoom: 250 });
   ok(Math.abs(r.u.uZoom - 2.5) < 1e-9, 'zoom em múltiplo (100 → 1.0)', r.u.uZoom);
-  const sem = roda({ params: { modo: 'persp' } }, [{ w: 800, h: 800 }]);
+  const sem = passa({ w: 800, h: 800 }, { modo: 'persp' });
   ok(sem.u.uZoom >= 0.05 && sem.u.uAmount >= 0.05, 'parâmetros ausentes caem em valores seguros');
+}
+
+/* ---------- executor: sockets, solo e composição ---------- */
+{
+  console.log('\nSockets e composição');
+  const corpo = recorta('  perspectiveWarp: (n, ins) => {', '  brightness: (n, [a]) => {')
+    .replace(/^\s*perspectiveWarp:\s*/, '')
+    .replace(/,\s*$/, '');
+  const chama = [];
+  const roda = new Function('perspAplica', 'perspSlotOf', 'perspSobre', 'const f = ' + corpo + '; return f;')(
+    (a, p) => { chama.push({ w: a.w, slot: p.slot }); return { w: a.w, parte: chama.length }; },
+    (n, i) => ({ slot: i }),
+    (a, b) => ({ w: a.w, sobre: [a, b] })
+  );
+  const ent = w => ({ w, h: w });
+
+  chama.length = 0;
+  const um = roda({ params: { sockets: '1', saida: 'comp' } }, [ent(100), ent(200)]);
+  ok(chama.length === 1 && !um.sobre, '1 socket: ignora a segunda entrada e não compõe', String(chama.length));
+
+  chama.length = 0;
+  const dois = roda({ params: { sockets: '2', saida: 'comp' } }, [ent(100), ent(200)]);
+  ok(chama.length === 2, '2 sockets: cada entrada tem o seu passe', String(chama.length));
+  ok(dois.sobre && dois.sobre[0].parte === 1 && dois.sobre[1].parte === 2, 'socket 1 embaixo, socket 2 por cima', 'ordem');
+
+  chama.length = 0;
+  const quatro = roda({ params: { sockets: '4', saida: 'comp' } }, [ent(10), ent(20), ent(30), ent(40)]);
+  ok(chama.length === 4 && quatro.sobre && quatro.sobre[0].sobre, '4 sockets compõem em cadeia', String(chama.length));
+
+  chama.length = 0;
+  const solo = roda({ params: { sockets: '3', saida: '2' } }, [ent(10), ent(20), ent(30)]);
+  ok(chama.length === 1 && chama[0].slot === 2, 'saída isolada deforma só o socket escolhido', JSON.stringify(chama));
+  ok(!solo.sobre, 'socket isolado não compõe');
+
+  chama.length = 0;
+  const vazio = roda({ params: { sockets: '4', saida: 'comp' } }, [null, null, null, null]);
+  ok(vazio === null, 'sem entrada ligada o nó não produz imagem');
+}
+
+/* ---------- parâmetros por socket (troca de slot) ---------- */
+{
+  const fonteSlots = recorta('const PERSP_CHAVES =', '/* um passe de perspectiva sobre uma entrada */')
+    + recorta('function perspTrocSlot(n) {', 'const RUN = {');
+  const defs = ['modo', 'horiz', 'vert', 'depth', 'zoom', 'amount', 'radius', 'centerX', 'centerY', 'clip']
+    .map(k => (k === 'modo' || k === 'clip')
+      ? { key: k, type: 'enum' }
+      : { key: k, type: 'num', min: k === 'horiz' || k === 'vert' ? -89 : 0, max: k === 'horiz' || k === 'vert' ? 89 : 1000 });
+  const api = new Function('clamp', 'NODE_TYPES',
+    fonteSlots + '\nreturn { perspLeitura, perspSlots, perspSlotOf, perspTrocSlot };')(
+    (v, a, b) => Math.min(b, Math.max(a, Number(v))),
+    { perspectiveWarp: { params: defs } }
+  );
+  const n = { params: { slot: '1', modo: 'persp', horiz: 0, vert: 0, depth: 100, zoom: 100,
+    amount: 95, radius: 60, centerX: 50, centerY: 50, clip: '0', slots: '' }, ui: {} };
+
+  api.perspTrocSlot(n);
+  ok(n.runtime.perspSlot === 1, 'socket 1 é o inicial');
+
+  n.params.horiz = 40;
+  n.params.slot = '2';
+  api.perspTrocSlot(n);
+  ok(JSON.parse(n.params.slots)['1'].horiz === 40, 'o socket anterior é gravado antes de trocar', n.params.slots);
+  ok(n.params.horiz === 40, 'socket novo herda o ajuste atual (não zera na cara do usuário)');
+
+  n.params.horiz = -25;
+  n.params.slot = '1';
+  api.perspTrocSlot(n);
+  ok(n.params.horiz === 40, 'voltar ao socket 1 devolve o ajuste dele', String(n.params.horiz));
+  const guardado = JSON.parse(n.params.slots);
+  ok(guardado['2'].horiz === -25, 'o socket 2 guarda o ajuste próprio', JSON.stringify(guardado['2']));
+
+  const p2 = api.perspSlotOf(n, 2), p1 = api.perspSlotOf(n, 1);
+  ok(p1.horiz === 40 && p2.horiz === -25, 'cada socket lê o seu próprio conjunto', p1.horiz + '/' + p2.horiz);
+  ok(p1.modo === 'persp' && p2.depth === 100, 'modo/profundidade também são por socket');
 }
 
 /* ---------- visualizador interno do nó (3.1.1) ---------- */
@@ -184,7 +262,13 @@ const roda = new Function('perspH', 'mat3InvertCols', 'perspFitMap', 'pointOp', 
   ok(/\.pview\{[^}]*\}/.test(html) && /\.pview-cv\{[^}]*\}/.test(html) && /\.pview-hint\{[^}]*\}/.test(html), 'CSS do visualizador', 'css');
 
   const vis = recorta('function makePerspView(n) {', 'function makeGradientPins(n) {');
-  ok(/const arte = pviewArte\(n\);/.test(vis), 'desenha a arte da entrada (ou a grade de teste)', 'arte');
+  ok(/const arte = pviewArte\(n, ativo - 1\);/.test(vis), 'desenha a arte do socket em edição (ou a grade de teste)', 'arte');
+  ok(/const p = perspSlotOf\(n, ativo\);/.test(vis), 'o preview usa os parâmetros do socket em edição', 'params');
+  ok(/const b = E\('button', 'pview-tab'/.test(vis), 'uma aba por socket no visualizador', 'abas');
+  ok(/setParam\(n, def\('slot'\), String\(i\)\)/.test(vis) && /perspTrocSlot\(n\);/.test(vis),
+    'clicar na aba troca o socket em edição', 'troca');
+  ok(/solo === String\(i\) \? ' solo' : ''/.test(vis), 'aba marca o socket que está na saída', 'solo');
+  ok(/\? 'Output: composited' : 'Output: socket ' \+ solo \+ ' only'/.test(vis), 'a dica mostra a saída escolhida');
   ok(/const uv = perspMapUV\(p, asp, m, px, py\);/.test(vis), 'cada pixel do preview passa pelo mesmo mapa do shader', 'mapa');
   ok(/setParam\(n, def\('horiz'\), arrasto\.h \+ dx\)/.test(vis) && /setParam\(n, def\('vert'\), arrasto\.v - dy\)/.test(vis),
     'arrastar muda Horizontal/Vertical', 'drag');
@@ -193,7 +277,7 @@ const roda = new Function('perspH', 'mat3InvertCols', 'perspFitMap', 'pointOp', 
   ok(/setParam\(n, def\('centerX'\), arrasto\.cx \+ dx \/ 1\.8\)/.test(vis), 'na esfera o arrasto move o centro', 'centro');
   ok(/ev\.shiftKey \? 0\.2 : 1/.test(vis), 'Shift = ajuste fino');
   ok(/requestAnimationFrame\(\(\) => \{ pendente = false;/.test(vis), 'redesenho coalescido por frame (não trava o arrasto)', 'raf');
-  ok(/dica\.textContent = esfera/.test(vis), 'a dica muda com o modo');
+  ok(/dica\.textContent = \(solo === 'comp'/.test(vis) && /esfera\s*\?/.test(vis), 'a dica muda com o modo');
 
   // mesma matemática do preview: identidade em 0° e disco da esfera
   const visMat = recorta('function perspMapUV(', '/* grade de teste');
