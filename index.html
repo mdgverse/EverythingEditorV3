@@ -131,7 +131,7 @@ html, body{overscroll-behavior:none;-webkit-tap-highlight-color:transparent}/* 1
   const greet = document.getElementById('eeSplashGreet');
   /* versão do editor — o arquivo VERSION na raiz é a fonte da verdade
      (o build do APK usa o mesmo número no versionName) */
-  const APP_VERSION = '3.0.2';
+  const APP_VERSION = '3.1.0';
   const ver = document.getElementById('eeSplashVer');
   if (ver) { ver.textContent = 'v' + APP_VERSION; ver.title = 'Everything Editor ' + APP_VERSION; }
   let pt = true;
@@ -2685,6 +2685,27 @@ const NODE_TYPES = {
       NUM('suavidade', 'Pin softness', 0, 100, 55),
       { type: 'hidden', key: 'gradeData', label: 'Grid', def: '' },
       { type: 'hidden', key: 'pinosData', label: 'Pins', def: '' },
+    ],
+  },
+  /* Editor 3.1 — Perspective Warp: engenharia reversa do plugin "Perspectivo"
+     (Figma). Dois modos num passe só: plano em perspectiva real (homografia
+     montada a partir de Horizontal / Vertical / Depth) e enrolamento em
+     esfera (Amount / Radius / Clip). O mapa inverso roda no fragment shader,
+     então o preview é o resultado — export idêntico à tela. */
+  perspectiveWarp: {
+    title: 'Perspective Warp', cat: 'transform', inputs: ['Image'], outs: ['Image'],
+    kw: 'perspective warp 3d tilt keystone mockup sphere ball wrap distort homography perspectivo figma plane card',
+    params: [
+      ENUM('modo', 'Mode', [['persp', 'Perspective (3D)'], ['sphere', 'Sphere (ball)']], 'persp'),
+      NUM('horiz', 'Horizontal ±90°', -89, 89, 0, 1),
+      NUM('vert', 'Vertical ±90°', -89, 89, 0, 1),
+      NUM('depth', 'Depth', 5, 150, 100),
+      NUM('zoom', 'Zoom', 40, 260, 100),
+      NUM('amount', 'Sphere amount', 5, 100, 95),
+      NUM('radius', 'Sphere radius', 20, 100, 60),
+      NUM('centerX', 'Center X', 0, 100, 50),
+      NUM('centerY', 'Center Y', 0, 100, 50),
+      ENUM('clip', 'Clip to sphere', [['0', 'Off'], ['1', 'On']], '0'),
     ],
   },
   flip: { title: 'Mirror', cat: 'transform', inputs: ['Image'], params: [ENUM('axis', 'Axis', [['h', 'Horizontal'], ['v', 'Vertical']], 'h')] },
@@ -6012,6 +6033,49 @@ void main(){
   vec2 uvG = 0.5 + p * (1.0 + uK * r2 * 0.5) / asp;
   vec2 uvB = 0.5 + p * (1.0 + (uK - uDisp) * r2 * 0.5) / asp;
   outColor = vec4(texture(uSrc, uvR).r, texture(uSrc, uvG).g, texture(uSrc, uvB).b, texture(uSrc, uvG).a);
+}`,
+
+  /* 3.1 — Perspective Warp (Perspectivo): mapeamento inverso por pixel.
+     uHx/uHy/uHz são as colunas da homografia INVERSA (destino → fonte), em
+     coordenadas normalizadas pelo maior lado (|p| = 1 na borda longa).
+     uMode 1 = esfera: desfaz longitude/latitude por asin, com clip opcional. */
+  perspectiveFx: `
+uniform sampler2D uSrc;
+uniform vec3 uHx, uHy, uHz;
+uniform int uMode;
+uniform vec2 uCenter;
+uniform float uAspect, uAmount, uRadius, uClip, uZoom;
+const float HALFPI = 1.5707963;
+void main(){
+  float asp = uAspect;
+  float m = max(asp, 1.0);
+  float rShort = min(asp, 1.0) / m;            // meia-altura quando a imagem é deitada
+  vec2 p = (vUv - 0.5) * 2.0 * vec2(asp, 1.0) / m;   // espaço métrico (círculo continua círculo)
+  vec2 uv;
+  if (uMode == 1) {
+    vec2 cp = (uCenter - 0.5) * 2.0 * vec2(asp, 1.0) / m;
+    float s = max(0.02, uRadius) * rShort;
+    vec2 pc = (p - cp) / s;
+    if (dot(pc, pc) > 1.0) {                   // fora do disco
+      outColor = uClip > 0.5 ? vec4(0.0) : texture(uSrc, vUv);
+      return;
+    }
+    float ang = HALFPI * clamp(uAmount, 0.05, 1.0);
+    float sAng = max(sin(ang), 0.0015);
+    float phi = asin(clamp(pc.y * sAng, -1.0, 1.0));
+    float cphi = max(cos(phi), 0.0015);
+    float lam = asin(clamp(pc.x * sAng / cphi, -1.0, 1.0));
+    vec2 a = vec2(lam, phi) / ang;             // arte no quadrado, -1..1
+    uv = uCenter + a * vec2(s * m / (2.0 * asp), s * m * 0.5);
+  } else {
+    float z = max(0.05, uZoom);
+    vec3 hp = uHx * (p.x / z) + uHy * (p.y / z) + uHz;
+    if (hp.z <= 0.0001) { outColor = vec4(0.0); return; }
+    vec2 src = hp.xy / hp.z;
+    uv = 0.5 + (src * m) / (2.0 * vec2(asp, 1.0));
+  }
+  if (uv.x < 0.0 || uv.x > 1.0 || uv.y < 0.0 || uv.y > 1.0) { outColor = vec4(0.0); return; }
+  outColor = texture(uSrc, uv);
 }`,
 
   colorKey: `
@@ -21494,6 +21558,58 @@ function amGlyphTex(n, tone) {
   return rt.amCache[src];
 }
 
+/* 3.1 — Perspective Warp: homografia do plano, inversão e reenquadre.
+   perspH devolve a matriz linha-a-linha [m00..m22] que leva a coordenada
+   normalizada da FONTE para o DESTINO:
+       x' = f·cb·u / w        y' = f·(sa·sb·u + ca·v) / w        w = ca·sb·u − sa·v + d
+   com f = d, a identidade sai exata em 0° e "Depth" só muda a convergência
+   (d menor = perspectiva mais forte). O shader usa a inversa, já reenquadrada
+   por perspFitMap (mesma imagem, sempre dentro do quadro e centralizada). */
+function perspH(horizDeg, vertDeg, depth) {
+  const ay = horizDeg * Math.PI / 180, ax = vertDeg * Math.PI / 180;
+  const ca = Math.cos(ax), sa = Math.sin(ax), cb = Math.cos(ay), sb = Math.sin(ay);
+  const d = 0.35 + Math.max(1, Number(depth) || 100) / 100 * 3;
+  return [d * cb, 0, 0, d * sa * sb, d * ca, 0, ca * sb, -sa, d];
+}
+function mat3Mul(a, b) {
+  const r = new Array(9);
+  for (let i = 0; i < 3; i++) for (let j = 0; j < 3; j++) {
+    r[i * 3 + j] = a[i * 3] * b[j] + a[i * 3 + 1] * b[3 + j] + a[i * 3 + 2] * b[6 + j];
+  }
+  return r;
+}
+/* inversa de uma 3×3 linha-a-linha, devolvida como 3 colunas (uHx/uHy/uHz) */
+function mat3InvertCols(m) {
+  const a = m[0], b = m[1], c = m[2], d = m[3], e = m[4], f = m[5], g = m[6], h = m[7], i = m[8];
+  const det = a * (e * i - f * h) - b * (d * i - f * g) + c * (d * h - e * g);
+  if (Math.abs(det) < 1e-12) return [[1, 0, 0], [0, 1, 0], [0, 0, 1]];
+  const k = 1 / det;
+  const inv = [
+    (e * i - f * h) * k, (c * h - b * i) * k, (b * f - c * e) * k,
+    (f * g - d * i) * k, (a * i - c * g) * k, (c * d - a * f) * k,
+    (d * h - e * g) * k, (b * g - a * h) * k, (a * e - b * d) * k,
+  ];
+  return [[inv[0], inv[3], inv[6]], [inv[1], inv[4], inv[7]], [inv[2], inv[5], inv[8]]];
+}
+/* destino → fonte, já reenquadrado: o retângulo deformado cabe no quadro
+   original e fica centrado (sem isso o plano "foge" para um canto). */
+function perspFitMap(H, asp, m) {
+  let minx = Infinity, maxx = -Infinity, miny = Infinity, maxy = -Infinity;
+  for (const [u, v] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) {
+    const x = u * asp / m, y = v / m;
+    const w = H[6] * x + H[7] * y + H[8];
+    if (Math.abs(w) < 1e-9) continue;
+    const px = (H[0] * x + H[1] * y + H[2]) / w, py = (H[3] * x + H[4] * y + H[5]) / w;
+    minx = Math.min(minx, px); maxx = Math.max(maxx, px);
+    miny = Math.min(miny, py); maxy = Math.max(maxy, py);
+  }
+  const meia = mat3InvertCols(H);
+  const inv = [meia[0][0], meia[1][0], meia[2][0], meia[0][1], meia[1][1], meia[2][1], meia[0][2], meia[1][2], meia[2][2]];
+  const larg = maxx - minx, alt = maxy - miny;
+  const k = Math.max(1, larg / (2 * asp / m), alt / (2 / m));
+  return mat3Mul(inv, [k, 0, (minx + maxx) / 2, 0, k, (miny + maxy) / 2, 0, 0, 1]);
+}
+
 const RUN = {
   image: n => runImage(n),
   audio: n => runAudio(n),
@@ -21513,6 +21629,25 @@ const RUN = {
   mapeamento: (n, ins) => runMapeamento(n, ins),
   tangente: (n, ins) => runTangente(n, ins),
   warpPuppet: (n, [a]) => runWarpPuppet(n, [a]),
+  /* 3.1 — Perspective Warp (Perspectivo): homografia invertida no shader.
+     Esfera usa o mesmo passe com uMode = 1 (asin desfaz λ/φ por pixel). */
+  perspectiveWarp: (n, [a]) => {
+    if (!a) return null;
+    const p = n.params;
+    const asp = a.w / a.h;
+    const fin = perspFitMap(perspH(Number(p.horiz) || 0, Number(p.vert) || 0, p.depth), asp, Math.max(asp, 1));
+    const inv = [[fin[0], fin[3], fin[6]], [fin[1], fin[4], fin[7]], [fin[2], fin[5], fin[8]]];
+    return pointOp(a, 'perspectiveFx', {
+      uHx: inv[0], uHy: inv[1], uHz: inv[2],
+      uMode: p.modo === 'sphere' ? 1 : 0,
+      uAspect: asp,
+      uZoom: Math.max(0.05, (Number(p.zoom) || 100) / 100),
+      uAmount: Math.max(0.05, (Number(p.amount) || 95) / 100),
+      uRadius: Math.max(0.05, (Number(p.radius) || 60) / 100),
+      uClip: p.clip === '1' ? 1 : 0,
+      uCenter: [(Number(p.centerX) || 50) / 100, 1 - (Number(p.centerY) || 50) / 100],
+    });
+  },
   brightness: (n, [a]) => { const p = n.params; return pointOp(a, 'brightness', { uBright: p.brightness, uContrast: p.contrast, uSat: p.saturation, uExposure: p.exposure }); },
   colorGrading: (n, [a]) => { const p = n.params; return pointOp(a, 'colorGrading', { uTemp: p.temperature, uTint: p.tint, uContrast: p.contrast, uSat: p.saturation, uFade: p.fade }); },
   monochrome: (n, [a]) => { const p = n.params; return pointOp(a, 'monochrome', { uTint: hexRGB(p.tint), uK: p.intensity / 100, uContrast: p.contrast / 100 }); },
