@@ -23,7 +23,7 @@
 .btn{height:21px;border:1px solid var(--btn);border-radius:4px;background:var(--btn2);color:var(--text-strong);cursor:pointer;font-size:11px}.btn:hover{background:var(--line3)}.hint{position:absolute;left:10px;bottom:7px;color:var(--text-dim);font-size:11px;pointer-events:none;white-space:nowrap;overflow:hidden;max-width:calc(100% - 20px)}.selbox{position:absolute;border:1px solid var(--sel);background:rgba(255,140,0,.12);pointer-events:none}.empty{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);color:var(--text-dim);text-align:center;pointer-events:none;font-size:13px}/* ---------- Add menu ---------- */
 .add-menu{position:absolute;width:250px;background:var(--panel2);border:1px solid var(--outline);border-radius:6px;box-shadow:0 12px 32px rgba(0,0,0,.6);padding:6px;z-index:50}.add-menu input{width:100%;background:var(--field2);border:1px solid var(--line);border-radius:4px;padding:6px 8px;color:var(--text-strong);outline:none}.add-menu input:focus{border-color:var(--accent)}.add-list{max-height:380px;overflow:auto;margin-top:4px}.add-group{font-size:10px;text-transform:uppercase;letter-spacing:.6px;color:var(--text-dim);margin:8px 6px 3px}.add-item{display:block;width:100%;text-align:left;background:none;border:0;padding:6px 9px;border-radius:4px;cursor:pointer;color:var(--text)}.add-item.hi, .add-item:hover{background:var(--accent);color:var(--on-accent)}.add-empty{color:var(--text-dim);padding:8px}.add-hint{font-size:11px;color:var(--text-accent);padding:2px 6px 6px;border-bottom:1px solid var(--line);margin-bottom:4px}/* 2.10.2: menu radial de categorias (Shift+A) */
 .add-wheel{position:relative;margin:2px auto}.add-svg{position:absolute;inset:0;width:100%;height:100%;display:block;overflow:visible;touch-action:manipulation}.add-cat{cursor:pointer}.add-cat path{transition:fill .1s ease,stroke .1s ease}.add-cat text{font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;font-weight:500;letter-spacing:.1px;user-select:none}.add-cat.hi path{filter:drop-shadow(0 2px 6px rgba(0,0,0,.55))}.add-hub{position:absolute;z-index:2;left:50%;top:50%;transform:translate(-50%,-50%);width:calc(var(--lado,58px) * 1.45);height:calc(var(--lado,58px) * 1.45);border-radius:50%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;background:var(--field2);border:1px solid var(--outline);color:var(--text);font-size:max(9px,calc(var(--lado,58px) * .175));line-height:1.1;cursor:pointer;padding:4px;text-align:center;box-shadow:0 4px 14px rgba(0,0,0,.35)}.add-hub:hover, .add-hub:focus-visible{background:var(--accent);color:var(--on-accent);border-color:var(--accent);outline:none}.add-panel{display:flex;flex-direction:column}.add-panel[hidden], .add-wheel[hidden]{display:none!important}.add-bar{display:flex;align-items:center;gap:8px;margin:0 0 6px}.add-back{width:30px;height:30px;flex:none;display:grid;place-items:center;background:var(--field2);border:1px solid var(--line);border-radius:8px;color:var(--text);cursor:pointer;padding:0}.add-back:hover{background:var(--accent);color:var(--on-accent);border-color:var(--accent)}.add-title{font-size:12px;font-weight:600;color:var(--text-strong);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}/* gradient map: pinos do mesh */
-.pview{margin:2px 0 6px;position:relative}.pview-cv{display:block;width:100%;border-radius:6px;border:1px solid var(--outline);cursor:grab;touch-action:none;background:repeating-conic-gradient(#2a2f38 0% 25%,#232830 0% 50%) 0 0/16px 16px}.pview-cv.drag{cursor:grabbing}.pview-hint{font-size:10px;line-height:1.3;color:var(--text-dim);margin:3px 0 0}.gpins{margin:2px 0 6px}.gpins-t{font-size:10px;line-height:1.3;color:var(--text-dim);margin:0 0 4px}.gpins-cv{display:block;width:100%;border-radius:6px;border:1px solid var(--outline);cursor:crosshair;touch-action:none;background:#111}/* ---------- Pintor de máscara ---------- */
+.pview{margin:2px 0 6px;position:relative}.pview-tabs{display:flex;gap:3px;margin:0 0 4px}.pview-tab{flex:1;min-width:0;height:18px;font-size:10px;line-height:16px;padding:0 2px;border-radius:3px;background:var(--btn);border:1px solid var(--line3);color:var(--text);cursor:pointer;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.pview-tab.vazio{opacity:.45}.pview-tab.on{background:var(--accent);border-color:var(--accent);color:var(--on-accent);font-weight:700;opacity:1}.pview-tab.solo{box-shadow:inset 0 0 0 1px var(--sel);border-color:var(--sel)}.pview-cv{display:block;width:100%;border-radius:6px;border:1px solid var(--outline);cursor:grab;touch-action:none;background:repeating-conic-gradient(#2a2f38 0% 25%,#232830 0% 50%) 0 0/16px 16px}.pview-cv.drag{cursor:grabbing}.pview-hint{font-size:10px;line-height:1.3;color:var(--text-dim);margin:3px 0 0}.gpins{margin:2px 0 6px}.gpins-t{font-size:10px;line-height:1.3;color:var(--text-dim);margin:0 0 4px}.gpins-cv{display:block;width:100%;border-radius:6px;border:1px solid var(--outline);cursor:crosshair;touch-action:none;background:#111}/* ---------- Pintor de máscara ---------- */
 .mask-ctl{display:flex;flex-direction:column;gap:4px}.mdlg{position:fixed;inset:0;z-index:50;display:flex;background:var(--dock);outline:none}.mdlg[hidden]{display:none}.mdlg-side{width:260px;flex:none;background:var(--panel);border-right:1px solid var(--outline);padding:12px;display:flex;flex-direction:column;gap:10px;color:var(--text);font-size:12px;overflow:auto}.mdlg-title{font-weight:600;font-size:14px;color:#fff}.mdlg-row{display:flex;gap:6px;flex-wrap:wrap}.mdlg-side .btn{padding:5px 9px}.mtool{background:var(--line);border:0;color:var(--text);padding:5px 9px;border-radius:4px;cursor:pointer;font-size:12px}.mtool.active{background:var(--accent);color:var(--on-accent)}.mlab{display:flex;justify-content:space-between;margin-bottom:3px}.mdlg-side input[type=range]{width:100%;margin:0}.mchk{display:flex;align-items:center;gap:6px}.mdlg-help{font-size:11px;color:var(--text-dim);line-height:1.5}.mdlg-spacer{flex:1}.mdlg-stage{flex:1;position:relative;overflow:hidden;background:#0e0e0e;cursor:crosshair;touch-action:none;min-width:0;outline:none}#mWrap{position:absolute;left:0;top:0;transform-origin:0 0}#mWrap canvas, #mWrap img{position:absolute;left:0;top:0;display:block}#mCursor{position:absolute;left:0;top:0;border:1px solid #fff;border-radius:50%;box-shadow:0 0 0 1px rgba(0,0,0,.6);pointer-events:none;transform:translate(-50%,-50%);display:none}#wpCanvas{position:absolute;inset:0;width:100%;height:100%;display:block;touch-action:none}.mpick{display:flex;align-items:center;gap:8px}.mpick-swatch{width:34px;height:34px;flex:none;border:1px solid rgba(255,255,255,.45);border-radius:5px;background:transparent}.mpick-info{font-size:11px;color:var(--text-muted);word-break:break-all}/* ---------- Preview ---------- */
 .preview{display:flex;flex-direction:column;background:var(--panel3);border-left:1px solid var(--outline);min-width:0;min-height:0}.phead{height:28px;display:flex;align-items:center;padding:0 10px;background:var(--btn);border-bottom:1px solid var(--outline);font-weight:600;color:var(--text)}.pbody{position:relative;flex:1;min-height:0;overflow:hidden}#gl{position:absolute;inset:0;width:100%;height:100%;display:block;cursor:grab}#gl:active{cursor:grabbing}#pmsg{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:var(--text-dim);text-align:center;padding:24px;pointer-events:none;font-size:13px}.pfoot{height:28px;display:flex;align-items:center;gap:8px;padding:0 8px;background:var(--btn);border-top:1px solid var(--outline);font-size:11px;color:var(--text-muted);min-width:0}#pinfo{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}/* ---- diálogo de exportação ---- */
 .xdlg-back{position:fixed;inset:0;background:rgba(0,0,0,.55);display:flex;align-items:center;justify-content:center;z-index:9000;padding:16px;box-sizing:border-box}.xdlg{background:var(--panel2);color:var(--text-strong);border:1px solid var(--line2);border-radius:8px;width:min(380px,100%);box-sizing:border-box;padding:16px;box-shadow:0 10px 40px rgba(0,0,0,.5);font:13px system-ui,sans-serif}.xdlg h3{margin:0 0 10px;font-size:15px;font-weight:600}.xdlg label{display:block;margin:10px 0 4px;color:var(--text-muted)}.xdlg input, .xdlg select{width:100%;box-sizing:border-box;padding:8px;background:var(--field2);color:var(--text-strong);border:1px solid var(--line3);border-radius:5px;font-size:14px}.xdlg .xrow{display:flex;gap:6px;align-items:center}.xdlg .xrow input{flex:1;min-width:0}.xdlg .xext{color:var(--text-dim);white-space:nowrap}.xdlg .xinfo{margin-top:8px;color:var(--text);font-size:12px}.xdlg .xnote{margin-top:6px;color:#8f8f8f;font-size:11px;line-height:1.35}.xdlg .xbtns{display:flex;justify-content:flex-end;gap:8px;margin-top:16px}.xdlg button{padding:8px 14px;border-radius:5px;border:1px solid var(--line3);background:var(--line);color:var(--text-strong);cursor:pointer;font-size:13px}.xdlg button.primary{background:var(--brand2);border-color:var(--brand2);color:#000;font-weight:600}/* ---- layers e alças ---- */
@@ -131,7 +131,7 @@ html, body{overscroll-behavior:none;-webkit-tap-highlight-color:transparent}/* 1
   const greet = document.getElementById('eeSplashGreet');
   /* versão do editor — o arquivo VERSION na raiz é a fonte da verdade
      (o build do APK usa o mesmo número no versionName) */
-  const APP_VERSION = '3.1.1';
+  const APP_VERSION = '3.1.2';
   const ver = document.getElementById('eeSplashVer');
   if (ver) { ver.textContent = 'v' + APP_VERSION; ver.title = 'Everything Editor ' + APP_VERSION; }
   let pt = true;
@@ -2692,12 +2692,21 @@ const NODE_TYPES = {
      montada a partir de Horizontal / Vertical / Depth) e enrolamento em
      esfera (Amount / Radius / Clip). O mapa inverso roda no fragment shader,
      então o preview é o resultado — export idêntico à tela. */
+  /* Editor 3.1 — Perspective Warp: engenharia reversa do plugin "Perspectivo"
+     (Figma), agora com até 4 sockets de imagem e perspectiva própria por
+     socket (cada frase/layer gira no seu plano, como no plugin).
+     O mapa roda no fragment shader (homografia inversa / asin da esfera) e os
+     sockets são compostos por alpha-over; a saída pode ser a composição ou um
+     socket isolado. */
   perspectiveWarp: {
-    title: 'Perspective Warp', cat: 'transform', inputs: ['Image'], outs: ['Image'],
-    kw: 'perspective warp 3d tilt keystone mockup sphere ball wrap distort homography perspectivo figma plane card',
+    title: 'Perspective Warp', cat: 'transform', inputs: ['S1', 'S2', 'S3', 'S4'], outs: ['Image'],
+    kw: 'perspective warp 3d tilt keystone mockup sphere ball wrap distort homography perspectivo figma plane card multi socket',
     params: [
-      ENUM('modo', 'Mode', [['persp', 'Perspective (3D)'], ['sphere', 'Sphere (ball)']], 'persp'),
       { type: 'pview', key: 'pview', label: 'View', def: '' },
+      ENUM('sockets', 'Sockets', [['1', '1 socket'], ['2', '2 sockets'], ['3', '3 sockets'], ['4', '4 sockets']], '1'),
+      ENUM('slot', 'Editing', [['1', 'Socket 1'], ['2', 'Socket 2'], ['3', 'Socket 3'], ['4', 'Socket 4']], '1'),
+      ENUM('saida', 'Output', [['comp', 'Composited'], ['1', 'Socket 1 only'], ['2', 'Socket 2 only'], ['3', 'Socket 3 only'], ['4', 'Socket 4 only']], 'comp'),
+      ENUM('modo', 'Mode', [['persp', 'Perspective (3D)'], ['sphere', 'Sphere (ball)']], 'persp'),
       NUM('horiz', 'Horizontal ±90°', -89, 89, 0, 1),
       NUM('vert', 'Vertical ±90°', -89, 89, 0, 1),
       NUM('depth', 'Depth', 5, 150, 100),
@@ -2707,6 +2716,7 @@ const NODE_TYPES = {
       NUM('centerX', 'Center X', 0, 100, 50),
       NUM('centerY', 'Center Y', 0, 100, 50),
       ENUM('clip', 'Clip to sphere', [['0', 'Off'], ['1', 'On']], '0'),
+      { type: 'hidden', key: 'slots', label: 'Sockets data', def: '' },
     ],
   },
   flip: { title: 'Mirror', cat: 'transform', inputs: ['Image'], params: [ENUM('axis', 'Axis', [['h', 'Horizontal'], ['v', 'Vertical']], 'h')] },
@@ -6077,6 +6087,18 @@ void main(){
   }
   if (uv.x < 0.0 || uv.x > 1.0 || uv.y < 0.0 || uv.y > 1.0) { outColor = vec4(0.0); return; }
   outColor = texture(uSrc, uv);
+}`,
+
+  /* 3.1.2 — composição dos sockets do Perspective Warp: B por cima de A
+     (alpha-over com alfa reto, sem escurecer a borda). */
+  perspOver: `
+uniform sampler2D uA, uB;
+void main(){
+  vec4 a = texture(uA, vUv);
+  vec4 b = texture(uB, vUv);
+  float oa = b.a + a.a * (1.0 - b.a);
+  vec3 oc = oa > 0.0001 ? (b.rgb * b.a + a.rgb * a.a * (1.0 - b.a)) / oa : vec3(0.0);
+  outColor = vec4(oc, oa);
 }`,
 
   colorKey: `
@@ -21611,6 +21633,73 @@ function perspFitMap(H, asp, m) {
   return mat3Mul(inv, [k, 0, (minx + maxx) / 2, 0, k, (miny + maxy) / 2, 0, 0, 1]);
 }
 
+/* 3.1.2 — sockets do Perspective Warp: cada socket guarda o seu próprio
+   conjunto de parâmetros (modo/ângulos/profundidade/esfera). O socket em
+   edição usa os controles visíveis; os outros vivem no JSON `slots`. */
+const PERSP_CHAVES = ['modo', 'horiz', 'vert', 'depth', 'zoom', 'amount', 'radius', 'centerX', 'centerY', 'clip'];
+function perspLeitura(p) {
+  const o = {};
+  for (const k of PERSP_CHAVES) o[k] = p[k];
+  return o;
+}
+function perspSlots(n) {
+  let s = {};
+  try { s = JSON.parse(n.params.slots || '{}') || {}; } catch (e) { s = {}; }
+  return (s && typeof s === 'object') ? s : {};
+}
+function perspSlotOf(n, i) {
+  const ativo = Math.max(1, Math.min(4, Number(n.params.slot) || 1));
+  if (i === ativo) return perspLeitura(n.params);          // o socket em edição manda
+  const s = perspSlots(n)[String(i)];
+  return (s && typeof s === 'object') ? s : perspLeitura(n.params);
+}
+/* um passe de perspectiva sobre uma entrada */
+function perspAplica(a, p) {
+  if (!a) return null;
+  const asp = a.w / a.h;
+  const fin = perspFitMap(perspH(Number(p.horiz) || 0, Number(p.vert) || 0, p.depth), asp, Math.max(asp, 1));
+  const inv = [[fin[0], fin[3], fin[6]], [fin[1], fin[4], fin[7]], [fin[2], fin[5], fin[8]]];
+  return pointOp(a, 'perspectiveFx', {
+    uHx: inv[0], uHy: inv[1], uHz: inv[2],
+    uMode: p.modo === 'sphere' ? 1 : 0,
+    uAspect: asp,
+    uZoom: Math.max(0.05, (Number(p.zoom) || 100) / 100),
+    uAmount: Math.max(0.05, (Number(p.amount) || 95) / 100),
+    uRadius: Math.max(0.05, (Number(p.radius) || 60) / 100),
+    uClip: p.clip === '1' ? 1 : 0,
+    uCenter: [(Number(p.centerX) || 50) / 100, 1 - (Number(p.centerY) || 50) / 100],
+  });
+}
+/* b por cima de a (alpha-over) — composição dos sockets */
+function perspSobre(a, b) {
+  if (!a) return b;
+  if (!b) return a;
+  const e = acquire(a.w, a.h);
+  draw('perspOver', e, { uA: a.tex, uB: b.tex }, {});
+  a.busy = false; b.busy = false;
+  return mkRes(e);
+}
+/* troca de socket: grava o que está na tela no socket anterior e carrega o novo */
+function perspTrocSlot(n) {
+  n.runtime = n.runtime || {};
+  const agora = Math.max(1, Math.min(4, Number(n.params.slot) || 1));
+  const antes = Math.max(1, Math.min(4, Number(n.runtime.perspSlot) || 1));
+  const slots = perspSlots(n);
+  if (antes !== agora) slots[String(antes)] = perspLeitura(n.params);
+  const dados = slots[String(agora)];
+  if (dados && typeof dados === 'object') {
+    for (const k of PERSP_CHAVES) {
+      if (!(k in dados)) continue;
+      const d = NODE_TYPES.perspectiveWarp.params.find(q => q.key === k);
+      if (!d) continue;
+      n.params[k] = d.type === 'num' ? clamp(Number(dados[k]), d.min, d.max) : String(dados[k]);
+      if (n.ui[k]) n.ui[k]();
+    }
+  }
+  n.runtime.perspSlot = agora;
+  n.params.slots = JSON.stringify(slots);
+}
+
 const RUN = {
   image: n => runImage(n),
   audio: n => runAudio(n),
@@ -21632,22 +21721,22 @@ const RUN = {
   warpPuppet: (n, [a]) => runWarpPuppet(n, [a]),
   /* 3.1 — Perspective Warp (Perspectivo): homografia invertida no shader.
      Esfera usa o mesmo passe com uMode = 1 (asin desfaz λ/φ por pixel). */
-  perspectiveWarp: (n, [a]) => {
-    if (!a) return null;
-    const p = n.params;
-    const asp = a.w / a.h;
-    const fin = perspFitMap(perspH(Number(p.horiz) || 0, Number(p.vert) || 0, p.depth), asp, Math.max(asp, 1));
-    const inv = [[fin[0], fin[3], fin[6]], [fin[1], fin[4], fin[7]], [fin[2], fin[5], fin[8]]];
-    return pointOp(a, 'perspectiveFx', {
-      uHx: inv[0], uHy: inv[1], uHz: inv[2],
-      uMode: p.modo === 'sphere' ? 1 : 0,
-      uAspect: asp,
-      uZoom: Math.max(0.05, (Number(p.zoom) || 100) / 100),
-      uAmount: Math.max(0.05, (Number(p.amount) || 95) / 100),
-      uRadius: Math.max(0.05, (Number(p.radius) || 60) / 100),
-      uClip: p.clip === '1' ? 1 : 0,
-      uCenter: [(Number(p.centerX) || 50) / 100, 1 - (Number(p.centerY) || 50) / 100],
-    });
+  /* 3.1.2 — até 4 sockets, cada um com a sua perspectiva; saída composta
+     (socket 1 embaixo) ou um socket isolado. */
+  perspectiveWarp: (n, ins) => {
+    const qtd = Math.max(1, Math.min(4, Number(n.params.sockets) || 1));
+    const solo = String(n.params.saida || 'comp');
+    const partes = [];
+    for (let i = 0; i < qtd; i++) {
+      if (solo !== 'comp' && solo !== String(i + 1)) continue;
+      const a = ins[i];
+      if (!a) continue;
+      partes.push(perspAplica(a, perspSlotOf(n, i + 1)));
+    }
+    if (!partes.length) return null;
+    let acc = partes[0];
+    for (let i = 1; i < partes.length; i++) acc = perspSobre(acc, partes[i]);
+    return acc;
   },
   brightness: (n, [a]) => { const p = n.params; return pointOp(a, 'brightness', { uBright: p.brightness, uContrast: p.contrast, uSat: p.saturation, uExposure: p.exposure }); },
   colorGrading: (n, [a]) => { const p = n.params; return pointOp(a, 'colorGrading', { uTemp: p.temperature, uTint: p.tint, uContrast: p.contrast, uSat: p.saturation, uFade: p.fade }); },
@@ -24959,6 +25048,7 @@ function makeEnum(n, p) {
     if (n.type === 'glassStudio' && (p.key === 'glassMode' || p.key === 'glassScope') && n.el) glassAplicaVis(n.el, n.params, n);
     if (n.type === 'gradientMap' && (p.key === 'mapType' || p.key === 'colorCount') && n.el) gradAplicaVis(n.el, n.params);
     if (n.type === 'gradientMap' && n.ui.gpins && (p.key === 'meshWarp' || /^color[1-8]$/.test(p.key))) n.ui.gpins();
+    if (n.type === 'perspectiveWarp' && p.key === 'slot') perspTrocSlot(n);
     if (n.type === 'perspectiveWarp' && n.ui.pviewAgenda) n.ui.pviewAgenda();
     if (n.type === 'blurStudio' && p.key === 'blurMode' && n.el) blurAplicaVis(n.el, n.params);
     if (n.type === 'blurStudio' && p.key === 'blurMode') fbOnModeChange(n);
@@ -28021,8 +28111,8 @@ function pviewGrade() {
   return c;
 }
 /* arte do preview: a imagem ligada na entrada 0 ou a grade */
-function pviewArte(n) {
-  const l = links.find(x => x.to === n.id && (x.input || 0) === 0);
+function pviewArte(n, i) {
+  const l = links.find(x => x.to === n.id && (x.input || 0) === (i || 0));
   const up = l ? nodes.get(l.from) : null;
   if (up && up.type === 'image') {
     const src = getSource(up);
@@ -28032,15 +28122,39 @@ function pviewArte(n) {
 }
 function makePerspView(n) {
   const wrap = E('div', 'pview');
+  const abas = E('div', 'pview-tabs');
   const cv = E('canvas', 'pview-cv');
   const dica = E('div', 'pview-hint');
-  wrap.append(cv, dica);
+  wrap.append(abas, cv, dica);
   const defs = NODE_TYPES.perspectiveWarp.params;
   const def = k => defs.find(q => q.key === k);
+  const qtdSockets = () => Math.max(1, Math.min(4, Number(n.params.sockets) || 1));
+  const slotAtivo = () => Math.max(1, Math.min(qtdSockets(), Number(n.params.slot) || 1));
   let arteCache = null, chaveCache = '';
+  const pintaAbas = () => {
+    const qtd = qtdSockets(), ativo = slotAtivo();
+    const solo = String(n.params.saida || 'comp');
+    abas.textContent = '';
+    for (let i = 1; i <= qtd; i++) {
+      const ligado = !!links.find(x => x.to === n.id && (x.input || 0) === (i - 1));
+      const b = E('button', 'pview-tab' + (i === ativo ? ' on' : '') + (ligado ? '' : ' vazio') + (solo === String(i) ? ' solo' : ''), String(i));
+      b.type = 'button';
+      b.title = 'Socket ' + i + (ligado ? '' : ' (empty)') + (solo === String(i) ? ' · output' : '');
+      b.addEventListener('pointerdown', ev => ev.stopPropagation());
+      b.addEventListener('click', ev => {
+        ev.preventDefault(); ev.stopPropagation();
+        setParam(n, def('slot'), String(i));
+        perspTrocSlot(n);
+        desenha();
+      });
+      abas.append(b);
+    }
+    abas.style.display = qtd > 1 ? '' : 'none';
+  };
   const desenha = () => {
-    const p = n.params || {};
-    const arte = pviewArte(n);
+    const ativo = slotAtivo();
+    const p = perspSlotOf(n, ativo);           // socket em edição = controles visíveis
+    const arte = pviewArte(n, ativo - 1);
     const iw = arte.naturalWidth || arte.videoWidth || arte.width || 160;
     const ih = arte.naturalHeight || arte.videoHeight || arte.height || 100;
     const cssW = Math.max(120, Math.round(cv.clientWidth || 188));
@@ -28086,9 +28200,12 @@ function makePerspView(n) {
       }
     }
     g.putImageData(saida, 0, 0);
-    dica.textContent = esfera
-      ? 'Drag: move the ball · Wheel: radius · Double click: reset'
-      : 'Drag: Horizontal / Vertical · Wheel: Depth · Double click: reset';
+    pintaAbas();
+    const solo = String(n.params.saida || 'comp');
+    dica.textContent = (solo === 'comp' ? 'Output: composited' : 'Output: socket ' + solo + ' only')
+      + ' · ' + (esfera
+        ? 'drag moves the ball · wheel = radius · double click resets'
+        : 'drag = Horizontal / Vertical · wheel = Depth · double click resets');
   };
   let pendente = false;
   const agenda = () => {
@@ -28106,9 +28223,10 @@ function makePerspView(n) {
     selectFromControl(n);
     try { cv.setPointerCapture(ev.pointerId); } catch (e) {}
     cv.classList.add('drag');
+    const p = perspSlotOf(n, slotAtivo());
     arrasto = { x: ev.clientX, y: ev.clientY, w: cv.clientWidth || 1,
-      h: Number(n.params.horiz) || 0, v: Number(n.params.vert) || 0,
-      cx: Number(n.params.centerX) || 50, cy: Number(n.params.centerY) || 50 };
+      h: Number(p.horiz) || 0, v: Number(p.vert) || 0,
+      cx: Number(p.centerX) || 50, cy: Number(p.centerY) || 50 };
   });
   cv.addEventListener('pointermove', ev => {
     if (!arrasto) return;
