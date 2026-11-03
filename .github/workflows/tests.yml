@@ -30,15 +30,17 @@ jobs:
         run: node tests/gradient-pins.test.mjs
       - name: Backup/Restore (projetos, pastas e Assets num .json)
         run: node tests/backup.test.mjs
-      - name: Telinha de entrada e Restore ao lado de Assets
-        run: node tests/welcome-restore.test.mjs
+      - name: Restore ao lado de Assets e zoom mínimo
+        run: node tests/topbar.test.mjs
       - name: Quinas do fio (criar, arrastar, fio reto e zip tie)
         run: node tests/pivot.test.mjs
       - name: Efeito Spin Focus Light Leak (Editor 3.0)
         run: node tests/spin-focus.test.mjs
       - name: Efeito Perspective Warp (Editor 3.1 · Perspectivo)
         run: node tests/perspective.test.mjs
-      - name: Versão (VERSION = telinha = APK)
+      - name: Zoom mínimo (canvas, preview e máscara em 5%)
+        run: node tests/zoom.test.mjs
+      - name: Versão (VERSION = index.html = APK)
         run: node tests/version.test.mjs
       - name: Higiene (código morto, CSS sem uso, reference/ fora)
         run: node tests/hygiene.test.mjs
