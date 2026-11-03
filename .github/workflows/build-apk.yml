@@ -148,6 +148,20 @@ jobs:
             "dist/everything-editor-$VER.apk" "dist/everything-editor-$VER.aab" \
             dist/EverythingEditor.apk dist/EverythingEditor.aab --clobber
 
+      # mantém a release com UMA versão só: apaga os assets de versões antigas
+      - name: Limpar versões antigas
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -e
+          VER="${{ steps.ver.outputs.name }}"
+          gh release view apk-latest --json assets -q '.assets[].name' | while read -r nome; do
+            case "$nome" in
+              "everything-editor-$VER.apk"|"everything-editor-$VER.aab"|EverythingEditor.apk|EverythingEditor.aab) ;;
+              *) echo "removendo $nome"; gh release delete-asset apk-latest "$nome" -y ;;
+            esac
+          done
+
       - name: Resumo
         run: |
           {
