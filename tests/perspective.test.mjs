@@ -173,4 +173,57 @@ const roda = new Function('perspH', 'mat3InvertCols', 'perspFitMap', 'pointOp', 
   ok(sem.u.uZoom >= 0.05 && sem.u.uAmount >= 0.05, 'parâmetros ausentes caem em valores seguros');
 }
 
+/* ---------- visualizador interno do nó (3.1.1) ---------- */
+{
+  console.log('\nVisualizador interno (pview)');
+  ok(/\{ type: 'pview', key: 'pview', label: 'View', def: '' \}/.test(def), 'o nó declara o visualizador interno', 'param');
+  ok(/else if \(p\.type === 'pview'\) el = makePerspView\(n\);/.test(html), 'buildControls cria o canvas do nó', 'build');
+  ok(/if \(n\.type === 'perspectiveWarp'\) \{\s*body\.addEventListener\('input'/.test(html), 'slider do painel redesenha o visualizador');
+  ok(/if \(n\.type === 'perspectiveWarp' && n\.ui\.pviewAgenda\) n\.ui\.pviewAgenda\(\);/.test(html), 'mudança programática de parâmetro também redesenha');
+  ok(/nd\.type === 'perspectiveWarp' && nd\.ui\.pviewAgenda/.test(html), 'ligar/desligar a imagem na entrada atualiza o preview', 'markDirty');
+  ok(/\.pview\{[^}]*\}/.test(html) && /\.pview-cv\{[^}]*\}/.test(html) && /\.pview-hint\{[^}]*\}/.test(html), 'CSS do visualizador', 'css');
+
+  const vis = recorta('function makePerspView(n) {', 'function makeGradientPins(n) {');
+  ok(/const arte = pviewArte\(n\);/.test(vis), 'desenha a arte da entrada (ou a grade de teste)', 'arte');
+  ok(/const uv = perspMapUV\(p, asp, m, px, py\);/.test(vis), 'cada pixel do preview passa pelo mesmo mapa do shader', 'mapa');
+  ok(/setParam\(n, def\('horiz'\), arrasto\.h \+ dx\)/.test(vis) && /setParam\(n, def\('vert'\), arrasto\.v - dy\)/.test(vis),
+    'arrastar muda Horizontal/Vertical', 'drag');
+  ok(/arrasto\.w \* 180 \* k/.test(vis), 'uma largura do canvas = 180° (arrasto proporcional)', 'escala');
+  ok(/const chave = n\.params\.modo === 'sphere' \? 'radius' : 'depth';/.test(vis), 'roda muda Depth (na esfera, o raio)', 'wheel');
+  ok(/setParam\(n, def\('centerX'\), arrasto\.cx \+ dx \/ 1\.8\)/.test(vis), 'na esfera o arrasto move o centro', 'centro');
+  ok(/ev\.shiftKey \? 0\.2 : 1/.test(vis), 'Shift = ajuste fino');
+  ok(/requestAnimationFrame\(\(\) => \{ pendente = false;/.test(vis), 'redesenho coalescido por frame (não trava o arrasto)', 'raf');
+  ok(/dica\.textContent = esfera/.test(vis), 'a dica muda com o modo');
+
+  // mesma matemática do preview: identidade em 0° e disco da esfera
+  const visMat = recorta('function perspMapUV(', '/* grade de teste');
+  const { perspMapUV } = new Function(mat + visMat + '\nreturn { perspMapUV };')();
+  const asp = 1.5, m = 1.5;
+  const paraP = (u, v) => [(u - 0.5) * 2 * asp / m, (v - 0.5) * 2 / m];
+  {
+    let erro = 0;
+    for (const [u, v] of [[0.5, 0.5], [0.2, 0.9], [0.8, 0.1], [0.05, 0.5]]) {
+      const [px, py] = paraP(u, v);
+      const uv = perspMapUV({ modo: 'persp', horiz: 0, vert: 0, depth: 100, zoom: 100 }, asp, m, px, py);
+      erro = Math.max(erro, Math.abs(uv[0] - u), Math.abs(uv[1] - v));
+    }
+    ok(erro < 1e-9, 'preview em 0° devolve o mesmo ponto (identidade)', 'erro ' + erro.toExponential(1));
+  }
+  {
+    const p0 = { modo: 'persp', horiz: 40, vert: 0, depth: 70, zoom: 100 };
+    const uv = perspMapUV(p0, asp, m, 0, 0);
+    // o fit centraliza o bbox do plano, então o centro cai perto (não exatamente) do meio
+    ok(uv && Math.hypot(uv[0] - 0.5, uv[1] - 0.5) < 0.35, 'centro do preview continua dentro da arte', String(uv));
+    const fora = perspMapUV(p0, asp, m, 9, 9);
+    ok(fora === null || (Number.isFinite(fora[0]) && Number.isFinite(fora[1])), 'ponto extremo não gera NaN (sem furo no preview)');
+  }
+  {
+    const pe = { modo: 'sphere', amount: 95, radius: 60, centerX: 50, centerY: 50, clip: '0' };
+    ok(perspMapUV(pe, asp, m, 0, 0) !== null, 'esfera: centro do disco é amostrado');
+    const meio = perspMapUV(pe, asp, m, 0.1, 0.1), borda = perspMapUV(pe, asp, m, 0.5, 0.5);
+    ok(borda === null, 'esfera: fora do disco devolve null (o chamador decide clip/plano)', 'disco');
+    ok(meio && meio[0] > 0.5, 'esfera: à direita do centro a amostra vem da direita da arte', String(meio));
+  }
+}
+
 process.exit(resumo() ? 0 : 1);
