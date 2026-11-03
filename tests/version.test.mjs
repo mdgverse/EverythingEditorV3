@@ -34,6 +34,9 @@ ok(/everything-editor-\$VER\.aab/.test(yml), 'o .aab também sai versionado');
 ok(/gh release edit apk-latest --title "Everything Editor — APK v\$VER"/.test(yml), 'o título da release mostra a versão');
 ok(/releases\/download\/apk-latest\/everything-editor-\$\{\{ steps\.ver\.outputs\.name \}\}\.apk/.test(yml), 'o resumo aponta o arquivo da versão');
 ok(/      - 'VERSION'/.test(yml), 'mudar só o VERSION já dispara o build do APK', 'paths');
+ok(/gh release delete-asset apk-latest "\$nome" -y/.test(yml), 'a release apaga os assets de versões antigas', 'limpeza');
+ok(/"everything-editor-\$VER\.apk"\|"everything-editor-\$VER\.aab"\|EverythingEditor\.apk\|EverythingEditor\.aab/.test(yml),
+  'a limpeza preserva a versão atual e os links fixos', 'preserva');
 ok(/new File\("\$\{rootProject\.projectDir\}\/\.\.\/VERSION"\)/.test(gradle), 'build local também lê o VERSION', 'gradle');
 
 /* ---------- a versão acompanha o editor ---------- */
