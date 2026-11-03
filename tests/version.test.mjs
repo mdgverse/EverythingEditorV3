@@ -1,4 +1,4 @@
-/* Versão do app: um número só (arquivo VERSION), usado na telinha e no APK. */
+/* Versão do app: um número só (arquivo VERSION), usado no index.html e no APK. */
 import fs from 'node:fs';
 import { ok, resumo } from './kit.mjs';
 
@@ -13,21 +13,19 @@ console.log('versão do app: ' + (versao || '(sem VERSION)'));
 
 /* ---------- o arquivo VERSION ---------- */
 ok(/^\d+\.\d+\.\d+$/.test(versao), 'VERSION existe e é x.y.z', versao);
-ok(versao === '3.2.1', 'versão publicada é 3.2.1', versao);
+ok(versao === '3.2.3', 'versão publicada é 3.2.3', versao);
 
-/* ---------- a telinha mostra o mesmo número ---------- */
+/* ---------- o index.html carrega o mesmo número ---------- */
 ok(new RegExp("const APP_VERSION = '" + versao.replace(/\./g, '\\.') + "'").test(html), 'index.html tem APP_VERSION igual ao VERSION');
-ok(/<p class="ee-splash-ver" id="eeSplashVer"><\/p>/.test(html), 'o card da telinha tem o lugar da versão');
-ok(/\.ee-splash-ver\{[^}]*\}/.test(html), 'a versão tem estilo próprio (discreta)');
-ok(/ver\.textContent = 'v' \+ APP_VERSION/.test(html), 'a telinha escreve “v” + versão', 'splash');
-ok(/ver\.title = 'Everything Editor ' \+ APP_VERSION/.test(html), 'o tooltip da versão usa a mesma constante');
+ok(!/ee-splash|eeSplash/.test(html), 'a telinha de entrada saiu (o app monta direto)', 'splash');
+ok(/<body>\s*<div class="app">/.test(html), 'o body começa no app, sem overlay na frente', 'boot');
 
 /* ---------- o APK usa o mesmo número ---------- */
 ok(/VER=\$\(tr -d '\[:space:\]' < VERSION\)/.test(yml), 'workflow lê o VERSION', 'yml');
 ok(/APK_VERSION_NAME: \$\{\{ steps\.ver\.outputs\.name \}\}/.test(yml), 'versionName do APK vem do VERSION');
 ok(!/APK_VERSION_NAME: '1\.0\./.test(yml), 'não usa mais 1.0.<run number>');
 ok(/APK_VERSION_CODE: \$\{\{ github\.run_number \}\}/.test(yml), 'versionCode continua crescendo (run number)');
-ok(/APP_VERSION = '\$VER'/.test(yml), 'o build falha se VERSION e telinha saírem de sincronia', 'guarda');
+ok(/APP_VERSION = '\$VER'/.test(yml), 'o build falha se VERSION e index.html saírem de sincronia', 'guarda');
 ok(/everything-editor-\$VER\.apk/.test(yml), 'publica com o nome versionado', 'nome');
 ok(/cp "\$APK" dist\/EverythingEditor\.apk/.test(yml), 'mantém o link fixo EverythingEditor.apk');
 ok(/everything-editor-\$VER\.aab/.test(yml), 'o .aab também sai versionado');

@@ -82,7 +82,7 @@ jobs:
           git push || echo "::warning::Não foi possível commitar a keystore; os próximos builds terão assinatura diferente."
 
       # A versão do app vem do arquivo VERSION na raiz (mesmo número que a
-      # telinha de entrada mostra). versionCode continua sendo o run number,
+      # index.html mostra). versionCode continua sendo o run number,
       # que só cresce — é o que o Android exige para aceitar a atualização.
       - name: Versão
         id: ver
@@ -93,7 +93,7 @@ jobs:
             [0-9]*.[0-9]*.[0-9]*) ;;
             *) echo "::error::VERSION inválido: '$VER'"; exit 1 ;;
           esac
-          grep -q "APP_VERSION = '$VER'" index.html || { echo "::error::index.html não tem APP_VERSION = '$VER' (VERSION e a telinha saíram de sincronia)"; exit 1; }
+          grep -q "APP_VERSION = '$VER'" index.html || { echo "::error::index.html não tem APP_VERSION = '$VER' (VERSION e o index.html saíram de sincronia)"; exit 1; }
           echo "versão $VER"
           echo "name=$VER" >> "$GITHUB_OUTPUT"
 

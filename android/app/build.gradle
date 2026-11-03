@@ -3,7 +3,7 @@ plugins {
 }
 
 // versionCode: run number do Actions (só cresce). versionName: o número do
-// arquivo VERSION na raiz — o mesmo que a telinha de entrada mostra.
+// arquivo VERSION na raiz — o mesmo que o index.html mostra (APP_VERSION).
 def vCode = (System.getenv('APK_VERSION_CODE') ?: '1') as Integer
 def vFile = new File("${rootProject.projectDir}/../VERSION")
 def vName = System.getenv('APK_VERSION_NAME') ?: (vFile.exists() ? vFile.text.trim() : '0.0.0')

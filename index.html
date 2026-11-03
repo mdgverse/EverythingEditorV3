@@ -89,18 +89,7 @@ body:not(.mobile) .m-nav, body:not(.mobile) .m-sheet, body:not(.mobile) .m-toast
 @media (max-width: 1100px){.app{grid-template-rows:auto auto minmax(0,1fr) auto}.topbar{flex-wrap:wrap;align-content:center;height:auto;min-height:34px;padding:3px 4px;row-gap:2px;column-gap:1px}.brand{font-size:11px;margin-right:3px}.tbtn{padding:3px 6px;font-size:11px}select.tbtn{max-width:92px}.sep{display:none}.spacer{display:none}#status{flex:1 1 100%;order:99;max-width:none;padding:1px 3px;font-size:10.5px}.hint{display:none}
 }
 @media (max-width: 620px){.topbar{padding:2px 3px;row-gap:1px}.brand{font-size:10.5px}.brand-mark{width:16px;height:16px;border-radius:4px}.tbtn{padding:2px 5px;font-size:10.5px}.tbtn.accent{padding:2px 7px}
-}/* ===== telinha de entrada ("tenha uma ótima edição") ===== */
-.ee-splash{position:fixed;inset:0;z-index:9800;display:grid;place-items:center;padding:24px;
-  background:rgba(0,0,0,.62);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);
-  opacity:0;transition:opacity .26s ease}.ee-splash[hidden]{display:none}.ee-splash.is-on{opacity:1}.ee-splash-card{width:min(92vw,520px);text-align:center;padding:36px 28px 30px;
-  border:2px solid rgba(210,210,210,.5);border-radius:34px 26px 40px 26px;
-  background:radial-gradient(ellipse at 70% 25%,rgba(255,255,255,.05),transparent 45%),
-             linear-gradient(90deg,#030303 0%,#111 52%,#080808 100%);
-  color:rgba(245,245,245,.92);box-shadow:0 28px 90px rgba(0,0,0,.72),inset 0 0 50px rgba(255,255,255,.025);
-  transform:scale(.92) translateY(12px);transition:transform .38s cubic-bezier(.2,1.15,.28,1)}.ee-splash.is-on .ee-splash-card{transform:scale(1) translateY(0)}.ee-splash-mark{display:block;width:104px;height:104px;margin:0 auto 18px;opacity:.95;
-  filter:drop-shadow(0 0 7px rgba(255,255,255,.22))}.ee-splash-logo{margin:0;font-size:clamp(22px,5vw,32px);letter-spacing:4px;font-weight:400;color:#f5f5f5}.ee-splash-ver{margin:12px 0 0;font-size:11.5px;letter-spacing:2.2px;color:rgba(245,245,245,.42)}.ee-splash-byline{margin:10px 0 22px;font-size:12px;letter-spacing:2px;color:rgba(255,255,255,.6)}.ee-splash-greet{margin:0 0 24px;font-size:17px;line-height:1.4;letter-spacing:1px;color:rgba(255,255,255,.88)}.ee-splash-btn{border:1px solid rgba(255,255,255,.3);border-radius:999px;padding:12px 22px;
-  background:rgba(255,255,255,.07);color:#fff;font-size:13px;letter-spacing:1.4px;cursor:pointer}.ee-splash-btn:hover{background:rgba(255,255,255,.16);border-color:rgba(255,255,255,.6)}
-</style>
+}</style>
 <style id="ee-touch-css">/* ===== Dedo no aparelho (portado da referência) ===== */
 html, body{overscroll-behavior:none;-webkit-tap-highlight-color:transparent}/* 1) alvos pequenos do nó: o dedo não acerta 12 px */
 .node .eye, .node .fold, .node .goout{position:relative;overflow:visible}.node .eye::after, .node .fold::after, .node .goout::after{
@@ -112,46 +101,6 @@ html, body{overscroll-behavior:none;-webkit-tap-highlight-color:transparent}/* 1
 </style>
 </head>
 <body>
-<div class="ee-splash" id="eeSplash" hidden>
-  <div class="ee-splash-card" role="dialog" aria-modal="true" aria-label="Everything Editor">
-    <svg class="ee-splash-mark" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><rect width="24" height="24" rx="5" fill="#000"/><path d="M12,12C9,7.6,5.2,7.6,5.2,12C5.2,16.4,9,16.4,12,12C15,7.6,18.8,7.6,18.8,12C18.8,16.4,15,16.4,12,12" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-    <h2 class="ee-splash-logo">Everything Editor</h2>
-    <p class="ee-splash-byline">by mdgverse.dsgn</p>
-    <p class="ee-splash-ver" id="eeSplashVer"></p>
-    <p class="ee-splash-greet" id="eeSplashGreet">Tenha uma ótima edição!</p>
-    <button class="ee-splash-btn" id="eeSplashGo" type="button">Começar edição</button>
-  </div>
-</div>
-<script>
-/* Telinha de entrada: aparece ao abrir e sai no clique (ou Esc). */
-(() => {
-  const el = document.getElementById('eeSplash');
-  if (!el) return;
-  const go = document.getElementById('eeSplashGo');
-  const greet = document.getElementById('eeSplashGreet');
-  /* versão do editor — o arquivo VERSION na raiz é a fonte da verdade
-     (o build do APK usa o mesmo número no versionName) */
-  const APP_VERSION = '3.2.1';
-  const ver = document.getElementById('eeSplashVer');
-  if (ver) { ver.textContent = 'v' + APP_VERSION; ver.title = 'Everything Editor ' + APP_VERSION; }
-  let pt = true;
-  try { const l = localStorage.getItem('everything-editor:lang'); pt = l ? l === 'pt' : /^pt/i.test(navigator.language || ''); } catch (e) {}
-  if (greet) greet.textContent = pt ? 'Tenha uma ótima edição!' : 'Have a great edit!';
-  if (go) go.textContent = pt ? 'Começar edição' : 'Start editing';
-  el.hidden = false;
-  requestAnimationFrame(() => el.classList.add('is-on'));
-  let indo = false;
-  const fecha = () => {
-    if (indo || el.hidden) return;
-    indo = true;
-    el.classList.remove('is-on');
-    setTimeout(() => { el.hidden = true; }, 300);
-  };
-  if (go) go.addEventListener('click', fecha);
-  el.addEventListener('pointerdown', e => { if (e.target === el) fecha(); });
-  document.addEventListener('keydown', e => { if (e.key === 'Escape' || e.key === 'Enter') fecha(); });
-})();
-</script>
 <div class="app">
   <header class="topbar">
     <div class="brand" id="brandBtn" role="button" tabindex="0" aria-haspopup="true" aria-expanded="false" aria-controls="brandMenu"><svg class="brand-mark" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><rect width="24" height="24" rx="5" fill="#000"/><path d="M12,12C9,7.6,5.2,7.6,5.2,12C5.2,16.4,9,16.4,12,12C15,7.6,18.8,7.6,18.8,12C18.8,16.4,15,16.4,12,12" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg><span class="brand-txt">Everything Editor v3</span><span class="brand-caret" aria-hidden="true">▾</span></div>
@@ -391,6 +340,15 @@ html, body{overscroll-behavior:none;-webkit-tap-highlight-color:transparent}/* 1
 <script>
 (() => {
 'use strict';
+
+/* Versão do editor — o arquivo VERSION na raiz é a fonte da verdade
+   (o build do APK usa o mesmo número no versionName e falha se divergir). */
+const APP_VERSION = '3.2.3';
+/* sem a telinha, a versão aparece no tooltip da marca (e o título da aba segue curto) */
+{
+  const marca = document.getElementById('brandBtn');
+  if (marca) marca.title = 'Everything Editor ' + APP_VERSION;
+}
 
 /* =========================================================
    Utilitários
@@ -27069,7 +27027,7 @@ glCanvas.addEventListener('wheel', e => {
   const r = glCanvas.getBoundingClientRect();
   const mx = e.clientX - r.left - r.width / 2, my = e.clientY - r.top - r.height / 2;
   const old = pv.zoom;
-  const nz = clamp(old * (e.deltaY < 0 ? 1.12 : 1 / 1.12), 0.1, 20);
+  const nz = clamp(old * (e.deltaY < 0 ? 1.12 : 1 / 1.12), 0.05, 20);
   pv.panX = mx - (mx - pv.panX) / old * nz;
   pv.panY = my - (my - pv.panY) / old * nz;
   pv.zoom = nz;
@@ -27736,7 +27694,7 @@ function brushStudioAbre(n) {
   const rotLblV = E('span', '', '0°'); rotLblV.style.cssText = 'min-width:34px;opacity:.85';
   rotIn.addEventListener('input', () => { view.rot = Number(rotIn.value) || 0; aplicaVista(); });
   grupoVista.append(
-    mkBtn('−', () => { view.s = Math.max(0.1, view.s / 1.25); aplicaVista(); }),
+    mkBtn('−', () => { view.s = Math.max(0.05, view.s / 1.25); aplicaVista(); }),
     zoomLbl,
     mkBtn('+', () => { view.s = Math.min(10, view.s * 1.25); aplicaVista(); }),
     E('span', '', 'Rotation'), rotIn, rotLblV,
@@ -27845,7 +27803,7 @@ function brushStudioAbre(n) {
     if (document.activeElement !== rotIn) rotIn.value = Math.round(view.rot);
   }
   aplicaVista();
-  stage.addEventListener('wheel', e => { e.preventDefault(); const f = e.deltaY < 0 ? 1.12 : 1 / 1.12; view.s = Math.max(0.1, Math.min(10, view.s * f)); aplicaVista(); }, { passive: false });
+  stage.addEventListener('wheel', e => { e.preventDefault(); const f = e.deltaY < 0 ? 1.12 : 1 / 1.12; view.s = Math.max(0.05, Math.min(10, view.s * f)); aplicaVista(); }, { passive: false });
   const undoPilha = [];
   function empilhaUndo() { try { undoPilha.push(layer.toDataURL('image/png')); if (undoPilha.length > 25) undoPilha.shift(); } catch (_) {} }
   function desfazer() { const u = undoPilha.pop(); if (!u) return setStatus('Nothing to undo in the brush.', true); const img = new Image(); img.onload = () => { lx.clearRect(0, 0, W, H); lx.drawImage(img, 0, 0); salvar(); }; img.src = u; }
@@ -27981,7 +27939,7 @@ function brushStudioAbre(n) {
     }
     if (e.button === 1 || espaco) { panVista = { x: e.clientX, y: e.clientY, tx: view.tx, ty: view.ty }; return; }
     if (contaGotas || (e.altKey && !zoomModo)) { pegarCor(e); contaGotas = false; return; }
-    if (zoomModo) { view.s = Math.max(0.1, Math.min(10, view.s * (e.altKey ? 1 / 1.6 : 1.6))); aplicaVista(); return; }
+    if (zoomModo) { view.s = Math.max(0.05, Math.min(10, view.s * (e.altKey ? 1 / 1.6 : 1.6))); aplicaVista(); return; }
     if (rotModo) { rotUltAng = angCentro(e); return; }
     if (p.tool === 'lasso') { empilhaUndo(); const q = posDe(e); lacoPts = [{ x: q.x, y: q.y }]; desenhaLaco(); return; }
     empilhaUndo(); iniciaTraco(); desenhando = true; const q = posDe(e); ultimo = q; suave = { x: q.x, y: q.y }; resto = 0; carimba(q.x, q.y, q.pr);
@@ -27991,7 +27949,7 @@ function brushStudioAbre(n) {
     if (pinch && ptsAtivos.size === 2) {
       const [a2, b2] = [...ptsAtivos.values()];
       const d = Math.max(1, Math.hypot(a2.x - b2.x, a2.y - b2.y)), an = Math.atan2(b2.y - a2.y, b2.x - a2.x);
-      view.s = Math.max(0.1, Math.min(10, pinch.s * d / pinch.d));
+      view.s = Math.max(0.05, Math.min(10, pinch.s * d / pinch.d));
       view.rot = pinch.rot + (an - pinch.a) * 180 / Math.PI;
       view.tx = pinch.tx + ((a2.x + b2.x) / 2 - pinch.cx); view.ty = pinch.ty + ((a2.y + b2.y) / 2 - pinch.cy);
       aplicaVista(); return;
@@ -28025,7 +27983,7 @@ function brushStudioAbre(n) {
     if (e.target && /INPUT|SELECT|TEXTAREA/.test(e.target.tagName || '') && e.target.type !== 'range') return;   // typing in a field
     if (e.code === 'Space' && !e.repeat && !/INPUT|SELECT|TEXTAREA/.test((e.target && e.target.tagName) || '')) { espaco = true; e.preventDefault(); return; }
     if (e.key === '+' || e.key === '=') { view.s = Math.min(10, view.s * 1.25); aplicaVista(); return; }
-    if (e.key === '-') { view.s = Math.max(0.1, view.s / 1.25); aplicaVista(); return; }
+    if (e.key === '-') { view.s = Math.max(0.05, view.s / 1.25); aplicaVista(); return; }
     if (e.key === 'r' || e.key === 'R') { view.rot += e.shiftKey ? -15 : 15; aplicaVista(); return; }
     if (e.ctrlKey && (e.key === 'z' || e.key === 'Z')) { e.preventDefault(); desfazer(); }
     else if (e.ctrlKey || e.metaKey || e.altKey) { /* system combinations: not intercepted */ }
@@ -34211,7 +34169,7 @@ window.addEventListener('pointermove', e => {
     const mid = relTo(glCanvas, (a.x + b.x) / 2, (a.y + b.y) / 2);
     const r = glCanvas.getBoundingClientRect();
     const cx = mid.x - r.width / 2, cy = mid.y - r.height / 2;
-    pv.zoom = clamp(pvPinch.z0 * dist(a, b) / pvPinch.d0, 0.1, 20);
+    pv.zoom = clamp(pvPinch.z0 * dist(a, b) / pvPinch.d0, 0.05, 20);
     pv.panX = cx - pvPinch.w.x * pv.zoom;
     pv.panY = cy - pvPinch.w.y * pv.zoom;
     requestRender();
