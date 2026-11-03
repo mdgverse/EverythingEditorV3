@@ -131,7 +131,7 @@ html, body{overscroll-behavior:none;-webkit-tap-highlight-color:transparent}/* 1
   const greet = document.getElementById('eeSplashGreet');
   /* versão do editor — o arquivo VERSION na raiz é a fonte da verdade
      (o build do APK usa o mesmo número no versionName) */
-  const APP_VERSION = '3.2.0';
+  const APP_VERSION = '3.2.1';
   const ver = document.getElementById('eeSplashVer');
   if (ver) { ver.textContent = 'v' + APP_VERSION; ver.title = 'Everything Editor ' + APP_VERSION; }
   let pt = true;
@@ -2713,6 +2713,8 @@ const NODE_TYPES = {
       NUM('vert', 'Vertical ±90°', -89, 89, 0, 1),
       NUM('depth', 'Depth', 5, 150, 100),
       NUM('zoom', 'Zoom', 40, 260, 100),
+      NUM('posX', 'Position X (%)', -100, 100, 0, 1),
+      NUM('posY', 'Position Y (%)', -100, 100, 0, 1),
       NUM('amount', 'Sphere amount', 5, 100, 95),
       NUM('radius', 'Sphere radius', 20, 100, 60),
       NUM('centerX', 'Center X', 0, 100, 50),
@@ -6056,7 +6058,7 @@ void main(){
 uniform sampler2D uSrc;
 uniform vec3 uHx, uHy, uHz;
 uniform int uMode;
-uniform vec2 uCenter;
+uniform vec2 uCenter, uShift;
 uniform float uAspect, uAmount, uRadius, uClip, uZoom;
 const float HALFPI = 1.5707963;
 void main(){
@@ -6064,13 +6066,14 @@ void main(){
   float m = max(asp, 1.0);
   float rShort = min(asp, 1.0) / m;            // meia-altura quando a imagem é deitada
   vec2 p = (vUv - 0.5) * 2.0 * vec2(asp, 1.0) / m;   // espaço métrico (círculo continua círculo)
+  p -= uShift;                               // 3.2.1 — posição XY do socket move o plano inteiro
   vec2 uv;
   if (uMode == 1) {
     vec2 cp = (uCenter - 0.5) * 2.0 * vec2(asp, 1.0) / m;
     float s = max(0.02, uRadius) * rShort;
     vec2 pc = (p - cp) / s;
     if (dot(pc, pc) > 1.0) {                   // fora do disco
-      outColor = uClip > 0.5 ? vec4(0.0) : texture(uSrc, vUv);
+      outColor = uClip > 0.5 ? vec4(0.0) : texture(uSrc, vUv - uShift * vec2(m / (2.0 * asp), m * 0.5));
       return;
     }
     float ang = HALFPI * clamp(uAmount, 0.05, 1.0);
@@ -21638,7 +21641,7 @@ function perspFitMap(H, asp, m) {
 /* 3.1.2 — sockets do Perspective Warp: cada socket guarda o seu próprio
    conjunto de parâmetros (modo/ângulos/profundidade/esfera). O socket em
    edição usa os controles visíveis; os outros vivem no JSON `slots`. */
-const PERSP_CHAVES = ['modo', 'horiz', 'vert', 'depth', 'zoom', 'amount', 'radius', 'centerX', 'centerY', 'clip'];
+const PERSP_CHAVES = ['modo', 'horiz', 'vert', 'depth', 'zoom', 'posX', 'posY', 'amount', 'radius', 'centerX', 'centerY', 'clip'];
 const PERSP_MAX = 12;                     // 3.2.0: teto de sockets (como o nó Layers, cresce sob demanda)
 function perspQtd(n) {
   const q = Math.round(Number(n && n.params && n.params.sockets) || 1);
@@ -21689,14 +21692,24 @@ function perspSlotOf(n, i) {
   const s = perspSlots(n)[String(i)];
   return (s && typeof s === 'object') ? s : perspLeitura(n.params);
 }
+/* 3.2.1 — posição XY do socket: % da arte → espaço métrico do shader
+   (x sobre a largura do quadro, y sobre a altura; positivo = direita/cima) */
+function perspDesloca(p, asp, m) {
+  return [
+    (Number(p && p.posX) || 0) / 100 * (2 * asp / m),
+    (Number(p && p.posY) || 0) / 100 * (2 / m),
+  ];
+}
 /* um passe de perspectiva sobre uma entrada */
 function perspAplica(a, p) {
   if (!a) return null;
   const asp = a.w / a.h;
   const fin = perspFitMap(perspH(Number(p.horiz) || 0, Number(p.vert) || 0, p.depth), asp, Math.max(asp, 1));
   const inv = [[fin[0], fin[3], fin[6]], [fin[1], fin[4], fin[7]], [fin[2], fin[5], fin[8]]];
+  const desl = perspDesloca(p, asp, Math.max(asp, 1));
   return pointOp(a, 'perspectiveFx', {
     uHx: inv[0], uHy: inv[1], uHz: inv[2],
+    uShift: desl,
     uMode: p.modo === 'sphere' ? 1 : 0,
     uAspect: asp,
     uZoom: Math.max(0.05, (Number(p.zoom) || 100) / 100),
@@ -28182,6 +28195,8 @@ function gradAplicaVis(raiz, params) {
    volta ao padrão. Usa exatamente as mesmas funções do shader (perspH /
    perspFitMap), então o que aparece aqui é o que sai na renderização. */
 function perspMapUV(p, asp, m, px, py) {
+  const desl = perspDesloca(p, asp, m);
+  px -= desl[0]; py -= desl[1];                                   // 3.2.1 — posição XY do socket
   if (p.modo === 'sphere') {
     const cuvx = (Number(p.centerX) || 50) / 100, cuvy = 1 - (Number(p.centerY) || 50) / 100;
     const cpx = (cuvx - 0.5) * 2 * asp / m, cpy = (cuvy - 0.5) * 2 / m;
@@ -28344,6 +28359,7 @@ function makePerspView(n) {
     const saida = g.createImageData(W, H);
     const sd = arteCache.data, od = saida.data;
     const esfera = p.modo === 'sphere', clipado = esfera && p.clip === '1';
+    const desl = perspDesloca(p, asp, m);
     for (let y = 0; y < H; y++) {
       const vUv = 1 - (y + 0.5) / H;
       const py = (vUv - 0.5) * 2 / m;
@@ -28354,7 +28370,7 @@ function makePerspView(n) {
         const o = (y * W + x) * 4;
         let u, v;
         if (uv) { u = uv[0]; v = uv[1]; }
-        else if (esfera && !clipado) { u = uUv; v = vUv; }
+        else if (esfera && !clipado) { u = uUv - desl[0] * m / (2 * asp); v = vUv - desl[1] * m / 2; }
         else { od[o + 3] = 0; continue; }
         if (u < 0 || u > 1 || v < 0 || v > 1) { od[o + 3] = 0; continue; }
         const sx = Math.min(W - 1, (u * W) | 0), sy = Math.min(H - 1, ((1 - v) * H) | 0);
@@ -28366,7 +28382,8 @@ function makePerspView(n) {
     pintaAbas();
     const solo = String(n.params.saida || 'comp');
     dica.textContent = (solo === 'comp' ? 'Output: composited' : 'Output: socket ' + solo + ' only')
-      + ' · + adds a socket' + (qtdSockets() > 1 ? ' · − removes this one' : '') + ' · ' + (esfera
+      + ' · + adds a socket' + (qtdSockets() > 1 ? ' · − removes this one' : '')
+      + ' · Alt + drag (or 2 fingers) moves it in XY · ' + (esfera
         ? 'drag moves the ball · wheel = radius · double click resets'
         : 'drag = Horizontal / Vertical · wheel = Depth · double click resets');
   };
@@ -28380,9 +28397,10 @@ function makePerspView(n) {
   n.ui.pviewAgenda = agenda;
   n.ui.saida = pintaSaida;
 
-  let arrasto = null;
+  let arrasto = null, dedos = 0;
   cv.addEventListener('pointerdown', ev => {
     if (ev.button !== 0) return;
+    if (ev.pointerType === 'touch') dedos++;      // 2 dedos no APK = mover em XY (o Alt não existe no toque)
     ev.preventDefault(); ev.stopPropagation();
     selectFromControl(n);
     try { cv.setPointerCapture(ev.pointerId); } catch (e) {}
@@ -28390,11 +28408,21 @@ function makePerspView(n) {
     const p = perspSlotOf(n, slotAtivo());
     arrasto = { x: ev.clientX, y: ev.clientY, w: cv.clientWidth || 1,
       h: Number(p.horiz) || 0, v: Number(p.vert) || 0,
-      cx: Number(p.centerX) || 50, cy: Number(p.centerY) || 50 };
+      cx: Number(p.centerX) || 50, cy: Number(p.centerY) || 50,
+      px: Number(p.posX) || 0, py: Number(p.posY) || 0,
+      mover: !!ev.altKey || dedos >= 2 };   // 3.2.1 — Alt (ou 2 dedos) arrastam em XY
   });
   cv.addEventListener('pointermove', ev => {
     if (!arrasto) return;
     const k = ev.shiftKey ? 0.2 : 1;
+    if (arrasto.mover || ev.altKey) {   // deslocamento livre do socket (Position X / Y)
+      const dw = (ev.clientX - arrasto.x) / arrasto.w * 100 * k;
+      const dh = (ev.clientY - arrasto.y) / (cv.clientHeight || 1) * 100 * k;
+      setParam(n, def('posX'), arrasto.px + dw);
+      setParam(n, def('posY'), arrasto.py - dh);
+      desenha();
+      return;
+    }
     const dx = (ev.clientX - arrasto.x) / arrasto.w * 180 * k;
     const dy = (ev.clientY - arrasto.y) / arrasto.w * 180 * k;
     if (n.params.modo === 'sphere') {
@@ -28406,7 +28434,10 @@ function makePerspView(n) {
     }
     desenha();
   });
-  const solta = () => { arrasto = null; cv.classList.remove('drag'); };
+  const solta = ev => {
+    if (ev && ev.pointerType === 'touch') dedos = Math.max(0, dedos - 1);
+    arrasto = null; cv.classList.remove('drag');
+  };
   cv.addEventListener('pointerup', solta);
   cv.addEventListener('pointercancel', solta);
   cv.addEventListener('wheel', ev => {
@@ -28418,6 +28449,8 @@ function makePerspView(n) {
   }, { passive: false });
   cv.addEventListener('dblclick', ev => {
     ev.preventDefault();
+    setParam(n, def('posX'), 0);
+    setParam(n, def('posY'), 0);
     if (n.params.modo === 'sphere') {
       setParam(n, def('centerX'), 50);
       setParam(n, def('centerY'), 50);
