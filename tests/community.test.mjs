@@ -110,6 +110,9 @@ ok(/img\.loading = 'lazy'/.test(card) && /img\.decoding = 'async'/.test(card), '
 ok(/img\.width = 132 && img\.alt/.test(card) || /img\.width = 132;/.test(card), 'largura fixa (sem salto de layout)');
 ok(/cmty-endereco/.test('cmty-endereco') && /it\.author \|\| '@unknown'/.test(card), 'handle sobre a miniatura');
 ok(/cmty-badge ' \+ \(it\.platform === 'tumblr' \? 'tb' : 'ig'\)/.test(card), 'selo da plataforma no cartão');
+ok(/addEventListener\('error'/.test(card) && /classList\.add\('sem-foto'\)/.test(card),
+  'sem internet no APK, o cartão mostra a inicial (não fica imagem quebrada)');
+ok(/\.cmty-th\.sem-foto\{/.test(html), 'estilo do cartão sem foto');
 
 /* ---------------------------------------------------------------- dados e APK */
 const dados = extrai('function cmtyForaDoSite() {', 'function cmtyCard(it) {');
