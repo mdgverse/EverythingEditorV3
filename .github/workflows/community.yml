@@ -9,10 +9,19 @@ name: Community feed
 #   IG_USER_ID   id da conta do Instagram ligada à página
 #   TUMBLR_KEY   consumer key da aplicação do Tumblr
 #
+# Variável opcional (não é segredo): TUMBLR_BLOG. Como o endpoint de hashtag só
+# devolve post marcado, o coletor também lê o blog direto — é assim que os posts
+# do próprio editor entram no carrossel sem depender de tag.
+#
 # Sem os segredos o job roda, não acha nada e não altera nenhum arquivo.
 on:
   schedule:
     - cron: '17 */6 * * *'
+  push:
+    branches: [main]
+    paths:
+      - 'scripts/community.mjs'
+      - '.github/workflows/community.yml'
   workflow_dispatch:
 
 permissions:
@@ -42,6 +51,7 @@ jobs:
           IG_TOKEN: ${{ secrets.IG_TOKEN }}
           IG_USER_ID: ${{ secrets.IG_USER_ID }}
           TUMBLR_KEY: ${{ secrets.TUMBLR_KEY }}
+          TUMBLR_BLOG: ${{ vars.TUMBLR_BLOG || 'mdgverse' }}
         run: node scripts/community.mjs
 
       - name: Publicar se algo mudou

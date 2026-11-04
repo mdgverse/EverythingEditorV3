@@ -4,7 +4,7 @@
    community.json; o APK sem internet usa o seed embutido no index.html. */
 import fs from 'node:fs';
 import { ok, resumo } from './kit.mjs';
-import { normaliza, escolhe, trocaSeed, TAGS, LIMITE, MARCA_INI, MARCA_FIM } from '../scripts/community.mjs';
+import { normaliza, escolhe, trocaSeed, melhorFoto, postsDaResposta, TAGS, LIMITE, MARCA_INI, MARCA_FIM, BLOG_PADRAO, FOTO_MAX } from '../scripts/community.mjs';
 
 const html = fs.readFileSync(new URL('../index.html', import.meta.url), 'utf8');
 const fixtures = n => JSON.parse(fs.readFileSync(new URL('./fixtures/' + n, import.meta.url), 'utf8'));
@@ -29,12 +29,28 @@ ok(ig[0].alt.length > 0 && ig[0].alt.length <= 140, 'alt curto a partir da legen
 
 const tb = normaliza('tumblr', fixtures('community-tumblr.json'));
 ok(tb.length === 2, 'ignora post de texto do Tumblr', tb.length);
-ok(tb[0].img === 'https://64.media.tumblr.com/1.jpg', 'pega a imagem no tamanho original');
+ok(tb[0].img === 'https://64.media.tumblr.com/1_500.jpg', 'prefere a versão de 500 px (o cartão tem 132)');
 ok(tb[0].author === '@cyanstudio' && tb[0].url === 'https://cyanstudio.tumblr.com/post/9001', 'autor e link do Tumblr');
 ok(tb[0].alt.includes('Estudo de cor'), 'legenda sem HTML', tb[0].alt);
 
+const blogBruto = postsDaResposta(fixtures('community-tumblr-blog.json'));
+const blog = normaliza('tumblr', blogBruto);
+ok(BLOG_PADRAO === 'mdgverse', 'lê o blog do próprio editor por padrão', BLOG_PADRAO);
+ok(blogBruto.length === 4 && blog.length === 3, 'do blog só entra post com foto', blog.length);
+ok(blog[0].url.includes('832038252529762304'), 'guarda o link do post do blog');
+ok(blog[0].author === '@mdgverse', 'autor do blog vira @mdgverse', blog[0].author);
+ok(blog[0].img === 'https://64.media.tumblr.com/dispatch_1280.jpg', 'baixa a versão de 1280 px, não o original', blog[0].img);
+ok(melhorFoto({ original_size: { url: 'o.jpg', width: 600, height: 600 } }).url === 'o.jpg', 'sem alt_sizes usa o original');
+ok(melhorFoto({ original_size: { url: 'o.jpg', width: 4000, height: 4000 }, alt_sizes: [{ url: 'g.jpg', width: 4000 }] }).url === 'o.jpg',
+  'sem versão abaixo do teto, o original');
+ok(melhorFoto(null) === null, 'foto ausente não explode');
+ok(FOTO_MAX === 1280, 'teto de largura no repositório', FOTO_MAX);
+
 const juntos = escolhe(ig.concat(tb));
 ok(juntos.length === 5, 'junta as plataformas e derruba o repetido', juntos.length);
+const todos = escolhe(ig.concat(tb, blog));
+ok(todos.length === 7, 'blog e hashtag se somam sem repetir o mesmo post', todos.length);
+ok(todos.filter(i => i.author === '@mdgverse').length === 2, 'os dois posts do blog estão no carrossel');
 ok(new Set(juntos.map(i => i.id)).size === juntos.length, 'ids únicos');
 ok(new Set(juntos.map(i => i.img)).size === juntos.length, 'imagens únicas (o repeat do Instagram caiu)');
 ok(escolhe(juntos, 3).length === 3, 'respeita o limite pedido');
@@ -120,6 +136,8 @@ ok(/workflow_dispatch/.test(wf), 'dá para rodar na mão');
 ok(/IG_TOKEN|TUMBLR_KEY/.test(wf), 'lê os segredos das APIs');
 ok(/node scripts\/community\.mjs/.test(wf), 'roda o coletor');
 ok(/git push origin HEAD:main/.test(wf), 'publica community.json de volta no main');
+ok(/TUMBLR_BLOG: \$\{\{ vars\.TUMBLR_BLOG \|\| 'mdgverse' \}\}/.test(wf), 'lê o blog direto (default mdgverse)');
+ok(/push:\s*\n\s*branches: \[main\]/.test(wf), 'roda assim que o coletor muda no main');
 ok(/paths: /.test(wf) || true, 'ok');
 
 const tudo = resumo();

@@ -40,7 +40,7 @@
 .animbox{margin-top:2px;border-top:1px solid var(--line);padding-top:3px}.animhead{display:flex;align-items:center;gap:4px;cursor:pointer;color:var(--text-muted);font-size:11px;padding:1px 1px;border-radius:3px}.animhead:hover{color:var(--text-strong);background:var(--hover)}.animtri{font-size:9px;color:var(--brand)}.animttl{flex:1}.animdot{font-size:9px;opacity:.22}.animdot.keyed{opacity:.75}.animdot.on{opacity:1;color:var(--sel)}.animb{display:none;flex-direction:column;gap:3px;margin-top:3px}.animbox.open .animb{display:flex}.animgrp{display:flex;flex-direction:column;gap:2px}.animgrphead{display:flex;align-items:center;gap:4px}.animgrplab{flex:1;font-size:10px;color:var(--text-dim)}.animfields{display:flex;align-items:center;gap:3px}.anumwrap{display:flex;align-items:center;gap:2px;flex:1;min-width:0}.anaxis{font-size:9.5px;color:var(--text-dim)}.anum{position:relative;flex:1;min-width:0;height:16px;background:var(--panel2);border:1px solid var(--view);border-radius:3px;cursor:ew-resize;overflow:hidden}.anum:hover{border-color:var(--line3)}.anum.keyed{border-color:var(--sel)}.anum.atkey{background:var(--sel)}.anum.atkey .anumedit{color:var(--edge)}.anumedit{position:absolute;inset:0;width:100%;background:transparent;border:0;outline:none;color:var(--text-strong);font:10.5px "Segoe UI",Inter,system-ui,sans-serif;text-align:center;padding:0;cursor:ew-resize}.anumedit:focus{cursor:text;background:var(--panel3)}/* diálogo: renderizar animação */
 .tldlgback{position:fixed;inset:0;background:rgba(0,0,0,.55);display:flex;align-items:center;justify-content:center;z-index:9600;padding:12px}.tldlg{width:min(470px,100%);background:var(--panel3);border:1px solid var(--accent);border-radius:8px;padding:14px;box-shadow:0 10px 40px rgba(0,0,0,.6);max-height:calc(100vh - 24px);overflow:auto}.tldlgt{font-size:14px;font-weight:600;color:var(--text-strong);margin-bottom:8px}.tldlgrow{display:flex;align-items:center;gap:8px;margin:6px 0}.tldlglab{flex:0 0 118px;font-size:11.5px;color:var(--text-muted)}.tldlgin{flex:1;min-width:0;height:24px;background:var(--field);border:1px solid var(--line);border-radius:4px;color:var(--text-strong);padding:0 5px;font-size:12px}.tldlgin.num{max-width:96px;flex:0 0 96px}.tldlghint{font-size:10.5px;color:var(--text-dim)}.tldlgtarget{flex:1;min-width:0;font-size:12px;color:var(--text-strong);font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.tldlgsz{display:block;font-size:11px;font-weight:600;color:var(--text-muted);white-space:nowrap}#tlRenderTarget{white-space:normal;text-align:right;line-height:1.3}.tldlgnote{font-size:11px;color:var(--text-dim);margin:8px 0;line-height:1.4}.tlprogwrap{height:8px;background:var(--field);border-radius:4px;overflow:hidden;margin:6px 0}.tlprog{height:100%;width:0;background:var(--accent);transition:width .1s linear}.tldlgmsg{font-size:11.5px;color:var(--text-muted);min-height:16px}.tldlgbtns{display:flex;justify-content:flex-end;gap:8px;margin-top:10px}.tldlgbtn{background:var(--btn2);color:var(--text-strong);border:1px solid var(--btn);border-radius:4px;padding:6px 12px;font-size:12px;cursor:pointer}.tldlgbtn:hover{background:var(--line3)}.tldlgbtn.primary{background:var(--accent);border-color:var(--accent);color:var(--on-accent)}.tldlgbtn.primary:hover{background:var(--accent-hover)}.tldlgbtn:disabled{opacity:.5;cursor:default}
 
-/* 3.6.2: carrossel da comunidade (#everythingeditor) na Home */
+/* 3.6.3: carrossel da comunidade (#everythingeditor) na Home */
 .cmty{margin:4px 0 2px}
 .cmty[hidden]{display:none}
 .cmty-tag{color:var(--brand);font-weight:600;text-transform:none;letter-spacing:0}
@@ -438,7 +438,7 @@ html, body{overscroll-behavior:none;-webkit-tap-highlight-color:transparent}/* 1
 
 /* Versão do editor — o arquivo VERSION na raiz é a fonte da verdade
    (o build do APK usa o mesmo número no versionName e falha se divergir). */
-const APP_VERSION = '3.6.2';
+const APP_VERSION = '3.6.3';
 /* sem a telinha, a versão aparece no tooltip da marca (e o título da aba segue curto) */
 {
   const marca = document.getElementById('brandBtn');
@@ -15579,7 +15579,7 @@ function fx38FoldedPaper(srcCanvas, W, H, p) {
 // mix e pode fechar com dither/paleta. O "animated look" do fim do processo sai da
 // timeline (keyframes em textureBlur/layer).
 //
-// Custo (3.6.2): a foto é copiada de uma vez, blocos de papel são pulados, o traço é
+// Custo (3.6.3): a foto é copiada de uma vez, blocos de papel são pulados, o traço é
 // calculado de 2 em 2 pixels (pintado em blocos de 2x2) e o campo da textura é lido
 // em meia resolução — o nó caiu de ~180 ms para ~45 ms num quadro de 520 px.
 const FX38_BAYER = [0, 8, 2, 10, 12, 4, 14, 6, 3, 11, 1, 9, 15, 7, 13, 5];
