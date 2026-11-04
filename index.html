@@ -143,6 +143,31 @@ html, body{overscroll-behavior:none;-webkit-tap-highlight-color:transparent}/* 1
   .gal-grid{grid-template-columns:repeat(auto-fill,minmax(88px,1fr));gap:7px;padding:7px}
 }
 </style>
+<style id="ee-halftone-css">/* ===== Shape Halftone (3.5.0) — seções dobráveis e controles próprios ===== */
+.sh-sec{margin:6px 0 0;border-top:1px solid var(--line);padding-top:4px}
+.sh-sec.fold>.sh-sec-b{display:none}
+.sh-sec-h{display:flex;align-items:center;gap:5px;height:17px;cursor:pointer;font-size:10px;letter-spacing:.06em;text-transform:uppercase;color:var(--text-muted);user-select:none;-webkit-user-select:none}
+.sh-sec-h:hover{color:var(--text-strong)}
+.sh-caret{font-size:9px;line-height:1;width:9px;flex:none;opacity:.85}
+.sh-sec-b{display:flex;flex-direction:column;gap:3px;padding:3px 0 2px}
+.sh-sw{width:36px;height:18px;border-radius:999px;background:var(--panel3);border:1px solid var(--line3);position:relative;cursor:pointer;flex:none;padding:0}
+.sh-sw>i{position:absolute;top:2px;left:2px;width:12px;height:12px;border-radius:50%;background:var(--text-muted);transition:left .12s ease,background .12s ease}
+.sh-sw.on{background:var(--accent);border-color:var(--accent)}
+.sh-sw.on>i{left:20px;background:#fff}
+.sh-curve{position:relative;height:92px;border:1px solid var(--line);border-radius:4px;background:var(--field3);overflow:hidden}
+.sh-curve canvas{display:block;width:100%;height:100%;touch-action:none;cursor:crosshair}
+.sh-range{position:relative;height:20px;border:1px solid var(--line);border-radius:4px;background:var(--panel2);touch-action:none;cursor:ew-resize;overflow:hidden}
+.sh-rfill{position:absolute;top:0;bottom:0;background:var(--accent);opacity:.32;pointer-events:none}
+.sh-rth{position:absolute;top:50%;width:11px;height:15px;margin:-7.5px 0 0 -5.5px;border-radius:3px;background:var(--btn2);border:1px solid var(--line3);box-shadow:0 1px 2px rgba(0,0,0,.45);pointer-events:none}
+.sh-hint{font-size:10px;line-height:1.3;color:var(--text-dim);padding:1px 1px 0}
+body.mobile .sh-sec-h{height:26px;font-size:12px}
+.node.in-sheet .sh-sec-h{height:30px;font-size:12px}
+.node.in-sheet .sh-curve{height:170px}
+.node.in-sheet .sh-range{height:34px}
+.node.in-sheet .sh-sw{width:56px;height:30px}
+.node.in-sheet .sh-sw>i{width:22px;height:22px;top:3px;left:3px}
+.node.in-sheet .sh-sw.on>i{left:29px}
+</style>
 </head>
 <body>
 <div class="app">
@@ -414,7 +439,7 @@ html, body{overscroll-behavior:none;-webkit-tap-highlight-color:transparent}/* 1
 
 /* Versão do editor — o arquivo VERSION na raiz é a fonte da verdade
    (o build do APK usa o mesmo número no versionName e falha se divergir). */
-const APP_VERSION = '3.4.0';
+const APP_VERSION = '3.5.0';
 /* sem a telinha, a versão aparece no tooltip da marca (e o título da aba segue curto) */
 {
   const marca = document.getElementById('brandBtn');
@@ -855,6 +880,21 @@ const FILE  = (key, label, accept = 'image/*') => ({ type: 'file', key, label, a
 const LOCK  = (key, label, def = 'locked') => ({ type: 'lock', key, label, def });   // on/off lock with an icon
 const BTN   = (key, label, action, button) => ({ type: 'button', key, label, action, button, def: '' });
 const FONT  = (key, label, def) => ({ type: 'font', key, label, def });
+/* 3.5.0 — Shape Halftone: controles montados no painel do nó (shPanel), então
+   os parâmetros ficam marcados como hidden e o inspetor não os repete. */
+const SH_SHAPES = [['dot', 'Dot'], ['square', 'Square'], ['diamond', 'Diamond'], ['triangle', 'Triangle'],
+  ['lines', 'Lines'], ['arrows', 'Arrows'], ['smileys', 'Smileys'], ['stars', 'Stars'], ['plus', 'Plus'],
+  ['ring', 'Ring'], ['hexagon', 'Hexagon'], ['grid', 'Grid'], ['waves', 'Waves'], ['heart', 'Heart'],
+  ['ellipse', 'Ellipse'], ['solid', 'Solid']];
+const SH_INK_MODES = [['additive', 'Additive'], ['multiply', 'Multiply'], ['screen', 'Screen'],
+  ['overlay', 'Overlay'], ['softlight', 'Soft light'], ['difference', 'Difference'], ['subtract', 'Subtract']];
+const HNUM   = (key, label, min, max, def, step = 1) => ({ ...NUM(key, label, min, max, def, step), hidden: true });
+const HENUM  = (key, label, options, def) => ({ ...ENUM(key, label, options, def), hidden: true });
+const HCOL   = (key, label, def) => ({ ...COL(key, label, def), hidden: true });
+const HLOCK  = (key, label, def = 'locked') => ({ ...LOCK(key, label, def), hidden: true });
+const HSW    = (key, label, def = 'nao') => ({ type: 'switch', key, label, def, hidden: true });
+const HCURVE = (key, label, def) => ({ type: 'curve', key, label, def, hidden: true });
+const HRANGE = (key, label, def) => ({ type: 'range', key, label, def, hidden: true });
 
 /* ===== HalfMode (effect engine; id "halftone" up to 2.9.56) ===== */
 /* ============================================================================
@@ -4069,7 +4109,55 @@ const NODE_TYPES = {
     kw: 'audio pan pan left right sound',
     params: [NUM('pan', 'Pan', -100, 100, 0)],
   },
-  output: {
+  shapeHalftone: {
+    title: 'Shape Halftone', cat: 'style', inputs: ['Image'], outs: ['Image'],
+    kw: 'halftone shader print screen dots smileys arrows lines paper ink rgb channels misregistration grain bezier curve threshold risograph screen print shapes',
+    params: [
+      /* Transform */
+      HNUM('opacity', 'Opacity', 0, 100, 100, 1),
+      HENUM('blend', 'Blend', BLEND, 'normal'),
+      HSW('showSource', 'Show Source', 'nao'),
+      HNUM('posX', 'Position X', -4000, 4000, 0, 1),
+      HNUM('posY', 'Position Y', -4000, 4000, 0, 1),
+      HNUM('sizeW', 'Size W', 0, 8192, 0, 1),
+      HNUM('sizeH', 'Size H', 0, 8192, 0, 1),
+      HLOCK('proporcao', 'Lock ratio', 'locked'),
+      /* Color */
+      HCOL('paper', 'Paper', '#f4efe4'),
+      /* Glow */
+      HNUM('glow', 'Glow', 0, 1, 0, 0.01),
+      HNUM('exposure', 'Exposure', 0, 4, 1, 0.01),
+      /* Shape */
+      HNUM('cellSize', 'Cell Size', 2, 80, 11, 0.1),
+      HNUM('sizeSpread', 'Size Spread', 0, 1, 0, 0.01),
+      HNUM('dotGain', 'Dot Gain', 0, 3, 1.133, 0.001),
+      /* Texture */
+      HNUM('paperGrain', 'Paper Grain', 0, 1, 0.6, 0.01),
+      /* Distortion */
+      HNUM('misreg', 'Misregistration', 0, 40, 0.42, 0.01),
+      /* Blend & curve */
+      HENUM('inkMode', 'Ink Mode', SH_INK_MODES, 'additive'),
+      HCURVE('inkCurve', 'Ink Curve', [0.42, 0.06, 0.58, 0.94]),
+      HRANGE('threshold', 'Threshold Range', [0.08, 0.92]),
+      /* Channel separation */
+      HENUM('redShape', 'Red Shape', SH_SHAPES, 'smileys'),
+      HNUM('redAngle', 'Red Angle', 0, 180, 33, 1),
+      HCOL('redInk', 'Red Ink', '#e8322a'),
+      HNUM('redInt', 'Red Intensity', 0, 3, 1.1, 0.01),
+      HENUM('greenShape', 'Green Shape', SH_SHAPES, 'lines'),
+      HNUM('greenAngle', 'Green Angle', 0, 180, 29, 1),
+      HCOL('greenInk', 'Green Ink', '#1fa35a'),
+      HNUM('greenInt', 'Green Intensity', 0, 3, 1, 0.01),
+      HENUM('blueShape', 'Blue Shape', SH_SHAPES, 'arrows'),
+      HNUM('blueAngle', 'Blue Angle', 0, 180, 121, 1),
+      HCOL('blueInk', 'Blue Ink', '#2a4fd6'),
+      HNUM('blueInt', 'Blue Intensity', 0, 3, 1.56, 0.01),
+      /* General */
+      HNUM('contrast', 'Contrast', 0, 3, 1, 0.01),
+      HNUM('gamma', 'Gamma', 0.1, 4, 1, 0.01),
+      HSW('invert', 'Invert', 'nao'),
+    ],
+  },  output: {
     title: 'Output', cat: 'output', inputs: ['Image'], params: [],
   },
 };
@@ -7403,7 +7491,187 @@ void main(){
   }
   col = mix(src.rgb, col, uMixF);
   outColor = vec4(clamp(col, 0.0, 1.0), mix(src.a, dis.a, uMixF));
-}`
+}`,
+  /* Shape Halftone (3.5.0): meio-tom por canal — o tom de cada canal vira
+     cobertura, a cobertura vira o tamanho da forma na célula, e as três
+     tintas se juntam sobre o papel. */
+  shapeHalftone: `uniform sampler2D uSrc;
+uniform vec2 uRes, uPos, uSize;
+uniform float uOpacity, uGlow, uExposure, uCell, uSpread, uGain, uGrain, uMisreg;
+uniform float uThrA, uThrB, uContrast, uGamma, uShow, uInvert, uInkMode;
+uniform float uShape[3], uAng[3], uInt[3];
+uniform vec3 uPaper, uInkR, uInkG, uInkB;
+uniform float uCurve[16];
+uniform int uMode;
+${BLEND_GLSL}
+/* Ink curve baked on the CPU: 16 samples of (tone -> coverage). */
+float shCurveY(float x){
+  float f = clamp(x, 0.0, 1.0) * 15.0;
+  int i = int(floor(f));
+  int j = min(i + 1, 15);
+  return mix(uCurve[i], uCurve[j], fract(f));
+}
+vec2 shRot(vec2 p, float a){ float c = cos(a), s = sin(a); return vec2(c * p.x - s * p.y, s * p.x + c * p.y); }
+float shBox(vec2 p, vec2 b){ vec2 d = abs(p) - b; return length(max(d, vec2(0.0))) + min(max(d.x, d.y), 0.0); }
+float shTri(vec2 p, float r){
+  const float k = 1.7320508;
+  p.x = abs(p.x) - r;
+  p.y = p.y + r / k;
+  if (p.x + k * p.y > 0.0) p = vec2(p.x - k * p.y, -k * p.x - p.y) * 0.5;
+  p.x -= clamp(p.x, -2.0 * r, 0.0);
+  return -length(p) * sign(p.y);
+}
+float shHex(vec2 p, float r){
+  const vec3 k = vec3(-0.8660254, 0.5, 0.5773503);
+  p = abs(p);
+  p -= 2.0 * min(dot(k.xy, p), 0.0) * k.xy;
+  p -= vec2(clamp(p.x, -k.z * r, k.z * r), r);
+  return length(p) * sign(p.y);
+}
+float shStar(vec2 p, float r, float rf){
+  const vec2 k1 = vec2(0.8090170, -0.5877853);
+  const vec2 k2 = vec2(-0.8090170, -0.5877853);
+  p.x = abs(p.x);
+  p -= 2.0 * max(dot(k1, p), 0.0) * k1;
+  p -= 2.0 * max(dot(k2, p), 0.0) * k2;
+  p.x = abs(p.x);
+  p.y -= r;
+  vec2 ba = rf * vec2(-k1.y, k1.x) - vec2(0.0, 1.0);
+  float h = clamp(dot(p, ba) / dot(ba, ba), 0.0, r);
+  return length(p - ba * h) * sign(p.y * ba.x - p.x * ba.y);
+}
+float shHeart(vec2 p){
+  float d;
+  if (p.y + p.x > 1.0) d = length(p - vec2(0.25, 0.75)) - 0.3535534;
+  else {
+    float a = length(p - vec2(0.0, 1.0));
+    float b = length(p - 0.5 * max(p.x + p.y, 0.0));
+    d = sqrt(min(a * a, b * b)) * sign(p.x - p.y);
+  }
+  return d;
+}
+/* Field of the shape inside the cell: -1 at the centre, 0 at the full edge, > 0 outside. */
+float shField(float kind, vec2 q){
+  int k = int(kind + 0.5);
+  if (k == 1) return max(abs(q.x), abs(q.y)) * 2.0 - 1.0;                 // square
+  if (k == 2) return (abs(q.x) + abs(q.y)) * 2.0 - 1.0;                   // diamond
+  if (k == 3) return shTri(q, 0.5) * 2.0;                                 // triangle
+  if (k == 4) return abs(q.y) * 2.0 - 1.0;                                // lines
+  if (k == 5) {                                                           // arrows
+    float head = shTri(q - vec2(0.0, 0.10), 0.30);
+    float stem = shBox(q - vec2(0.0, -0.22), vec2(0.075, 0.18));
+    return min(head, stem) * 2.0;
+  }
+  if (k == 6) {                                                           // smileys
+    float base = length(q) - 0.5;
+    float eyes = min(length(q - vec2(-0.16, 0.13)) - 0.07, length(q - vec2(0.16, 0.13)) - 0.07);
+    float mouth = max(abs(length(q - vec2(0.0, 0.05)) - 0.27) - 0.05, q.y + 0.03);
+    float holes = min(eyes, mouth);
+    return max(base, -holes) * 2.0;
+  }
+  if (k == 7) return shStar(q, 0.5, 0.42) * 2.0;                          // stars
+  if (k == 8) {                                                           // plus
+    float a = shBox(q, vec2(0.5, 0.17));
+    float b = shBox(q, vec2(0.17, 0.5));
+    return min(a, b) * 2.0;
+  }
+  if (k == 9) return abs(length(q) - 0.33) / 0.16 - 1.0;                  // ring
+  if (k == 10) return shHex(q, 0.46) * 1.7;                               // hexagon
+  if (k == 11) return min(abs(q.x), abs(q.y)) * 2.0 - 1.0;                // grid
+  if (k == 12) return abs(q.y - 0.17 * sin(q.x * 6.2831853)) * 2.0 - 1.0; // waves
+  if (k == 13) {                                                          // heart
+    vec2 hp = vec2(abs(q.x) * 1.45, -q.y * 1.45 + 0.60);
+    return shHeart(hp) * 3.2;
+  }
+  if (k == 14) return length(vec2(q.x / 0.42, q.y / 0.50)) - 1.0;         // ellipse
+  if (k == 15) return -1.0;                                               // solid
+  return length(q) * 2.0 - 1.0;                                           // dot
+}
+/* How the ink sits on the paper (the channel inks are already added together). */
+vec3 shInkOnPaper(int m, vec3 a, vec3 b){
+  if (m == 3) return mix(2.0 * a * b, 1.0 - 2.0 * (1.0 - a) * (1.0 - b), step(0.5, a));  // overlay
+  if (m == 4) return a + b - 2.0 * a * b;                        // soft light
+  if (m == 5) return abs(a - b);                                 // difference
+  if (m == 6) return max(a - b, vec3(0.0));                      // subtract
+  return b;
+}
+void main(){
+  vec2 res = max(uRes, vec2(1.0));
+  vec2 px = vec2(floor(vUv.x * res.x), floor(vUv.y * res.y));
+  vec2 size = max(uSize, vec2(8.0));
+  vec2 center = res * 0.5 + uPos;
+  vec2 luv = (px - (center - size * 0.5)) / size;
+
+  vec4 s0 = texture(uSrc, clamp(luv, vec2(0.0), vec2(1.0)));
+  vec3 src = s0.rgb;
+
+  float gA = hash(px.x, px.y) - 0.5;
+  float gB = hash(px.x * 0.41 + 13.0, px.y * 0.41 - 7.0) - 0.5;
+  vec3 paper = clamp(uPaper * (1.0 + uGrain * (gA * 0.30 + gB * 0.16)), vec3(0.0), vec3(1.0));
+
+  float cell = max(uCell, 1.0);
+  vec3 dens = vec3(0.0);
+  vec3 mulAcc = vec3(1.0);
+  vec3 lightAcc = vec3(0.0);
+  float alphaMax = 0.0;
+  float alphaSum = 0.0;
+  for (int c = 0; c < 3; c++){
+    float ch = float(c);
+    float mi = (ch - 1.0) * uMisreg;
+    vec2 off = vec2(mi, -mi * 0.6);
+    vec3 sC = texture(uSrc, clamp(luv - off / size, vec2(0.0), vec2(1.0))).rgb;
+    float v = c == 0 ? sC.r : (c == 1 ? sC.g : sC.b);
+    v = clamp((v - 0.5) * uContrast + 0.5, 0.0, 1.0);
+    v = pow(v, 1.0 / max(uGamma, 0.02));
+    if (uInvert > 0.5) v = 1.0 - v;
+
+    float tone = v;                        // Ink Curve: tom do canal → cobertura
+    float k = shCurveY(tone);
+    float cov = (uThrB - uThrA) < 0.004 ? step(uThrA, k) : smoothstep(uThrA, uThrB, k);
+    cov = pow(clamp(cov, 0.0, 1.0), 1.0 / max(uGain, 0.08));
+
+    float ang = radians(c == 0 ? uAng[0] : (c == 1 ? uAng[1] : uAng[2]));
+    vec2 gq = shRot(px - center + off, ang) / cell;
+    vec2 id = floor(gq);
+    vec2 local = fract(gq) - 0.5;
+    float rnd = hash(id.x + ch * 53.0, id.y - ch * 97.0);
+    cov = clamp(cov * (1.0 + uSpread * (rnd - 0.5) * 1.6), 0.0, 1.0);
+
+    float f = shField(c == 0 ? uShape[0] : (c == 1 ? uShape[1] : uShape[2]), local);
+    float aa = max(fwidth(f) * 0.9, 0.015);
+    float a = smoothstep(-aa, aa, (2.0 * cov - 1.0) - f);
+    float halo = uGlow * 0.85 * exp(-max(f, 0.0) * 4.5) * cov * cov;
+    float amt = clamp(a + halo * (1.0 - a), 0.0, 1.0);
+
+    float inten = max(0.0, c == 0 ? uInt[0] : (c == 1 ? uInt[1] : uInt[2]));
+    vec3 ink = c == 0 ? uInkR : (c == 1 ? uInkG : uInkB);
+    float alpha = clamp(amt * inten, 0.0, 1.0);
+    dens += (1.0 - ink) * alpha;                       // cada tinta absorve o seu complemento
+    mulAcc *= 1.0 - alpha * (1.0 - ink);               // tintas empilhadas, uma por cima da outra
+    lightAcc += ink * alpha;
+    alphaMax = 1.0 - (1.0 - alphaMax) * (1.0 - alpha);
+    alphaSum += alpha;
+  }
+  float total = clamp(alphaMax, 0.0, 1.0);
+  vec3 inkPix = clamp(paper - dens, vec3(0.0), vec3(1.0));
+  vec3 lightPix = clamp(paper * (1.0 - total) + lightAcc, vec3(0.0), vec3(1.0));
+  vec3 inkMix = lightAcc / max(alphaSum, 1e-4);
+  int modo = int(uInkMode + 0.5);
+  vec3 col;
+  if (modo == 0) col = lightPix;                                          // additive: as tintas somam luz
+  else if (modo == 1) col = clamp(paper * mulAcc, vec3(0.0), vec3(1.0));   // multiply: uma tinta por cima da outra
+  else if (modo == 2) col = clamp(paper + (1.0 - paper) * inkMix * total, vec3(0.0), vec3(1.0));  // screen
+  else col = mix(paper, clamp(shInkOnPaper(modo, paper, inkPix), vec3(0.0), vec3(1.0)), total);
+  col = clamp(col * uExposure, 0.0, 1.0);
+
+  float inside = step(0.0, luv.x) * step(luv.x, 1.0) * step(0.0, luv.y) * step(luv.y, 1.0);
+  col = mix(paper, col, inside);
+  if (uShow > 0.5) col = mix(col, src, 0.65 * inside);
+
+  vec3 outC = mix(src, blendRGB(src, col), clamp(uOpacity, 0.0, 1.0));
+  outColor = vec4(clamp(outC, 0.0, 1.0), s0.a);
+}
+`,
 };
 
 function compileShader(type, src) {
@@ -21790,6 +22058,7 @@ const RUN = {
   audGate: (n, ins) => ins[0] || null,
   audFaixa: (n, ins) => ins[0] || null,
   holo: (n, ins) => runHolo(n, ins),
+  shapeHalftone: (n, ins) => runShapeHalftone(n, ins[0]),
   vetor: n => runVetor(n),
   blNoiseTex: (n, [rampaIn]) => fxRampaAplica(n, 0, rampaIn, runBlNoiseTex(n)),
   rampa: (n, ins) => runRampa(n, ins),
@@ -25007,6 +25276,7 @@ function blurAplicaVis(raiz, params) {
 
 function buildControls(n, body) {
   for (const p of NODE_TYPES[n.type].params) {
+    if (p.hidden) continue;                      // 3.5.0: este controle é montado pelo painel do nó
     let el = null;
     if (p.type === 'num') el = makeSlider(n, p, true);
     else if (p.type === 'enum') el = makeEnum(n, p);
@@ -25046,6 +25316,7 @@ function buildControls(n, body) {
     body.addEventListener('change', () => { if (n.ui.pviewAgenda) n.ui.pviewAgenda(); });
   }
   if (n.type === 'blurStudio') blurAplicaVis(body, n.params);
+  if (n.type === 'shapeHalftone') shPanel(n, body);
   if (n.type === 'bandMachine') bandAplicaVis(body, n.params);
   if (n.type === 'halfmode') halfModeAplicaVis(body, n.params);
 }
@@ -25088,6 +25359,332 @@ function selectFromControl(n) {
   refreshSelection();
 }
 
+/* =========================================================
+   Shape Halftone (3.5.0)
+   Inspector com as seções do Shape Halftone do Nexus (Transform,
+   Color, Glow, Shape, Texture, Distortion, Blend, Red/Green/Blue,
+   General). O desenho é um shader só: por canal (R/G/B) o tom vira
+   cobertura, a cobertura vira o tamanho da forma na célula, e as três
+   tintas se juntam sobre o papel.
+   ========================================================= */
+const SH_SECOES = [
+  ['Transform', ['opacity', 'blend', 'showSource', 'posX', 'posY', 'sizeW', 'sizeH', 'proporcao']],
+  ['Color', ['paper']],
+  ['Glow', ['glow', 'exposure']],
+  ['Shape', ['cellSize', 'sizeSpread', 'dotGain']],
+  ['Texture', ['paperGrain']],
+  ['Distortion', ['misreg']],
+  ['Blend', ['inkMode', 'inkCurve', 'threshold']],
+  ['Red', ['redShape', 'redAngle', 'redInk', 'redInt']],
+  ['Green', ['greenShape', 'greenAngle', 'greenInk', 'greenInt']],
+  ['Blue', ['blueShape', 'blueAngle', 'blueInk', 'blueInt']],
+  ['General', ['contrast', 'gamma', 'invert']],
+];
+function shShapeId(v) { const i = SH_SHAPES.findIndex(x => x[0] === v); return i < 0 ? 0 : i; }
+function shInkModeId(v) { const i = SH_INK_MODES.findIndex(x => x[0] === v); return i < 0 ? 0 : i; }
+
+/* curva de tinta: bezier (0,0)-(x1,y1)-(x2,y2)-(1,1) amostrada em 16 pontos
+   (é o que o shader lê: tom -> cobertura) */
+function shCurveBake(pts) {
+  const p = Array.isArray(pts) && pts.length >= 4 ? pts : [0.42, 0.06, 0.58, 0.94];
+  const x1 = clamp(Number(p[0]) || 0, 0.001, 0.999);
+  const y1 = clamp(Number(p[1]) || 0, -0.4, 1.4);
+  const x2 = clamp(Number(p[2]) || 0, x1, 0.999);
+  const y2 = clamp(Number(p[3]) || 0, -0.4, 1.4);
+  const bez = (a, b, t) => { const u = 1 - t; return 3 * u * u * t * a + 3 * u * t * t * b + t * t * t; };
+  const saida = [];
+  for (let i = 0; i < 16; i++) {
+    const x = i / 15;
+    let lo = 0, hi = 1, t = x;
+    for (let k = 0; k < 20; k++) {
+      t = (lo + hi) * 0.5;
+      if (bez(x1, x2, t) < x) lo = t; else hi = t;
+    }
+    saida.push(clamp(bez(y1, y2, t), 0, 1));
+  }
+  return saida;
+}
+
+function runShapeHalftone(n, a) {
+  if (!a) return null;
+  const p = n.params;
+  const W = Math.max(1, a.w), H = Math.max(1, a.h);
+  const cw = Number(p.sizeW) > 0 ? Number(p.sizeW) : W;      // 0 = encaixa no quadro
+  const chh = Number(p.sizeH) > 0 ? Number(p.sizeH) : H;
+  const thr = Array.isArray(p.threshold) ? p.threshold : [0.08, 0.92];
+  const lo = clamp(Number(thr[0]) || 0, 0, 1);
+  const hi = clamp(Number(thr[1]) || 1, lo + 0.004, 1);
+  const num = (v, d) => (isFinite(Number(v)) ? Number(v) : d);
+  return pointOp(a, 'shapeHalftone', {
+    uRes: [W, H],
+    uPos: [num(p.posX, 0), num(p.posY, 0)],
+    uSize: [cw, chh],
+    uOpacity: clamp(num(p.opacity, 100) / 100, 0, 1),
+    uMode: Math.max(0, BLEND.findIndex(m => m[0] === p.blend)),
+    uShow: p.showSource === 'sim' ? 1 : 0,
+    uPaper: hexRGB(p.paper),
+    uGlow: Math.max(0, num(p.glow, 0)),
+    uExposure: Math.max(0, num(p.exposure, 1)),
+    uCell: Math.max(1, num(p.cellSize, 11)),
+    uSpread: clamp(num(p.sizeSpread, 0), 0, 1),
+    uGain: Math.max(0.08, num(p.dotGain, 1)),
+    uGrain: clamp(num(p.paperGrain, 0), 0, 1),
+    uMisreg: Math.max(0, num(p.misreg, 0)),
+    uInkMode: shInkModeId(p.inkMode),
+    uThrA: lo, uThrB: hi,
+    uCurve: shCurveBake(p.inkCurve),
+    uShape: [shShapeId(p.redShape), shShapeId(p.greenShape), shShapeId(p.blueShape)],
+    uAng: [num(p.redAngle, 0), num(p.greenAngle, 0), num(p.blueAngle, 0)],
+    uInt: [Math.max(0, num(p.redInt, 0)), Math.max(0, num(p.greenInt, 0)), Math.max(0, num(p.blueInt, 0))],
+    uInkR: hexRGB(p.redInk), uInkG: hexRGB(p.greenInk), uInkB: hexRGB(p.blueInk),
+    uContrast: Math.max(0, num(p.contrast, 1)),
+    uGamma: Math.max(0.02, num(p.gamma, 1)),
+    uInvert: p.invert === 'sim' ? 1 : 0,
+  });
+}
+
+/* ----- painel: seções dobráveis, cada uma com os seus controles ----- */
+function shPanel(n, body) {
+  const porChave = {};
+  for (const p of NODE_TYPES.shapeHalftone.params) porChave[p.key] = p;
+  n.shAberto = n.shAberto || {};
+  const refs = {};
+  for (const [titulo, chaves] of SH_SECOES) {
+    const sec = E('div', 'sh-sec');
+    const aberto = n.shAberto[titulo] !== false;
+    if (!aberto) sec.classList.add('fold');
+    const cab = E('div', 'sh-sec-h');
+    cab.title = 'Show/hide the ' + titulo + ' controls';
+    const seta = E('span', 'sh-caret', aberto ? '▾' : '▸');
+    cab.append(seta, E('span', '', titulo));
+    const corpo = E('div', 'sh-sec-b');
+    cab.addEventListener('pointerdown', e => e.stopPropagation());
+    cab.addEventListener('click', e => {
+      e.stopPropagation();
+      const fechado = !sec.classList.contains('fold');
+      sec.classList.toggle('fold', fechado);
+      n.shAberto[titulo] = !fechado;
+      seta.textContent = fechado ? '▸' : '▾';
+      if (n.el) drawLinks();
+    });
+    for (const k of chaves) {
+      const p = porChave[k];
+      if (!p) continue;
+      let el = null;
+      if (p.type === 'num') el = makeSlider(n, p, true);
+      else if (p.type === 'enum') el = makeEnum(n, p);
+      else if (p.type === 'color') el = makeColor(n, p);
+      else if (p.type === 'lock') el = makeLock(n, p);
+      else if (p.type === 'switch') el = shSwitch(n, p);
+      else if (p.type === 'curve') el = shCurveCtl(n, p);
+      else if (p.type === 'range') el = shRangeCtl(n, p);
+      if (!el) continue;
+      el.dataset.pkey = k;
+      refs[k] = el;
+      corpo.append(el);
+    }
+    if (titulo === 'Transform') {
+      const dica = E('div', 'sh-hint', 'Size 0 = fit the frame · Position moves the print inside it');
+      corpo.append(dica);
+    }
+    if (titulo === 'Blend') corpo.append(E('div', 'sh-hint', 'Ink Curve: tone → coverage · Threshold Range: where the ink enters and saturates'));
+    sec.append(cab, corpo);
+    body.append(sec);
+  }
+  shTravaProporcao(n, body, refs);
+}
+
+/* Size W/H com o cadeado: o H acompanha a proporção guardada quando o W muda */
+function shTravaProporcao(n, corpo, refs) {
+  let razao = 0;
+  const ler = () => {
+    const w = Number(n.params.sizeW) || 0, h = Number(n.params.sizeH) || 0;
+    return w > 0.5 && h > 0.5 ? h / w : 0;
+  };
+  razao = ler();
+  const trava = () => n.params.proporcao !== 'free';
+  const aplica = () => {
+    if (!trava()) return;
+    if (!razao) razao = ler();
+    if (!razao) razao = 0;
+    const w = Number(n.params.sizeW) || 0;
+    const alvo = razao ? Math.max(1, Math.round(w * razao)) : 0;
+    if (alvo && Math.abs((Number(n.params.sizeH) || 0) - alvo) > 0.5) {
+      n.params.sizeH = alvo;
+      if (n.ui.sizeH) n.ui.sizeH();
+      markDirty(n.id);
+      requestRender();
+    }
+  };
+  const aoSoltar = e => {
+    if (!trava()) return;
+    const alvo = e.target && e.target.closest ? e.target.closest('[data-pkey="sizeW"]') : null;
+    if (!alvo) return;
+    aplica();
+    commit();
+  };
+  corpo.addEventListener('pointerup', aoSoltar);
+  corpo.addEventListener('change', aoSoltar);
+  const uiCadeado = n.ui.proporcao;
+  if (uiCadeado) n.ui.proporcao = () => { uiCadeado(); razao = 0; aplica(); };
+  if (refs.sizeW) refs.sizeW.title = 'Width of the print layer (0 = the whole frame)';
+}
+
+/* Show Source / Invert */
+function shSwitch(n, p) {
+  const row = E('div', 'prow');
+  row.append(E('span', 'plbl', p.label));
+  const btn = E('button', 'sh-sw');
+  btn.type = 'button';
+  btn.append(E('i', ''));
+  const refresh = () => {
+    const on = n.params[p.key] === 'sim';
+    btn.classList.toggle('on', on);
+    btn.setAttribute('aria-checked', on ? 'true' : 'false');
+    btn.title = (on ? 'On' : 'Off') + ' — click to turn it ' + (on ? 'off' : 'on');
+  };
+  btn.addEventListener('pointerdown', e => { e.stopPropagation(); selectFromControl(n); });
+  btn.addEventListener('click', e => {
+    e.stopPropagation();
+    n.params[p.key] = n.params[p.key] === 'sim' ? 'nao' : 'sim';
+    refresh(); markDirty(n.id); requestRender(); commit();
+  });
+  n.ui[p.key] = refresh;
+  refresh();
+  row.append(btn);
+  return row;
+}
+
+/* Ink Curve: as duas alças do bezier, desenhadas sobre a própria amostra do shader */
+function shCurveCtl(n, p) {
+  const wrap = E('div', 'sh-curve');
+  const cv = document.createElement('canvas');
+  wrap.append(cv);
+  const pontos = () => {
+    if (!Array.isArray(n.params[p.key]) || n.params[p.key].length < 4) n.params[p.key] = [0.42, 0.06, 0.58, 0.94];
+    return n.params[p.key];
+  };
+  let arrastando = -1;
+  const desenha = () => {
+    const r = cv.getBoundingClientRect();
+    const w = Math.max(40, Math.round(r.width || 150)), h = Math.max(30, Math.round(r.height || 92));
+    const dpr = Math.min(2, window.devicePixelRatio || 1);
+    const bw = Math.round(w * dpr), bh = Math.round(h * dpr);
+    if (cv.width !== bw || cv.height !== bh) { cv.width = bw; cv.height = bh; }
+    const g = cv.getContext('2d');
+    if (!g) return;
+    g.setTransform(dpr, 0, 0, dpr, 0, 0);
+    g.clearRect(0, 0, w, h);
+    g.strokeStyle = 'rgba(150,162,180,.24)';
+    g.lineWidth = 1;
+    for (let i = 1; i < 4; i++) {
+      const x = (w * i) / 4, y = (h * i) / 4;
+      g.beginPath(); g.moveTo(x, 0.5); g.lineTo(x, h - 0.5); g.stroke();
+      g.beginPath(); g.moveTo(0.5, y); g.lineTo(w - 0.5, y); g.stroke();
+    }
+    g.strokeStyle = 'rgba(255,255,255,.18)';
+    g.setLineDash([3, 3]);
+    g.beginPath(); g.moveTo(0, h); g.lineTo(w, 0); g.stroke();
+    g.setLineDash([]);
+    const c = pontos();
+    const px = v => v * w, py = v => h - v * h;
+    const amostras = shCurveBake(c);
+    g.strokeStyle = '#e9eef7';
+    g.lineWidth = 1.8;
+    g.beginPath();
+    for (let i = 0; i < 16; i++) {
+      const x = px(i / 15), y = py(amostras[i]);
+      if (i) g.lineTo(x, y); else g.moveTo(x, y);
+    }
+    g.stroke();
+    g.lineWidth = 1;
+    g.strokeStyle = 'rgba(160,180,210,.45)';
+    g.beginPath(); g.moveTo(px(0), py(0)); g.lineTo(px(c[0]), py(c[1])); g.stroke();
+    g.beginPath(); g.moveTo(px(1), py(1)); g.lineTo(px(c[2]), py(c[3])); g.stroke();
+    g.fillStyle = '#7fb3ff'; g.fillRect(px(c[0]) - 3.5, py(c[1]) - 3.5, 7, 7);
+    g.fillStyle = '#ffcf6b'; g.fillRect(px(c[2]) - 3.5, py(c[3]) - 3.5, 7, 7);
+  };
+  const move = e => {
+    const r = cv.getBoundingClientRect();
+    const nx = clamp((e.clientX - r.left) / Math.max(1, r.width), 0.001, 0.999);
+    const ny = clamp(1 - (e.clientY - r.top) / Math.max(1, r.height), -0.3, 1.3);
+    const c = pontos();
+    if (arrastando === 0) { c[0] = Math.min(nx, c[2]); c[1] = ny; }
+    else { c[2] = Math.max(nx, c[0]); c[3] = ny; }
+    desenha();
+    markDirty(n.id);
+    requestRender();
+  };
+  cv.addEventListener('pointerdown', e => {
+    e.preventDefault();
+    e.stopPropagation();
+    selectFromControl(n);
+    const r = cv.getBoundingClientRect();
+    const c = pontos();
+    const mx = (e.clientX - r.left) / Math.max(1, r.width);
+    const my = 1 - (e.clientY - r.top) / Math.max(1, r.height);
+    const d0 = Math.hypot(mx - c[0], my - c[1]);
+    const d1 = Math.hypot(mx - c[2], my - c[3]);
+    arrastando = d0 <= d1 ? 0 : 1;
+    if (cv.setPointerCapture) { try { cv.setPointerCapture(e.pointerId); } catch (_) {} }
+    move(e);
+  });
+  cv.addEventListener('pointermove', e => { if (arrastando >= 0) move(e); });
+  cv.addEventListener('pointerup', () => { if (arrastando >= 0) { arrastando = -1; commit(); } });
+  cv.addEventListener('pointercancel', () => { arrastando = -1; });
+  n.ui[p.key] = desenha;
+  requestAnimationFrame(desenha);
+  return wrap;
+}
+
+/* Threshold Range: duas alças no mesmo trilho */
+function shRangeCtl(n, p) {
+  const wrap = E('div', 'sh-range');
+  const fill = E('div', 'sh-rfill');
+  const ta = E('div', 'sh-rth');
+  const tb = E('div', 'sh-rth');
+  wrap.append(fill, ta, tb);
+  const vals = () => {
+    if (!Array.isArray(n.params[p.key]) || n.params[p.key].length < 2) n.params[p.key] = [0.08, 0.92];
+    return n.params[p.key];
+  };
+  let puxa = -1;
+  const refresh = () => {
+    const v = vals();
+    const a = clamp(Number(v[0]) || 0, 0, 1), b = clamp(Number(v[1]) || 1, 0, 1);
+    fill.style.left = (a * 100) + '%';
+    fill.style.width = Math.max(0, (b - a) * 100) + '%';
+    ta.style.left = (a * 100) + '%';
+    tb.style.left = (b * 100) + '%';
+  };
+  const move = e => {
+    const r = wrap.getBoundingClientRect();
+    const x = clamp((e.clientX - r.left) / Math.max(1, r.width), 0, 1);
+    const v = vals();
+    if (puxa === 0) v[0] = Math.min(x, v[1] - 0.01);
+    else v[1] = Math.max(x, v[0] + 0.01);
+    refresh();
+    markDirty(n.id);
+    requestRender();
+  };
+  wrap.addEventListener('pointerdown', e => {
+    e.preventDefault();
+    e.stopPropagation();
+    selectFromControl(n);
+    const r = wrap.getBoundingClientRect();
+    const x = (e.clientX - r.left) / Math.max(1, r.width);
+    const v = vals();
+    puxa = Math.abs(x - v[0]) <= Math.abs(x - v[1]) ? 0 : 1;
+    if (wrap.setPointerCapture) { try { wrap.setPointerCapture(e.pointerId); } catch (_) {} }
+    move(e);
+  });
+  wrap.addEventListener('pointermove', e => { if (puxa >= 0) move(e); });
+  wrap.addEventListener('pointerup', () => { if (puxa >= 0) { puxa = -1; commit(); } });
+  wrap.addEventListener('pointercancel', () => { puxa = -1; });
+  n.ui[p.key] = refresh;
+  refresh();
+  return wrap;
+}
 function makeSlider(n, p, keyable) {
   const wrap = E('div', 'ctrl');
   const fill = E('div', 'fill');
