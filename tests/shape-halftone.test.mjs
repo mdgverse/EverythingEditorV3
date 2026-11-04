@@ -30,10 +30,10 @@ const campos = [
   ['Opacity', /HNUM\('opacity', 'Opacity', 0, 100, 100, 1\)/],
   ['Blend', /HENUM\('blend', 'Blend', BLEND, 'normal'\)/],
   ['Show Source', /HSW\('showSource', 'Show Source', 'nao'\)/],
-  ['Position X', /HNUM\('posX', 'Position X', -4000, 4000, 0, 1\)/],
-  ['Position Y', /HNUM\('posY', 'Position Y', -4000, 4000, 0, 1\)/],
-  ['Size W', /HNUM\('sizeW', 'Size W', 0, 8192, 0, 1\)/],
-  ['Size H', /HNUM\('sizeH', 'Size H', 0, 8192, 0, 1\)/],
+  ['Position X', /HNUM\('posX', 'Position X', -200, 200, 0, 0\.5\)/],
+  ['Position Y', /HNUM\('posY', 'Position Y', -200, 200, 0, 0\.5\)/],
+  ['Size W', /HNUM\('sizeW', 'Size W', 5, 400, 100, 1\)/],
+  ['Size H', /HNUM\('sizeH', 'Size H', 5, 400, 100, 1\)/],
   ['trava de proporção', /HLOCK\('proporcao', 'Lock ratio', 'locked'\)/],
   ['Paper', /HCOL\('paper', 'Paper', '#f4efe4'\)/],
   ['Glow', /HNUM\('glow', 'Glow', 0, 1, 0, 0.01\)/],
@@ -41,10 +41,10 @@ const campos = [
   ['Cell Size', /HNUM\('cellSize', 'Cell Size', 2, 80, 11, 0.1\)/],
   ['Size Spread', /HNUM\('sizeSpread', 'Size Spread', 0, 1, 0, 0.01\)/],
   ['Dot Gain', /HNUM\('dotGain', 'Dot Gain', 0, 3, 1\.133, 0\.001\)/],
-  ['Paper Grain', /HNUM\('paperGrain', 'Paper Grain', 0, 1, 0\.6, 0\.01\)/],
+  ['Paper Grain', /HNUM\('paperGrain', 'Paper Grain', 0, 1, 0\.3, 0\.01\)/],
   ['Misregistration', /HNUM\('misreg', 'Misregistration', 0, 40, 0\.42, 0\.01\)/],
   ['Ink Mode', /HENUM\('inkMode', 'Ink Mode', SH_INK_MODES, 'additive'\)/],
-  ['Ink Curve', /HCURVE\('inkCurve', 'Ink Curve', \[0\.42, 0\.06, 0\.58, 0\.94\]\)/],
+  ['Ink Curve', /HCURVE\('inkCurve', 'Ink Curve', \[0, 0\.33, 0\.67, 1\]\)/],
   ['Threshold Range', /HRANGE\('threshold', 'Threshold Range', \[0\.08, 0\.92\]\)/],
   ['Red Shape', /HENUM\('redShape', 'Red Shape', SH_SHAPES, 'smileys'\)/],
   ['Red Angle', /HNUM\('redAngle', 'Red Angle', 0, 180, 33, 1\)/],
@@ -60,7 +60,7 @@ const campos = [
   ['Blue Intensity', /HNUM\('blueInt', 'Blue Intensity', 0, 3, 1\.56, 0\.01\)/],
   ['Contrast', /HNUM\('contrast', 'Contrast', 0, 3, 1, 0\.01\)/],
   ['Gamma', /HNUM\('gamma', 'Gamma', 0\.1, 4, 1, 0\.01\)/],
-  ['Invert', /HSW\('invert', 'Invert', 'nao'\)/],
+  ['Invert', /HSW\('invert', 'Invert', 'sim'\)/],
 ];
 for (const [nome, re] of campos) ok(re.test(def), 'controle: ' + nome);
 
@@ -86,22 +86,24 @@ for (const [nome, re] of campos) ok(re.test(def), 'controle: ' + nome);
 
 /* ---------- shader ---------- */
 const sh = recorta('  shapeHalftone: `', '\n`,\n};');
-ok(/uniform sampler2D uSrc;/.test(sh), 'lê a imagem de entrada');
+ok(/uniform sampler2D uSrc, uGlyph, uCurveTex;/.test(sh), 'lê a imagem, o atlas de glifos e a LUT da curva');
 ok(/uniform vec2 uRes, uPos, uSize;/.test(sh), 'resolução e transform da camada (posição/tamanho)');
 ok(/uniform float uOpacity, uGlow, uExposure, uCell, uSpread, uGain, uGrain, uMisreg;/.test(sh), 'opacidade, glow, exposição, célula, spread, ganho, grão e misregistration');
 ok(/uniform float uThrA, uThrB, uContrast, uGamma, uShow, uInvert, uInkMode;/.test(sh), 'threshold, contraste, gamma, show source, invert e modo de tinta');
 ok(/uniform float uShape\[3\], uAng\[3\], uInt\[3\];/.test(sh), 'forma/ângulo/intensidade por canal');
 ok(/uniform vec3 uPaper, uInkR, uInkG, uInkB;/.test(sh), 'papel e as três tintas');
-ok(/uniform float uCurve\[16\];/.test(sh), 'curva de tinta amostrada (16 pontos)');
 ok(/uniform int uMode;/.test(sh), 'blend da camada com a imagem de baixo');
 ok(/for \(int c = 0; c < 3; c\+\+\)\{/.test(sh), 'um passo por canal RGB');
 ok(/float mi = \(ch - 1\.0\) \* uMisreg;/.test(sh), 'misregistration desloca os canais', 'misreg');
 ok(/vec2 gq = shRot\(px - center \+ off, ang\) \/ cell;/.test(sh), 'grade própria de cada canal (ângulo + célula)');
-ok(/float k = shCurveY\(tone\)/.test(sh), 'a curva de tinta entra antes do threshold');
+ok(/texture\(uCurveTex, vec2\(clamp\(tone, 0\.0, 1\.0\), 0\.5\)\)\.r/.test(sh), 'a curva de tinta entra como LUT de 256 px');
 ok(/smoothstep\(uThrA, uThrB, k\)/.test(sh), 'threshold range delimita a entrada da tinta');
 ok(/pow\(clamp\(cov, 0\.0, 1\.0\), 1\.0 \/ max\(uGain, 0\.08\)\)/.test(sh), 'dot gain aumenta a cobertura');
 ok(/uSpread \* \(rnd - 0\.5\) \* 1\.6/.test(sh), 'size spread varia o tamanho célula a célula');
-ok(/float halo = uGlow \* 0\.85 \* exp\(-max\(f, 0\.0\) \* 4\.5\) \* cov \* cov;/.test(sh), 'glow redesenha o entorno do ponto');
+ok(/vec2 gu = vec2\(local\.x, -local\.y\) \* 2\.0 \/ esc;/.test(sh), 'a cobertura escala o glifo dentro da célula');
+ok(/fwidth\(gu\)/.test(sh), 'borda do glifo com antialiasing (fwidth)');
+ok(/vec2 auv = shGlyphUV\(/.test(sh) && /texture\(uGlyph, auv\)\.a/.test(sh), 'o glifo vem do atlas (SVG rasterizado)');
+ok(/textureLod\(uGlyph, auv, 1\.5\)\.a/.test(sh), 'glow é o próprio glifo desfocado no mipmap', 'glow');
 ok(/hash\(px\.x, px\.y\)/.test(sh), 'paper grain com hash determinístico (export = preview)', 'grain');
 ok(/lightAcc \+= ink \* alpha;/.test(sh), 'tinta additive: as três tintas somam luz', 'additive');
 ok(/if \(modo == 0\) col = lightPix;/.test(sh), 'additive recorta o papel sob a tinta', 'knockout');
@@ -111,22 +113,71 @@ ok(/int modo = int\(uInkMode \+ 0\.5\);/.test(sh), 'modo de tinta escolhido por 
 ok(/blendRGB\(src, col\)/.test(sh), 'blend da camada com a imagem de entrada');
 ok(/mix\(src, blendRGB\(src, col\), clamp\(uOpacity, 0\.0, 1\.0\)\)/.test(sh), 'opacidade fecha a mistura (0–100%)');
 ok(/uShow > 0\.5/.test(sh), 'Show Source mostra a imagem original sob a tinta');
-ok(/\n}`;\n/.test(sh) || /outColor = vec4\(clamp\(outC, 0\.0, 1\.0\), s0\.a\);/.test(sh), 'saída normalizada com o alfa da fonte');
+ok(/outColor = vec4\(clamp\(outC, 0\.0, 1\.0\), s0\.a\);/.test(sh), 'saída normalizada com o alfa da fonte');
 ok((sh.match(/\{/g) || []).length === (sh.match(/\}/g) || []).length, 'chaves equilibradas no GLSL');
 ok(!/qTime|uTime/.test(sh), 'determinístico: sem tempo', 'sem tempo');
+ok(!/shField|sdTri|sdBox/.test(sh), 'nada de forma procedural no GLSL: o desenho é o glifo do atlas');
 
-/* as 16 formas do dropdown existem no GLSL */
+/* ---------- glifos em SVG ---------- */
 {
-  const formas = recorta('const SH_SHAPES = [', '];');
-  const nomes = [...formas.matchAll(/\['([a-z]+)', '([A-Za-z]+)'\]/g)];
-  ok(nomes.length === 16, 'dropdown com 16 formas', nomes.length);
-  const ids = [...sh.matchAll(/if \(k == (\d+)\)/g)].map(m => Number(m[1]));
-  const faltando = [];
-  for (let i = 1; i <= 15; i++) if (!ids.includes(i)) faltando.push(i);
-  ok(faltando.length === 0, 'todas as formas têm o seu desenho no shader', faltando.join(','));
-  for (const nome of ['smileys', 'arrows', 'lines', 'dot', 'heart']) {
-    ok(nomes.some(n => n[1] === nome), 'forma "' + nome + '" no dropdown');
+  const bloco = recorta('const SH_GLYPHS = {', '\n};');
+  const chaves = [...bloco.matchAll(/^  ([a-z]+): \[/gm)].map(m => m[1]);
+  ok(chaves.length === 16, 'atlas com 16 glifos', chaves.length);
+  const formas = [...recorta('const SH_SHAPES = [', '];').matchAll(/\['([a-z]+)'/g)].map(m => m[1]);
+  ok(formas.join(',') === chaves.join(','), 'a ordem dos glifos é a mesma do dropdown', chaves.join(','));
+  const faltando = formas.filter(f => !bloco.includes('  ' + f + ': ['));
+  ok(faltando.length === 0, 'todo Shape do dropdown tem desenho', faltando.join(','));
+  for (const nome of ['dot', 'smileys', 'arrows', 'heart', 'grid', 'waves', 'ring']) {
+    ok(bloco.includes('  ' + nome + ": ['M"), 'glifo "' + nome + '" é um caminho SVG');
   }
+  ok(/stars: \[shStarPath\(\)\]/.test(bloco), 'estrela vem do gerador de caminho', 'stars');
+  const smiley = bloco.match(/smileys: \[([\s\S]*?)\],/)[1];
+  ok((smiley.match(/'M/g) || []).length >= 4, 'smiley tem cara, dois olhos e boca (sub-caminhos)', (smiley.match(/'M/g) || []).length);
+  ok(/'nonzero'/.test(bloco), 'o grid usa a regra nonzero (treliça, não xadrez)', 'grid');
+  ok(!/undefined|NaN/.test(bloco), 'nenhum caminho com valor quebrado');
+  const estrela = recorta('function shStarPath(', '\n}\n') + '\n}';
+  const path = new Function(estrela + '\nreturn shStarPath;')()();
+  ok(/^M[\d\s.-]+(?:L[\d\s.-]+)+Z$/.test(path), 'estrela é gerada como caminho fechado', path.slice(0, 24));
+  ok((path.match(/L/g) || []).length === 9, 'estrela de 5 pontas = 10 vértices', (path.match(/L/g) || []).length);
+  const nums = path.match(/-?\d+\.\d/g) || [];
+  ok(nums.length >= 20 && nums.every(v => Number(v) >= -2 && Number(v) <= 102), 'estrela dentro do tile 100x100');
+}
+
+/* ---------- atlas rasterizado no canvas ---------- */
+{
+  const fonte = recorta('let shAtlasTex = null;', 'function shGlyphAtlas(') + funcao('shGlyphAtlas');
+  const LISTA = [['dot'], ['square'], ['diamond'], ['triangle'], ['lines'], ['arrows'], ['smileys'], ['stars'],
+    ['plus'], ['ring'], ['hexagon'], ['grid'], ['waves'], ['heart'], ['ellipse'], ['solid']];
+  const GLIFOS = {};
+  for (const [id] of LISTA) GLIFOS[id] = ['M0 0h10v10H0Z'];
+  const preenchidos = [];
+  let canvas = null, tex = 0, mip = 0;
+  const ctx = {
+    clearRect() {}, save() {}, restore() {},
+    translate(x, y) { this.tx = x; this.ty = y; },
+    scale() {}, set fillStyle(v) { this.cor = v; },
+    fill(p, regra) { preenchidos.push({ d: p.d, regra, x: this.tx, y: this.ty, cor: this.cor }); },
+  };
+  const doc = { createElement: () => (canvas = { width: 0, height: 0, getContext: () => ctx }) };
+  const glF = {
+    createTexture: () => (++tex), bindTexture() {},
+    pixelStorei() {}, texImage2D(a, b, c, d, e) { glF.img = { d, e }; },
+    generateMipmap() { mip++; }, texParameteri() {},
+  };
+  const fab = new Function('document', 'Path2D', 'gl', 'SH_SHAPES', 'SH_GLYPHS',
+    fonte + '\nreturn shGlyphAtlas;');
+  const atlas = fab(doc, class { constructor(d) { this.d = d; } }, glF, LISTA, GLIFOS);
+  const t1 = atlas();
+  ok(t1 === tex, 'atlas vira textura na primeira chamada');
+  ok(canvas && canvas.width === 512 && canvas.height === 512, 'atlas 4x4 de 128 px = 512x512', canvas && [canvas.width, canvas.height]);
+  ok(preenchidos.length === 16, 'os 16 glifos são desenhados', preenchidos.length);
+  ok(preenchidos[0].x === 0 && preenchidos[0].y === 0, 'primeiro glifo no canto (dot)');
+  ok(preenchidos[4].x === 0 && preenchidos[4].y === 128, 'quinto glifo na segunda linha (lines)', [preenchidos[4].x, preenchidos[4].y]);
+  ok(preenchidos[11].x === 384 && preenchidos[11].y === 256, 'grid no tile certo', [preenchidos[11].x, preenchidos[11].y]);
+  ok(preenchidos[0].cor === '#ffffff', 'glifos em branco (o shader usa o alfa)');
+  ok(preenchidos[0].regra === 'evenodd', 'regra padrão even-odd');
+  ok(mip === 1, 'atlas gera mipmap uma vez');
+  ok(atlas() === tex && preenchidos.length === 16, 'segunda chamada reaproveita o atlas (sem redesenhar)');
 }
 
 /* ---------- curva de tinta (matemática pura) ---------- */
@@ -160,18 +211,22 @@ ok(!/qTime|uTime/.test(sh), 'determinístico: sem tempo', 'sem tempo');
     ['overlay', 'Overlay'], ['softlight', 'Soft light'], ['difference', 'Difference'], ['subtract', 'Subtract']];
   const BLEND_T = [['normal', 'Normal'], ['multiply', 'Multiply'], ['screen', 'Screen'], ['overlay', 'Overlay']];
   const fonteCurva = funcao('shCurveBake');
+  let atlasPedido = 0, lutPedida = null;
   const fabrica = new Function('pointOp', 'clamp', 'BLEND', 'SH_SHAPES', 'SH_INK_MODES', 'hexRGB', 'isFinite',
+    'shGlyphAtlas', 'shCurveTexus',
     'const shShapeId = v => { const i = SH_SHAPES.findIndex(x => x[0] === v); return i < 0 ? 0 : i; };' +
     'const shInkModeId = v => { const i = SH_INK_MODES.findIndex(x => x[0] === v); return i < 0 ? 0 : i; };' +
     fonteCurva + fonte + '\nreturn runShapeHalftone;');
   let pedido = null;
-  const run = fabrica((a, prog, u) => { pedido = { prog, u, a }; return { ok: 1 }; },
+  const run = fabrica((a, prog, u, extra) => { pedido = { prog, u, extra, a }; return { ok: 1 }; },
     (v, a, b) => Math.min(b, Math.max(a, v)), BLEND_T, SH_SHAPES_T, SH_INK_T,
     hex => [parseInt(hex.slice(1, 3), 16) / 255, parseInt(hex.slice(3, 5), 16) / 255, parseInt(hex.slice(5, 7), 16) / 255],
-    isFinite);
+    isFinite,
+    () => (++atlasPedido, 'atlas-tex'),
+    curva => (lutPedida = curva, 'lut-tex'));
 
   const p = {
-    opacity: 80, blend: 'multiply', showSource: 'sim', posX: 12, posY: -30, sizeW: 0, sizeH: 0, proporcao: 'locked',
+    opacity: 80, blend: 'multiply', showSource: 'sim', posX: 12, posY: -30, sizeW: 100, sizeH: 100, proporcao: 'locked',
     paper: '#f4efe4', glow: 0.25, exposure: 1.2, cellSize: 9, sizeSpread: 0.5, dotGain: 1.4, paperGrain: 0.3,
     misreg: 3, inkMode: 'screen', inkCurve: [0.42, 0.06, 0.58, 0.94], threshold: [0.2, 0.8],
     redShape: 'smileys', redAngle: 33, redInk: '#e8322a', redInt: 1.1,
@@ -185,8 +240,11 @@ ok(!/qTime|uTime/.test(sh), 'determinístico: sem tempo', 'sem tempo');
   ok(pedido.a.w === 640 && pedido.a.h === 480, 'mantém a resolução da entrada');
   const u = pedido.u;
   ok(u.uRes[0] === 640 && u.uRes[1] === 480, 'uRes com o tamanho do quadro');
-  ok(u.uSize[0] === 640 && u.uSize[1] === 480, 'Size 0 = encaixa no quadro', u.uSize);
-  ok(u.uPos[0] === 12 && u.uPos[1] === -30, 'posição da camada vai para o shader');
+  ok(u.uSize[0] === 640 && u.uSize[1] === 480, 'Size 100% = imagem inteira (sem zoom no padrão)', u.uSize);
+  ok(Math.abs(u.uPos[0] - 76.8) < 1e-6 && Math.abs(u.uPos[1] + 144) < 1e-6, 'posição em % vira pixels do quadro', u.uPos);
+  ok(pedido.extra.uGlyph === 'atlas-tex' && pedido.extra.uCurveTex === 'lut-tex', 'atlas e LUT entram como texturas', pedido.extra);
+  ok(atlasPedido === 1, 'o atlas é pedido uma vez por execução');
+  ok(lutPedida === p.inkCurve, 'a LUT é montada a partir da curva do nó');
   ok(Math.abs(u.uOpacity - 0.8) < 1e-9, 'opacidade em 0–1', u.uOpacity);
   ok(u.uMode === 1, 'blend Multiply = índice 1 da lista de blends', u.uMode);
   ok(u.uShow === 1, 'Show Source ligado');
@@ -200,10 +258,21 @@ ok(!/qTime|uTime/.test(sh), 'determinístico: sem tempo', 'sem tempo');
   ok(u.uAng.join(',') === '33,29,121', 'ângulos por canal 33/29/121', u.uAng);
   ok(u.uInt.join(',') === '1.1,1,1.56', 'intensidades por canal', u.uInt);
   ok(u.uInkR.length === 3 && u.uInkR[0] > 0.8 && u.uInkG[1] > 0.5 && u.uInkB[2] > 0.7, 'tintas em 0–1');
-  ok(u.uCurve.length === 16, 'curva achatada em 16 amostras', u.uCurve.length);
   ok(Math.abs(u.uContrast - 1.3) < 1e-9 && Math.abs(u.uGamma - 0.9) < 1e-9, 'contraste e gamma');
   ok(Math.abs(u.uGlow - 0.25) < 1e-9 && Math.abs(u.uExposure - 1.2) < 1e-9, 'glow e exposição');
   ok(u.uPaper.length === 3 && u.uPaper[0] > 0.9, 'cor do papel');
+
+  /* transform em % da moldura */
+  const meio = Object.assign({}, p, { sizeW: 50, sizeH: 25, posX: 0, posY: 0 });
+  run({ id: 70, params: meio }, { w: 1000, h: 800, tex: 't' });
+  ok(pedido.u.uSize[0] === 500 && pedido.u.uSize[1] === 200, 'Size 50%/25% = metade da largura e um quarto da altura', pedido.u.uSize);
+  const semTam = Object.assign({}, p, { sizeW: 0, sizeH: 0 });
+  run({ id: 72, params: semTam }, { w: 720, h: 540, tex: 't' });
+  ok(pedido.u.uSize[0] === 720 && pedido.u.uSize[1] === 540, 'Size 0 herdado da 3.5.0 vira 100% (imagem inteira)', pedido.u.uSize);
+  const antigo = Object.assign({}, p, { sizeW: 1209, sizeH: 1209, posX: -1830, posY: 0 });
+  run({ id: 71, params: antigo }, { w: 1080, h: 1080, tex: 't' });
+  ok(Math.abs(pedido.u.uSize[0] - 1209) < 3, 'Size antigo em px é lido como % e não vira zoom de 12x', pedido.u.uSize[0]);
+  ok(Math.abs(pedido.u.uPos[0] + 1830) < 4, 'Position antiga em px continua no lugar', pedido.u.uPos[0]);
 
   /* threshold invertido e texto inválido não quebram o shader */
   const q = Object.assign({}, p, { threshold: [0.9, 0.2], opacity: 'x', cellSize: 0, gamma: 0, inkCurve: null, blend: 'naoexiste' });
@@ -212,7 +281,7 @@ ok(!/qTime|uTime/.test(sh), 'determinístico: sem tempo', 'sem tempo');
   ok(pedido && pedido.u.uThrB > pedido.u.uThrA, 'threshold invertido é corrigido (A < B)', [pedido.u.uThrA, pedido.u.uThrB]);
   ok(pedido.u.uCell >= 1, 'cell size zero não gera divisão por zero');
   ok(pedido.u.uGamma >= 0.02, 'gamma zero é limitado');
-  ok(pedido.u.uCurve.length === 16, 'curva ausente cai na padrão');
+  ok(pedido.extra.uCurveTex === 'lut-tex', 'curva ausente cai na padrão (LUT gerada mesmo assim)');
   ok(pedido.u.uMode >= 0, 'blend desconhecido cai em Normal');
   ok(run({ id: 9, params: p }, null) === null, 'sem imagem ligada devolve null (nada desenha)');
 }

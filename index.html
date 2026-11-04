@@ -439,7 +439,7 @@ body.mobile .sh-sec-h{height:26px;font-size:12px}
 
 /* Versão do editor — o arquivo VERSION na raiz é a fonte da verdade
    (o build do APK usa o mesmo número no versionName e falha se divergir). */
-const APP_VERSION = '3.5.0';
+const APP_VERSION = '3.5.1';
 /* sem a telinha, a versão aparece no tooltip da marca (e o título da aba segue curto) */
 {
   const marca = document.getElementById('brandBtn');
@@ -888,6 +888,39 @@ const SH_SHAPES = [['dot', 'Dot'], ['square', 'Square'], ['diamond', 'Diamond'],
   ['ellipse', 'Ellipse'], ['solid', 'Solid']];
 const SH_INK_MODES = [['additive', 'Additive'], ['multiply', 'Multiply'], ['screen', 'Screen'],
   ['overlay', 'Overlay'], ['softlight', 'Soft light'], ['difference', 'Difference'], ['subtract', 'Subtract']];
+/* 3.5.1 — as formas do Shape Halftone são SVG (Path2D), rasterizadas num atlas
+   4x4 no primeiro uso: o glifo continua vetorial em qualquer tamanho de célula. */
+function shStarPath(n = 5, R = 49, r = 20, cx = 50, cy = 52) {
+  const pts = [];
+  for (let i = 0; i < n * 2; i++) {
+    const a = (-90 + i * 180 / n) * Math.PI / 180;
+    const rad = i % 2 ? r : R;
+    pts.push((cx + rad * Math.cos(a)).toFixed(1) + ' ' + (cy + rad * Math.sin(a)).toFixed(1));
+  }
+  return 'M' + pts.join('L') + 'Z';
+}
+const SH_GLYPHS = {
+  dot: ['M50 0a50 50 0 1 0 0 100a50 50 0 1 0 0-100Z'],
+  square: ['M2 2h96v96H2Z'],
+  diamond: ['M50 1 99 50 50 99 1 50Z'],
+  triangle: ['M50 4 97 96H3Z'],
+  lines: ['M0 6h100v18H0Zm0 29h100v18H0Zm0 29h100v18H0Z'],
+  arrows: ['M50 2 97 52H70v46H30V52H3Z'],
+  smileys: ['M50 0a50 50 0 1 0 0 100a50 50 0 1 0 0-100Z'
+    + 'M30 28a9 9 0 1 0 0 18a9 9 0 1 0 0-18Z'
+    + 'M70 28a9 9 0 1 0 0 18a9 9 0 1 0 0-18Z'
+    + 'M22 56A28 28 0 0 0 78 56L66 56A16 16 0 0 1 34 56Z'],
+  stars: [shStarPath()],
+  plus: ['M37 0h26v37h37v26H63v37H37V63H0V37h37Z'],
+  ring: ['M50 0a50 50 0 1 0 0 100a50 50 0 1 0 0-100ZM50 26a24 24 0 1 1 0 48a24 24 0 1 1 0-48Z'],
+  hexagon: ['M50 1 97 26v48L50 99 3 74V26Z'],
+  grid: ['M0 0h100v13H0Zm0 29h100v13H0Zm0 29h100v13H0Zm0 29h100v13H0Z'
+    + 'M0 0h13v100H0Zm29 0h13v100H29Zm29 0h13v100H58Zm29 0h13v100H87Z', 'nonzero'],
+  waves: ['M0 46q25-32 50 0t50 0v34q-25 32-50 0t-50 0Z'],
+  heart: ['M50 96 8 54a25 25 0 1 1 42-31a25 25 0 1 1 42 31Z'],
+  ellipse: ['M50 2a50 46 0 1 0 0 92a50 46 0 1 0 0-92Z'],
+  solid: ['M0 0h100v100H0Z'],
+};
 const HNUM   = (key, label, min, max, def, step = 1) => ({ ...NUM(key, label, min, max, def, step), hidden: true });
 const HENUM  = (key, label, options, def) => ({ ...ENUM(key, label, options, def), hidden: true });
 const HCOL   = (key, label, def) => ({ ...COL(key, label, def), hidden: true });
@@ -4117,10 +4150,10 @@ const NODE_TYPES = {
       HNUM('opacity', 'Opacity', 0, 100, 100, 1),
       HENUM('blend', 'Blend', BLEND, 'normal'),
       HSW('showSource', 'Show Source', 'nao'),
-      HNUM('posX', 'Position X', -4000, 4000, 0, 1),
-      HNUM('posY', 'Position Y', -4000, 4000, 0, 1),
-      HNUM('sizeW', 'Size W', 0, 8192, 0, 1),
-      HNUM('sizeH', 'Size H', 0, 8192, 0, 1),
+      HNUM('posX', 'Position X', -200, 200, 0, 0.5),
+      HNUM('posY', 'Position Y', -200, 200, 0, 0.5),
+      HNUM('sizeW', 'Size W', 5, 400, 100, 1),
+      HNUM('sizeH', 'Size H', 5, 400, 100, 1),
       HLOCK('proporcao', 'Lock ratio', 'locked'),
       /* Color */
       HCOL('paper', 'Paper', '#f4efe4'),
@@ -4132,12 +4165,12 @@ const NODE_TYPES = {
       HNUM('sizeSpread', 'Size Spread', 0, 1, 0, 0.01),
       HNUM('dotGain', 'Dot Gain', 0, 3, 1.133, 0.001),
       /* Texture */
-      HNUM('paperGrain', 'Paper Grain', 0, 1, 0.6, 0.01),
+      HNUM('paperGrain', 'Paper Grain', 0, 1, 0.3, 0.01),
       /* Distortion */
       HNUM('misreg', 'Misregistration', 0, 40, 0.42, 0.01),
       /* Blend & curve */
       HENUM('inkMode', 'Ink Mode', SH_INK_MODES, 'additive'),
-      HCURVE('inkCurve', 'Ink Curve', [0.42, 0.06, 0.58, 0.94]),
+      HCURVE('inkCurve', 'Ink Curve', [0, 0.33, 0.67, 1]),
       HRANGE('threshold', 'Threshold Range', [0.08, 0.92]),
       /* Channel separation */
       HENUM('redShape', 'Red Shape', SH_SHAPES, 'smileys'),
@@ -4155,7 +4188,7 @@ const NODE_TYPES = {
       /* General */
       HNUM('contrast', 'Contrast', 0, 3, 1, 0.01),
       HNUM('gamma', 'Gamma', 0.1, 4, 1, 0.01),
-      HSW('invert', 'Invert', 'nao'),
+      HSW('invert', 'Invert', 'sim'),
     ],
   },  output: {
     title: 'Output', cat: 'output', inputs: ['Image'], params: [],
@@ -7495,110 +7528,34 @@ void main(){
   /* Shape Halftone (3.5.0): meio-tom por canal — o tom de cada canal vira
      cobertura, a cobertura vira o tamanho da forma na célula, e as três
      tintas se juntam sobre o papel. */
-  shapeHalftone: `uniform sampler2D uSrc;
+  shapeHalftone: `uniform sampler2D uSrc, uGlyph, uCurveTex;
 uniform vec2 uRes, uPos, uSize;
 uniform float uOpacity, uGlow, uExposure, uCell, uSpread, uGain, uGrain, uMisreg;
 uniform float uThrA, uThrB, uContrast, uGamma, uShow, uInvert, uInkMode;
 uniform float uShape[3], uAng[3], uInt[3];
 uniform vec3 uPaper, uInkR, uInkG, uInkB;
-uniform float uCurve[16];
 uniform int uMode;
 ${BLEND_GLSL}
-/* Ink curve baked on the CPU: 16 samples of (tone -> coverage). */
-float shCurveY(float x){
-  float f = clamp(x, 0.0, 1.0) * 15.0;
-  int i = int(floor(f));
-  int j = min(i + 1, 15);
-  return mix(uCurve[i], uCurve[j], fract(f));
-}
 vec2 shRot(vec2 p, float a){ float c = cos(a), s = sin(a); return vec2(c * p.x - s * p.y, s * p.x + c * p.y); }
-float shBox(vec2 p, vec2 b){ vec2 d = abs(p) - b; return length(max(d, vec2(0.0))) + min(max(d.x, d.y), 0.0); }
-float shTri(vec2 p, float r){
-  const float k = 1.7320508;
-  p.x = abs(p.x) - r;
-  p.y = p.y + r / k;
-  if (p.x + k * p.y > 0.0) p = vec2(p.x - k * p.y, -k * p.x - p.y) * 0.5;
-  p.x -= clamp(p.x, -2.0 * r, 0.0);
-  return -length(p) * sign(p.y);
+/* Cada forma é um SVG (Path2D) rasterizado num atlas 4x4; aqui só se escolhe
+   a casinha do atlas e se lê o glifo com margem de meio texel. */
+vec2 shGlyphUV(float id, vec2 gu){
+  int sh = int(id + 0.5);
+  vec2 tile = vec2(float(sh - (sh / 4) * 4), float(sh / 4));
+  return (tile + vec2(gu.x * 0.496 + 0.5, gu.y * 0.496 + 0.5)) * 0.25;
 }
-float shHex(vec2 p, float r){
-  const vec3 k = vec3(-0.8660254, 0.5, 0.5773503);
-  p = abs(p);
-  p -= 2.0 * min(dot(k.xy, p), 0.0) * k.xy;
-  p -= vec2(clamp(p.x, -k.z * r, k.z * r), r);
-  return length(p) * sign(p.y);
-}
-float shStar(vec2 p, float r, float rf){
-  const vec2 k1 = vec2(0.8090170, -0.5877853);
-  const vec2 k2 = vec2(-0.8090170, -0.5877853);
-  p.x = abs(p.x);
-  p -= 2.0 * max(dot(k1, p), 0.0) * k1;
-  p -= 2.0 * max(dot(k2, p), 0.0) * k2;
-  p.x = abs(p.x);
-  p.y -= r;
-  vec2 ba = rf * vec2(-k1.y, k1.x) - vec2(0.0, 1.0);
-  float h = clamp(dot(p, ba) / dot(ba, ba), 0.0, r);
-  return length(p - ba * h) * sign(p.y * ba.x - p.x * ba.y);
-}
-float shHeart(vec2 p){
-  float d;
-  if (p.y + p.x > 1.0) d = length(p - vec2(0.25, 0.75)) - 0.3535534;
-  else {
-    float a = length(p - vec2(0.0, 1.0));
-    float b = length(p - 0.5 * max(p.x + p.y, 0.0));
-    d = sqrt(min(a * a, b * b)) * sign(p.x - p.y);
-  }
-  return d;
-}
-/* Field of the shape inside the cell: -1 at the centre, 0 at the full edge, > 0 outside. */
-float shField(float kind, vec2 q){
-  int k = int(kind + 0.5);
-  if (k == 1) return max(abs(q.x), abs(q.y)) * 2.0 - 1.0;                 // square
-  if (k == 2) return (abs(q.x) + abs(q.y)) * 2.0 - 1.0;                   // diamond
-  if (k == 3) return shTri(q, 0.5) * 2.0;                                 // triangle
-  if (k == 4) return abs(q.y) * 2.0 - 1.0;                                // lines
-  if (k == 5) {                                                           // arrows
-    float head = shTri(q - vec2(0.0, 0.10), 0.30);
-    float stem = shBox(q - vec2(0.0, -0.22), vec2(0.075, 0.18));
-    return min(head, stem) * 2.0;
-  }
-  if (k == 6) {                                                           // smileys
-    float base = length(q) - 0.5;
-    float eyes = min(length(q - vec2(-0.16, 0.13)) - 0.07, length(q - vec2(0.16, 0.13)) - 0.07);
-    float mouth = max(abs(length(q - vec2(0.0, 0.05)) - 0.27) - 0.05, q.y + 0.03);
-    float holes = min(eyes, mouth);
-    return max(base, -holes) * 2.0;
-  }
-  if (k == 7) return shStar(q, 0.5, 0.42) * 2.0;                          // stars
-  if (k == 8) {                                                           // plus
-    float a = shBox(q, vec2(0.5, 0.17));
-    float b = shBox(q, vec2(0.17, 0.5));
-    return min(a, b) * 2.0;
-  }
-  if (k == 9) return abs(length(q) - 0.33) / 0.16 - 1.0;                  // ring
-  if (k == 10) return shHex(q, 0.46) * 1.7;                               // hexagon
-  if (k == 11) return min(abs(q.x), abs(q.y)) * 2.0 - 1.0;                // grid
-  if (k == 12) return abs(q.y - 0.17 * sin(q.x * 6.2831853)) * 2.0 - 1.0; // waves
-  if (k == 13) {                                                          // heart
-    vec2 hp = vec2(abs(q.x) * 1.45, -q.y * 1.45 + 0.60);
-    return shHeart(hp) * 3.2;
-  }
-  if (k == 14) return length(vec2(q.x / 0.42, q.y / 0.50)) - 1.0;         // ellipse
-  if (k == 15) return -1.0;                                               // solid
-  return length(q) * 2.0 - 1.0;                                           // dot
-}
-/* How the ink sits on the paper (the channel inks are already added together). */
+/* como a tinta se assenta no papel (overlay, soft light, difference, subtract) */
 vec3 shInkOnPaper(int m, vec3 a, vec3 b){
-  if (m == 3) return mix(2.0 * a * b, 1.0 - 2.0 * (1.0 - a) * (1.0 - b), step(0.5, a));  // overlay
-  if (m == 4) return a + b - 2.0 * a * b;                        // soft light
-  if (m == 5) return abs(a - b);                                 // difference
-  if (m == 6) return max(a - b, vec3(0.0));                      // subtract
+  if (m == 3) return mix(2.0 * a * b, 1.0 - 2.0 * (1.0 - a) * (1.0 - b), step(0.5, a));
+  if (m == 4) return a + b - 2.0 * a * b;
+  if (m == 5) return abs(a - b);
+  if (m == 6) return max(a - b, vec3(0.0));
   return b;
 }
 void main(){
   vec2 res = max(uRes, vec2(1.0));
   vec2 px = vec2(floor(vUv.x * res.x), floor(vUv.y * res.y));
-  vec2 size = max(uSize, vec2(8.0));
+  vec2 size = max(uSize, vec2(16.0));
   vec2 center = res * 0.5 + uPos;
   vec2 luv = (px - (center - size * 0.5)) / size;
 
@@ -7625,8 +7582,8 @@ void main(){
     v = pow(v, 1.0 / max(uGamma, 0.02));
     if (uInvert > 0.5) v = 1.0 - v;
 
-    float tone = v;                        // Ink Curve: tom do canal → cobertura
-    float k = shCurveY(tone);
+    float tone = v;                            // Ink Curve: tom do canal -> cobertura (LUT de 256 px)
+    float k = texture(uCurveTex, vec2(clamp(tone, 0.0, 1.0), 0.5)).r;
     float cov = (uThrB - uThrA) < 0.004 ? step(uThrA, k) : smoothstep(uThrA, uThrB, k);
     cov = pow(clamp(cov, 0.0, 1.0), 1.0 / max(uGain, 0.08));
 
@@ -7637,11 +7594,15 @@ void main(){
     float rnd = hash(id.x + ch * 53.0, id.y - ch * 97.0);
     cov = clamp(cov * (1.0 + uSpread * (rnd - 0.5) * 1.6), 0.0, 1.0);
 
-    float f = shField(c == 0 ? uShape[0] : (c == 1 ? uShape[1] : uShape[2]), local);
-    float aa = max(fwidth(f) * 0.9, 0.015);
-    float a = smoothstep(-aa, aa, (2.0 * cov - 1.0) - f);
-    float halo = uGlow * 0.85 * exp(-max(f, 0.0) * 4.5) * cov * cov;
-    float amt = clamp(a + halo * (1.0 - a), 0.0, 1.0);
+    float esc = max(cov, 0.02);                // a cobertura encolhe/aumenta o glifo na célula
+    vec2 gu = vec2(local.x, -local.y) * 2.0 / esc;
+    vec2 e = fwidth(gu) * 1.25;
+    float dentro = (1.0 - smoothstep(1.0 - e.x, 1.0 + e.x, abs(gu.x))) *
+                   (1.0 - smoothstep(1.0 - e.y, 1.0 + e.y, abs(gu.y)));
+    vec2 auv = shGlyphUV(c == 0 ? uShape[0] : (c == 1 ? uShape[1] : uShape[2]), gu * 0.5 + 0.5);
+    float glifo = texture(uGlyph, auv).a * dentro;
+    float halo = uGlow * 0.8 * textureLod(uGlyph, auv, 1.5).a * dentro;
+    float amt = clamp(glifo + halo * (1.0 - glifo), 0.0, 1.0);
 
     float inten = max(0.0, c == 0 ? uInt[0] : (c == 1 ? uInt[1] : uInt[2]));
     vec3 ink = c == 0 ? uInkR : (c == 1 ? uInkG : uInkB);
@@ -25405,20 +25366,92 @@ function shCurveBake(pts) {
   return saida;
 }
 
+/* Atlas dos glifos: 4x4 tiles de 128 px, desenhados uma vez com Path2D (SVG) */
+let shAtlasTex = null;
+function shGlyphAtlas() {
+  if (shAtlasTex) return shAtlasTex;
+  const N = 4, T = 128, S = N * T;
+  const cv = document.createElement('canvas');
+  cv.width = cv.height = S;
+  const g = cv.getContext('2d');
+  if (!g) return null;
+  g.clearRect(0, 0, S, S);
+  g.fillStyle = '#ffffff';
+  SH_SHAPES.forEach(([id], i) => {
+    const glifo = SH_GLYPHS[id];
+    if (!glifo) return;
+    g.save();
+    g.translate((i % N) * T, Math.floor(i / N) * T);
+    g.scale(T / 100, T / 100);                 // o desenho é um SVG de 100x100
+    g.fill(new Path2D(glifo[0]), glifo[1] || 'evenodd');
+    g.restore();
+  });
+  const tex = gl.createTexture();
+  gl.bindTexture(gl.TEXTURE_2D, tex);
+  gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, false);
+  gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, cv);
+  gl.generateMipmap(gl.TEXTURE_2D);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_LINEAR);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+  shAtlasTex = tex;
+  return tex;
+}
+
+/* Curva de tinta em LUT de 256 px (sem array de uniforme com índice dinâmico) */
+const shLutCache = new Map();
+function shCurveTexus(curva) {
+  const c = shCurveBake(curva);
+  const chave = c.map(v => v.toFixed(3)).join(',');
+  let tex = shLutCache.get(chave);
+  if (tex) return tex;
+  if (shLutCache.size > 12) {
+    const [velha, alvo] = shLutCache.entries().next().value;
+    gl.deleteTexture(alvo);
+    shLutCache.delete(velha);
+  }
+  const dados = new Uint8Array(256 * 4);
+  for (let i = 0; i < 256; i++) {
+    const x = (i / 255) * 15;
+    const j = Math.min(14, Math.floor(x));
+    const v = clamp(c[j] * (1 - (x - j)) + c[j + 1] * (x - j), 0, 1);
+    const b = Math.round(v * 255);
+    dados[i * 4] = b; dados[i * 4 + 1] = b; dados[i * 4 + 2] = b; dados[i * 4 + 3] = 255;
+  }
+  tex = gl.createTexture();
+  gl.bindTexture(gl.TEXTURE_2D, tex);
+  gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 256, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE, dados);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+  shLutCache.set(chave, tex);
+  return tex;
+}
+
 function runShapeHalftone(n, a) {
   if (!a) return null;
   const p = n.params;
   const W = Math.max(1, a.w), H = Math.max(1, a.h);
-  const cw = Number(p.sizeW) > 0 ? Number(p.sizeW) : W;      // 0 = encaixa no quadro
-  const chh = Number(p.sizeH) > 0 ? Number(p.sizeH) : H;
+  const num = (v, d) => (isFinite(Number(v)) ? Number(v) : d);
+  /* 3.5.1: Position e Size são % da moldura (100% = imagem inteira). Sessões
+     antigas guardaram px — o que passar da faixa é convertido uma vez. */
+  const pctPos = (v, ref) => { const q = num(v, 0); return clamp(Math.abs(q) > 200 ? q / ref * 100 : q, -200, 200); };
+  const pctTam = (v, ref) => { let q = num(v, 100); if (!(q > 0)) q = 100; return clamp(q > 400 ? q / ref * 100 : q, 5, 400); };
+  const px = pctPos(p.posX, W) / 100 * W;
+  const py = pctPos(p.posY, H) / 100 * H;
+  const lw = pctTam(p.sizeW, W) / 100 * W;
+  const lh = pctTam(p.sizeH, H) / 100 * H;
+  const atlas = shGlyphAtlas();
+  if (!atlas) return null;
   const thr = Array.isArray(p.threshold) ? p.threshold : [0.08, 0.92];
   const lo = clamp(Number(thr[0]) || 0, 0, 1);
   const hi = clamp(Number(thr[1]) || 1, lo + 0.004, 1);
-  const num = (v, d) => (isFinite(Number(v)) ? Number(v) : d);
   return pointOp(a, 'shapeHalftone', {
     uRes: [W, H],
-    uPos: [num(p.posX, 0), num(p.posY, 0)],
-    uSize: [cw, chh],
+    uPos: [px, py],
+    uSize: [lw, lh],
     uOpacity: clamp(num(p.opacity, 100) / 100, 0, 1),
     uMode: Math.max(0, BLEND.findIndex(m => m[0] === p.blend)),
     uShow: p.showSource === 'sim' ? 1 : 0,
@@ -25432,7 +25465,6 @@ function runShapeHalftone(n, a) {
     uMisreg: Math.max(0, num(p.misreg, 0)),
     uInkMode: shInkModeId(p.inkMode),
     uThrA: lo, uThrB: hi,
-    uCurve: shCurveBake(p.inkCurve),
     uShape: [shShapeId(p.redShape), shShapeId(p.greenShape), shShapeId(p.blueShape)],
     uAng: [num(p.redAngle, 0), num(p.greenAngle, 0), num(p.blueAngle, 0)],
     uInt: [Math.max(0, num(p.redInt, 0)), Math.max(0, num(p.greenInt, 0)), Math.max(0, num(p.blueInt, 0))],
@@ -25440,7 +25472,7 @@ function runShapeHalftone(n, a) {
     uContrast: Math.max(0, num(p.contrast, 1)),
     uGamma: Math.max(0.02, num(p.gamma, 1)),
     uInvert: p.invert === 'sim' ? 1 : 0,
-  });
+  }, { uGlyph: atlas, uCurveTex: shCurveTexus(p.inkCurve) });
 }
 
 /* ----- painel: seções dobráveis, cada uma com os seus controles ----- */
@@ -25484,7 +25516,7 @@ function shPanel(n, body) {
       corpo.append(el);
     }
     if (titulo === 'Transform') {
-      const dica = E('div', 'sh-hint', 'Size 0 = fit the frame · Position moves the print inside it');
+      const dica = E('div', 'sh-hint', 'Position and Size are in % of the frame (100% = the whole image)');
       corpo.append(dica);
     }
     if (titulo === 'Blend') corpo.append(E('div', 'sh-hint', 'Ink Curve: tone → coverage · Threshold Range: where the ink enters and saturates'));
