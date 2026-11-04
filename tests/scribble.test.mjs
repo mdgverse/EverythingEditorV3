@@ -46,18 +46,18 @@ ok(/\['angle', 'Fixed angle'\], \['jitter', 'Jittered'\], \['image', 'Follow ima
 ok(/Math\.atan2\(dy, dx\) \+ Math\.PI \/ 2/.test(bloco), 'no modo imagem o traço corre através da borda');
 
 /* ---------- etapa 2: texture blur ---------- */
-ok(/NUM\('textureBlur'/.test(def) && /fx28Blurred\(tex, W, H, blur\)/.test(bloco), 'a textura é desfocada num campo próprio');
-ok(/const tl = FD === F \? t : fx38ScribbleAt\(FD, x, y\)/.test(bloco), 'a camada de cima usa a textura desfocada');
+ok(/NUM\('textureBlur'/.test(def) && /mctx\.filter = 'blur\('\.*/.test(bloco), 'a textura é desfocada num campo próprio');
+ok(/const tl = FB === F \? t : fx38ScribbleAt\(FB, x, y, half\)/.test(bloco), 'a camada de cima usa a textura desfocada');
 
 /* ---------- etapa 3: displacement anisotrópico ---------- */
-ok(/const push = \(1 - t\) \* disp/.test(bloco) && /dir\.cs/.test(bloco) && /dir\.sn/.test(bloco),
+ok(/const push = stroke \* disp/.test(bloco) && /dir\.cs/.test(bloco) && /dir\.sn/.test(bloco),
   'o deslocamento escorrega ao longo do traço (não em todas as direções)');
 ok(/NUM\('displace'/.test(def), 'intensidade do deslocamento no painel');
 ok(/Math\.min\(W, H\) \* 0\.07/.test(bloco), 'deslocamento proporcional ao tamanho do quadro (preview = render)');
 
 /* ---------- etapa 4: smear + layer mix ---------- */
-ok(/NUM\('smear'/.test(def) && /const m = stroke \* 0\.9/.test(bloco), 'smear leva a cor para dentro do traço');
-ok(/fx38ScribbleBlend\(r, tr, mode\)/.test(bloco), 'o layer mix reusa a textura como camada');
+ok(/NUM\('smear'/.test(def) && /const m = stroke \* 0\.6/.test(bloco), 'smear leva a cor para dentro do traço');
+ok(/fx38ScribbleBlend\(r \/ 255, tr, mode\)/.test(bloco), 'o layer mix reusa a textura como camada');
 for (const modo of ['overlay', 'multiply', 'screen', 'normal']) {
   ok(new RegExp("\\['" + modo + "'").test(def), 'modo de camada disponível: ' + modo);
 }
@@ -69,6 +69,17 @@ ok(/\['none', 'Off'\], \['duotone', 'Duotone \(ink \+ paper\)'\], \['poster', 'P
   'três paletas: crua, duotone e posterizada');
 ok(/NUM\('mix', 'Blend', 0, 100, 100\)/.test(def) && /fx34Blend\(srcCanvas, cv, p\.mix, W, H\)/.test(bloco),
   'o nó termina com o blend padrão do editor');
+
+/* ---------- custo: o caminho quente não percorre a foto inteira ---------- */
+ok(/const out = new Uint8ClampedArray\(d\);/.test(bloco), 'a base é uma cópia pura da foto (papel não custa nada)');
+ok(/if \(F\.v\[linha \+ cxI\] >= 0\.97\) continue;/.test(bloco), 'bloco de papel inteiro é pulado');
+ok(/for \(let y = yA; y < yB; y \+= 2\)/.test(bloco) && /for \(let x = xA; x < xB; x \+= 2\)/.test(bloco),
+  'o traço é calculado de 2 em 2 pixels e pintado em blocos de 2x2');
+ok(/const mini = fx7NewCanvas\(tw, th\)/.test(bloco) && /drawImage\(tex, 0, 0, tw, th\)/.test(bloco),
+  'o campo lê uma versão reduzida da textura (meia resolução)');
+ok(!/globalCompositeOperation/.test(bloco), 'nada de depender do modo de mesclagem do canvas');
+ok(/if \(bm > 0\.5\) \{/.test(bloco) && /out\[o\] \+= \(pr - out\[o\]\) \* e;/.test(bloco),
+  'a margem de papel tem passe próprio, fora do laço dos traços');
 
 /* ---------- o preset "rabisco" acompanha o nó novo ---------- */
 const preset = (html.match(/\['scribble', \d+, \d+, \{([^}]*)\}\]+/) || ['', ''])[1];
