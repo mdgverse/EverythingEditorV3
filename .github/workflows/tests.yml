@@ -46,3 +46,5 @@ jobs:
         run: node tests/version.test.mjs
       - name: Higiene (código morto, CSS sem uso, reference/ fora)
         run: node tests/hygiene.test.mjs
+      - name: Boot · toda função chamada existe (compileShader e cia)
+        run: node tests/boot-symbols.test.mjs
