@@ -144,9 +144,18 @@ jobs:
               --notes "$NOTES"
           fi
           gh release edit apk-latest --title "Everything Editor — APK v$VER" --notes "$NOTES"
-          gh release upload apk-latest \
-            "dist/everything-editor-$VER.apk" "dist/everything-editor-$VER.aab" \
-            dist/EverythingEditor.apk dist/EverythingEditor.aab --clobber
+          # dois builds ao mesmo tempo (branch + main) disputam os mesmos
+          # assets: uma tentativa extra resolve o 502 sem quebrar a release
+          for i in 1 2 3; do
+            if gh release upload apk-latest \
+              "dist/everything-editor-$VER.apk" "dist/everything-editor-$VER.aab" \
+              dist/EverythingEditor.apk dist/EverythingEditor.aab --clobber; then
+              break
+            fi
+            echo "upload falhou (tentativa $i), tentando de novo em 10 s"
+            sleep 10
+            if [ "$i" = "3" ]; then exit 1; fi
+          done
 
       # mantém a release com UMA versão só: apaga os assets de versões antigas
       - name: Limpar versões antigas
