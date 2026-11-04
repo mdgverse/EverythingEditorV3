@@ -40,6 +40,8 @@ jobs:
         run: node tests/perspective.test.mjs
       - name: Zoom mínimo (canvas, preview e máscara em 5%)
         run: node tests/zoom.test.mjs
+      - name: Add menu · Gallery (nós com amostra)
+        run: node tests/gallery.test.mjs
       - name: Versão (VERSION = index.html = APK)
         run: node tests/version.test.mjs
       - name: Higiene (código morto, CSS sem uso, reference/ fora)
