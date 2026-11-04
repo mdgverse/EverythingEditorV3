@@ -4,26 +4,32 @@
     "blog": { "name": "mdgverse", "title": "mdgverse", "url": "https://mdgverse.tumblr.com/" },
     "posts": [
       {
-        "id": 832038252529762304, "type": "photo", "blog_name": "mdgverse",
-        "post_url": "https://mdgverse.tumblr.com/post/832038252529762304/now-working-in-some-dispatch-fan-concept-tcg",
-        "date": "2026-11-03 18:20:00 GMT", "summary": "Now working in some Dispatch fan concept TCG",
-        "photos": [{
-          "original_size": { "url": "https://64.media.tumblr.com/dispatch.jpg", "width": 2048, "height": 2048 },
-          "alt_sizes": [
-            { "url": "https://64.media.tumblr.com/dispatch_2048.jpg", "width": 2048, "height": 2048 },
-            { "url": "https://64.media.tumblr.com/dispatch_1280.jpg", "width": 1280, "height": 1280 },
-            { "url": "https://64.media.tumblr.com/dispatch_500.jpg", "width": 500, "height": 500 }
-          ]
-        }]
+        "id": 832038252529762304, "id_string": "832038252529762304", "type": "text", "blog_name": "mdgverse",
+        "post_url": "https://www.tumblr.com/blog/view/mdgverse/832038252529762304",
+        "timestamp": 1790395834,
+        "content": [
+          {
+            "type": "image",
+            "media": [
+              { "url": "https://64.media.tumblr.com/dispatch_2048.jpg", "width": 2048, "height": 2048 },
+              { "url": "https://64.media.tumblr.com/dispatch_1280.jpg", "width": 1280, "height": 1280 }
+            ],
+            "alt_text": "fan concept"
+          },
+          { "type": "text", "text": "Now working in some Dispatch fan concept TCG" }
+        ]
       },
       {
-        "id": 832013690377322496, "type": "photo", "blog_name": "mdgverse",
-        "post_url": "https://mdgverse.tumblr.com/post/832013690377322496/the-queen",
-        "date": "2026-11-02 22:05:00 GMT", "summary": "The Queen",
-        "photos": [{
-          "original_size": { "url": "https://64.media.tumblr.com/queen.jpg", "width": 1600, "height": 2000 },
-          "alt_sizes": [{ "url": "https://64.media.tumblr.com/queen_1280.jpg", "width": 1280, "height": 1600 }]
-        }]
+        "id": 832013690377322496, "id_string": "832013690377322496", "type": "text", "blog_name": "mdgverse",
+        "post_url": "https://www.tumblr.com/blog/view/mdgverse/832013690377322496",
+        "timestamp": 1789980000,
+        "content": [
+          {
+            "type": "image",
+            "media": [{ "url": "https://64.media.tumblr.com/queen_1600.jpg", "width": 1600, "height": 2000 }]
+          },
+          { "type": "text", "text": "The Queen" }
+        ]
       },
       {
         "id": 9001, "type": "photo", "blog_name": "cyanstudio",
@@ -36,8 +42,9 @@
       },
       {
         "id": 830768584126070784, "type": "text", "blog_name": "mdgverse",
-        "post_url": "https://mdgverse.tumblr.com/post/830768584126070784/im-developing-my-own-image-editor",
-        "date": "2026-10-28 12:00:00 GMT", "summary": "I'm developing my own image editor"
+        "post_url": "https://www.tumblr.com/blog/view/mdgverse/830768584126070784",
+        "timestamp": 1789000000,
+        "content": [{ "type": "text", "text": "I'm developing my own image editor" }]
       }
     ]
   }
