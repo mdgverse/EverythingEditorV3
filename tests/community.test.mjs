@@ -189,6 +189,9 @@ ok(/npf=true/.test(fs.readFileSync(new URL('../scripts/community.mjs', import.me
   'pede o formato novo do Tumblr (npf=true)');
 ok(/npm install --no-save --no-audit --no-fund sharp/.test(wf), 'o job instala o redutor de miniaturas');
 ok(/push:\s*\n\s*branches: \[main\]/.test(wf), 'roda assim que o coletor muda no main');
+ok(/actions: write/.test(wf), 'pode chamar outros workflows');
+ok(/gh workflow run deploy-pages\.yml --ref main/.test(wf), 'pede a publicação do site depois do commit');
+ok(/gh workflow run build-apk\.yml --ref main/.test(wf), 'e o APK com o seed novo');
 ok(/paths: /.test(wf) || true, 'ok');
 
 const tudo = resumo();
