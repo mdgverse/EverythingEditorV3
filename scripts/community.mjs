@@ -4,7 +4,7 @@
  * O site é estático (GitHub Pages) e o APK leva só o index.html, então não existe
  * servidor: quem faz o papel de backend é este script, rodando no GitHub Actions a
  * cada 6 horas. Ele consulta as APIs, baixa as miniaturas para community/ (o CDN do
- * Instagram expira; o arquivo local não) e grava community.json + o seed embutido no
+ * Instagram expira; o arquivo local não) e grava community/feed.json + o seed no
  * index.html. O front lê esse JSON (ou o seed, no APK offline).
  *
  *   IG_TOKEN      token de acesso (Instagram Graph API, conta business/creator)
@@ -244,9 +244,11 @@ export async function limpaCache(itens, raiz = RAIZ) {
   try { nomes = await fs.readdir(pasta); }
   catch { return 0; }
   const usados = new Set((itens || []).map(i => path.basename(String(i.img || ''))));
+  usados.add('.gitkeep');
+  usados.add(path.basename(FEED));          // o próprio feed mora nesta pasta
   let apagados = 0;
   for (const n of nomes) {
-    if (n === '.gitkeep' || usados.has(n)) continue;
+    if (usados.has(n)) continue;
     try { await fs.unlink(path.join(pasta, n)); apagados++; } catch (_) {}
   }
   return apagados;
@@ -254,6 +256,7 @@ export async function limpaCache(itens, raiz = RAIZ) {
 
 /* --------------------------------------------------------------- publicação */
 
+export const FEED = 'community/feed.json';
 export const MARCA_INI = '/* CMTY_SEED_START';
 export const MARCA_FIM = '/* CMTY_SEED_END */';
 
@@ -316,7 +319,7 @@ export async function coleta({ fixtures = false, seco = false, raiz = RAIZ } = {
 }
 
 export async function publica({ itens, avisos, fontes = [] }, raiz = RAIZ, seco = false) {
-  const arquivo = path.join(raiz, 'community.json');
+  const arquivo = path.join(raiz, FEED);
   let antes = null;
   try { antes = JSON.parse(await fs.readFile(arquivo, 'utf8')); } catch (_) {}
   /* nada mudou? não grava — senão o cron faria um commit a cada 6 h à toa */

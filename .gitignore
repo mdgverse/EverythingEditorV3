@@ -1,0 +1,7 @@
+# nada disso entra no repositório
+node_modules/
+dist/
+_site/
+*.log
+.DS_Store
+Thumbs.db
