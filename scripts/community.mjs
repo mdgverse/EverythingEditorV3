@@ -10,8 +10,8 @@
  *   IG_TOKEN      token de acesso (Instagram Graph API, conta business/creator)
  *   IG_USER_ID    id da conta do Instagram ligada à página
  *   TUMBLR_KEY    consumer key da aplicação do Tumblr
- *   TUMBLR_BLOG   blog lido direto (padrão: mdgverse) — pega os posts do dono
- *                 do editor mesmo sem a hashtag, que é o caso mais comum
+ *   TUMBLR_BLOG   blog lido direto (padrão: mdgverse) — só os posts desse blog
+ *                 marcados com a hashtag entram; post sem tag fica de fora
  *
  *   node scripts/community.mjs            → coleta de verdade
  *   node scripts/community.mjs --dry      → sem baixar imagens nem escrever
@@ -179,11 +179,12 @@ export function postsDaResposta(r) {
   return (r && r.response && r.response.posts) || [];
 }
 
-/** posts do próprio blog (o /tagged só devolve post marcado com a hashtag) */
-export async function buscaBlog(blog, chave, limite = 20) {
+/** posts do próprio blog **marcados com a hashtag** (os sem tag ficam de fora) */
+export async function buscaBlog(blog, chave, tag, limite = 20) {
   const nome = String(blog || '').replace(/^https?:\/\//, '').replace(/\/+$/, '');
   const url = `${API_BLOG}${encodeURIComponent(nome)}.tumblr.com/posts` +
-    `?limit=${limite}&filter=text&npf=true&api_key=${encodeURIComponent(chave)}`;
+    `?limit=${limite}&filter=text&npf=true${tag ? '&tag=' + encodeURIComponent(tag) : ''}` +
+    `&api_key=${encodeURIComponent(chave)}`;
   return normaliza('tumblr', postsDaResposta(await json(url)));
 }
 
@@ -292,11 +293,13 @@ export async function coleta({ fixtures = false, seco = false, raiz = RAIZ } = {
       }
     } else avisos.push('instagram: sem IG_TOKEN/IG_USER_ID');
     if (tumblrKey) {
-      try {
-        const doBlog = await buscaBlog(tumblrBlog, tumblrKey);
-        brutos.push(...doBlog);
-        fontes.push('blog ' + tumblrBlog + ': ' + doBlog.length + ' com imagem');
-      } catch (e) { avisos.push('tumblr blog ' + tumblrBlog + ': ' + e.message); }
+      for (const tag of TAGS) {
+        try {
+          const doBlog = await buscaBlog(tumblrBlog, tumblrKey, tag);
+          brutos.push(...doBlog);
+          fontes.push('blog ' + tumblrBlog + ' #' + tag + ': ' + doBlog.length + ' com imagem');
+        } catch (e) { avisos.push('tumblr blog ' + tumblrBlog + ' #' + tag + ': ' + e.message); }
+      }
       for (const tag of TAGS) {
         try {
           const daTag = await buscaTumblr(tag, tumblrKey);
