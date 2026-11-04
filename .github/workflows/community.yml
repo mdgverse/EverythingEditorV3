@@ -1,7 +1,7 @@
 name: Community feed
 
 # O "backend" do carrossel da Home: consulta o Instagram Graph API e o Tumblr,
-# guarda as miniaturas em community/ e publica community.json (+ o seed embutido
+# guarda as miniaturas em community/ e publica community/feed.json (+ o seed
 # no index.html, que é o que o APK usa sem internet).
 #
 # Segredos necessários (Settings → Secrets and variables → Actions):
@@ -64,7 +64,7 @@ jobs:
         run: |
           git config user.name "everything-editor-bot"
           git config user.email "everything-editor-bot@users.noreply.github.com"
-          git add community.json community index.html
+          git add community index.html
           if git diff --cached --quiet; then
             echo "nada novo no feed"
           else

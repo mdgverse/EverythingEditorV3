@@ -1,7 +1,7 @@
 /* Comunidade (3.6.2) — carrossel infinito da Home + o coletor que alimenta o feed.
    O site é estático: o "backend" é o GitHub Actions (scripts/community.mjs), que
    consulta Instagram e Tumblr, cacheia as miniaturas em community/ e publica
-   community.json; o APK sem internet usa o seed embutido no index.html. */
+   community/feed.json; o APK sem internet usa o seed embutido no index.html. */
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
@@ -102,12 +102,12 @@ const p2 = await publica({ itens: [itemA], avisos: [] }, tmpPub, false);
 ok(p1.mudou === true && p2.mudou === false, 'feed igual não é reescrito', p1.mudou + '/' + p2.mudou);
 ok(p1.updated === p2.updated, 'o carimbo de atualização só muda com o feed');
 const p3 = await publica({ itens: [itemA, { ...itemA, id: 'tumblr:b', img: 'community/b.jpg', url: 'https://b.tumblr.com/post/2' }], avisos: [] }, tmpPub, false);
-ok(p3.mudou === true && JSON.parse(fs.readFileSync(path.join(tmpPub, 'community.json'), 'utf8')).total === 2, 'feed novo é gravado');
+ok(p3.mudou === true && JSON.parse(fs.readFileSync(path.join(tmpPub, 'community/feed.json'), 'utf8')).total === 2, 'feed novo é gravado');
 ok(/const CMTY_SEED = \[\{"id":"tumblr:a"/.test(fs.readFileSync(path.join(tmpPub, 'index.html'), 'utf8')), 'e o seed acompanha');
 fs.rmSync(tmpPub, { recursive: true, force: true });
 
-const feed = JSON.parse(fs.readFileSync(new URL('../community.json', import.meta.url), 'utf8'));
-ok(feed.version === 1 && Array.isArray(feed.items) && Array.isArray(feed.tags), 'community.json com o contrato do front');
+const feed = JSON.parse(fs.readFileSync(new URL('../community/feed.json', import.meta.url), 'utf8'));
+ok(feed.version === 1 && Array.isArray(feed.items) && Array.isArray(feed.tags), 'community/feed.json com o contrato do front');
 
 /* ---------------------------------------------------------------- a Home */
 const home = extrai('<div id="ssScr" class="ss" hidden>', '<script>\n(() => {');
@@ -156,11 +156,18 @@ ok(semTag instanceof Array, 'sem tag explícita ainda funciona');
 
 /* ---------------------------------------------------------------- dados e APK */
 const dados = extrai('function cmtyForaDoSite() {', 'function cmtyCard(it) {');
-ok(/CMTY_TTL = 6 \* 60 \* 60 \* 1000/.test(html), 'cache de 6 h (o Action republica nesse passo)');
 ok(/localStorage\.setItem\(CMTY_CACHE/.test(html) && /localStorage\.getItem\(CMTY_CACHE/.test(html), 'cacheia no navegador');
 ok(/const itens = cmtyValidos\(dados && dados\.items\)/.test(html), 'valida antes de desenhar');
 ok(/const seed = cmtyValidos\(CMTY_SEED\)/.test(html), 'cai no seed quando não há feed (APK offline)');
 ok(/const volta = itens\.concat\(itens\)/.test(html), 'duas cópias no trilho para o laço não ter emenda');
+ok(/const CMTY_JSON = 'community\/feed\.json'/.test(html), 'o feed mora junto das miniaturas (community/)');
+ok(/CMTY_CACHE = 'ee_community_v2'/.test(html), 'chave de cache nova: o cache antigo tinha o feed sem filtro');
+ok(!/CMTY_TTL/.test(html), 'não existe mais validade de cache que segura o feed');
+ok(/function cmtyAssinatura\(lista\)/.test(html) && /cmtyAssinatura\(itens\) !== cmtyAssinatura\(cmtyItens\)/.test(html),
+  'só repinta quando o feed muda de verdade');
+ok(/const r = await fetch\(cmtyEndereco\(CMTY_JSON\)/.test(html) &&
+   html.indexOf('cmtyMostra(guardados)') < html.indexOf('cmtyEndereco(CMTY_JSON)'),
+  'pinta o cache na hora e busca o feed em seguida (sem esperar validade)');
 ok(/track\.style\.setProperty\('--cmty-dur'/.test(html), 'velocidade proporcional ao número de cartões');
 ok(/if \(!w\) location\.href = url;/.test(html), 'no APK, se a aba nova falhar, navega');
 ok(/cmtyNaHome\(\);/.test(extrai('function startScreenOpen() {', 'window.startScreenOpen')), 'carrega ao abrir a Home');
@@ -198,7 +205,7 @@ ok(/cron: '17 \*\/6 \* \* \*'/.test(wf), 'roda de 6 em 6 hours (cache do feed)')
 ok(/workflow_dispatch/.test(wf), 'dá para rodar na mão');
 ok(/IG_TOKEN|TUMBLR_KEY/.test(wf), 'lê os segredos das APIs');
 ok(/node scripts\/community\.mjs/.test(wf), 'roda o coletor');
-ok(/git push origin HEAD:main/.test(wf), 'publica community.json de volta no main');
+ok(/git push origin HEAD:main/.test(wf), 'publica o feed de volta no main');
 ok(/TUMBLR_BLOG: \$\{\{ vars\.TUMBLR_BLOG \|\| 'mdgverse' \}\}/.test(wf), 'lê o blog direto (default mdgverse)');
 ok(/npf=true/.test(fs.readFileSync(new URL('../scripts/community.mjs', import.meta.url), 'utf8')),
   'pede o formato novo do Tumblr (npf=true)');
