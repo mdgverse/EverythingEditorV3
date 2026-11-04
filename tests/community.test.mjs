@@ -6,7 +6,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { ok, resumo } from './kit.mjs';
-import { normaliza, escolhe, trocaSeed, melhorFoto, fotoDeBlocos, urlDoPost, postsDaResposta, limpaCache, encolhe, MINI_MAX, TAGS, LIMITE, MARCA_INI, MARCA_FIM, BLOG_PADRAO, FOTO_MAX } from '../scripts/community.mjs';
+import { normaliza, escolhe, trocaSeed, melhorFoto, fotoDeBlocos, urlDoPost, postsDaResposta, limpaCache, encolhe, MINI_MAX, buscaBlog, TAGS, LIMITE, MARCA_INI, MARCA_FIM, BLOG_PADRAO, FOTO_MAX } from '../scripts/community.mjs';
 
 const html = fs.readFileSync(new URL('../index.html', import.meta.url), 'utf8');
 const fixtures = n => JSON.parse(fs.readFileSync(new URL('./fixtures/' + n, import.meta.url), 'utf8'));
@@ -122,6 +122,22 @@ ok(/cmty-badge ' \+ \(it\.platform === 'tumblr' \? 'tb' : 'ig'\)/.test(card), 's
 ok(/addEventListener\('error'/.test(card) && /classList\.add\('sem-foto'\)/.test(card),
   'sem internet no APK, o cartão mostra a inicial (não fica imagem quebrada)');
 ok(/\.cmty-th\.sem-foto\{/.test(html), 'estilo do cartão sem foto');
+
+/* o blog só entrega post marcado: a tag vai na consulta, não no filtro de depois */
+const fetchOriginal = globalThis.fetch;
+const respostaBlog = fixtures('community-tumblr-blog.json');
+let pedida = '';
+globalThis.fetch = async (url) => { pedida = String(url); return { ok: true, status: 200, json: async () => respostaBlog }; };
+const doBlog = await buscaBlog('mdgverse', 'k', 'everythingeditor');
+const urlBlog = pedida.replace(/api_key=[^&]+/, 'api_key=***');
+const semTag = await buscaBlog('mdgverse', 'k', '');
+globalThis.fetch = fetchOriginal;
+ok(/\/v2\/blog\/mdgverse\.tumblr\.com\/posts\?/.test(urlBlog), 'consulta o blog certo', urlBlog.split('?')[0]);
+ok(/[?&]tag=everythingeditor(&|$)/.test(urlBlog), 'pede só os posts marcados com a hashtag', urlBlog);
+ok(/npf=true/.test(urlBlog) && /filter=text/.test(urlBlog), 'e no formato novo');
+ok(!/api_key=[^*]/.test(urlBlog), 'a chave não aparece no log');
+ok(doBlog.length === 3 && doBlog.every(i => i.platform === 'tumblr'), 'normaliza o que voltou', doBlog.length);
+ok(semTag instanceof Array, 'sem tag explícita ainda funciona');
 
 /* ---------------------------------------------------------------- dados e APK */
 const dados = extrai('function cmtyForaDoSite() {', 'function cmtyCard(it) {');
