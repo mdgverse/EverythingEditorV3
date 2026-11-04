@@ -1,0 +1,57 @@
+name: Community feed
+
+# O "backend" do carrossel da Home: consulta o Instagram Graph API e o Tumblr,
+# guarda as miniaturas em community/ e publica community.json (+ o seed embutido
+# no index.html, que é o que o APK usa sem internet).
+#
+# Segredos necessários (Settings → Secrets and variables → Actions):
+#   IG_TOKEN     token de acesso do Instagram Graph API (conta business/creator)
+#   IG_USER_ID   id da conta do Instagram ligada à página
+#   TUMBLR_KEY   consumer key da aplicação do Tumblr
+#
+# Sem os segredos o job roda, não acha nada e não altera nenhum arquivo.
+on:
+  schedule:
+    - cron: '17 */6 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: community-feed
+  cancel-in-progress: false
+
+jobs:
+  fetch:
+    name: Coletar #everythingeditor
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - name: Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Coletar e cachear os posts
+        env:
+          IG_TOKEN: ${{ secrets.IG_TOKEN }}
+          IG_USER_ID: ${{ secrets.IG_USER_ID }}
+          TUMBLR_KEY: ${{ secrets.TUMBLR_KEY }}
+        run: node scripts/community.mjs
+
+      - name: Publicar se algo mudou
+        run: |
+          git config user.name "everything-editor-bot"
+          git config user.email "everything-editor-bot@users.noreply.github.com"
+          git add community.json community index.html
+          if git diff --cached --quiet; then
+            echo "nada novo no feed"
+          else
+            git commit -m "comunidade: atualiza o feed do carrossel"
+            git push origin HEAD:main
+          fi

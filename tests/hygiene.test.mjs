@@ -86,7 +86,8 @@ ok(fs.readFileSync(new URL('../README.md', import.meta.url), 'utf8').trim() === 
   for (const f of arquivos) ok(ci.includes('tests/' + f), `${f} rodando no CI`);
   ok(arquivos.length >= 8, 'todos os testes presentes', arquivos.length);
   const workflows = fs.readdirSync(new URL('../.github/workflows', import.meta.url)).filter(f => f.endsWith('.yml')).sort();
-  ok(workflows.join(',') === 'build-apk.yml,deploy-pages.yml,tests.yml', 'só os três workflows que importam', workflows.join(', '));
+  /* 3.6.2 acrescentou o coletor da comunidade (cron do carrossel da Home) */
+  ok(workflows.join(',') === 'build-apk.yml,community.yml,deploy-pages.yml,tests.yml', 'só os workflows que importam', workflows.join(', '));
 }
 
 const tudo = resumo();
