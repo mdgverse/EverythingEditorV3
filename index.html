@@ -414,7 +414,7 @@ html, body{overscroll-behavior:none;-webkit-tap-highlight-color:transparent}/* 1
 
 /* Versão do editor — o arquivo VERSION na raiz é a fonte da verdade
    (o build do APK usa o mesmo número no versionName e falha se divergir). */
-const APP_VERSION = '3.5.6';
+const APP_VERSION = '3.6.0';
 /* sem a telinha, a versão aparece no tooltip da marca (e o título da aba segue curto) */
 {
   const marca = document.getElementById('brandBtn');
@@ -3922,8 +3922,21 @@ const NODE_TYPES = {
     params: [NUM('folds', 'Folds', 1, 12, 5, 1), NUM('strength', 'Intensity', 0, 100, 32, 1), NUM('angle', 'Angle', 0, 180, 0, 1)],
   },
   scribble: {
-    title: 'Scribble (scribble)', cat: 'style', inputs: ['Image'],
-    params: [NUM('amount', 'Amount', 0, 100, 48, 1), NUM('length', 'Stroke length', 2, 60, 18, 1), NUM('threshold', 'Luminance threshold', 0, 255, 95, 1)],
+    title: 'Scribble (brush texture)', cat: 'style', inputs: ['Image'],
+    params: [
+      NUM('density', 'Stroke density', 0, 100, 45), NUM('length', 'Stroke length', 3, 60, 24), NUM('width', 'Stroke width', 0.4, 8, 4, 0.1),
+      ENUM('flow', 'Stroke flow', [['angle', 'Fixed angle'], ['jitter', 'Jittered'], ['image', 'Follow image gradient']], 'jitter'),
+      NUM('angle', 'Base angle', 0, 180, 35), NUM('jitter', 'Direction jitter', 0, 100, 38),
+      NUM('textureBlur', 'Texture blur', 0, 40, 4, 0.5), NUM('displace', 'Texture displacement', 0, 100, 45),
+      NUM('smear', 'Stroke smear', 0, 100, 65),
+      NUM('layer', 'Scribble layer', 0, 100, 52),
+      ENUM('blend', 'Layer blend', [['softlight', 'Soft light'], ['overlay', 'Overlay'], ['multiply', 'Multiply'], ['screen', 'Screen'], ['normal', 'Normal']], 'multiply'),
+      NUM('border', 'Paper border', 0, 25, 0, 0.5),
+      ENUM('palette', 'Palette', [['none', 'Off'], ['duotone', 'Duotone (ink + paper)'], ['poster', 'Poster (4 levels)']], 'none'),
+      NUM('dither', 'Dither', 0, 100, 0),
+      COL('paper', 'Paper (light)', '#f6f2e6'), COL('ink', 'Ink (dark)', '#33312c'),
+      NUM('seed', 'Seed', 0, 99, 7), NUM('mix', 'Blend', 0, 100, 100),
+    ],
   },
   shapeGrid: {
     title: 'Shape grid', cat: 'style', inputs: ['Image'],
@@ -15171,7 +15184,7 @@ const FX38_DEFAULTS = {
   risoPrint: { inkA: '#1f4cff', inkB: '#ff4b91', inkC: '#00a66a', inkD: '#111111', useInkC: 'no', useInkD: 'no', offset: 5, offsetY: 1.5, registration: 3, grain: 18, dither: 52, paper: '#f6edda', paperTone: 18, overprint: 64, mix: 100, seed: 5 },
   photoScanSmudge: { mode: 'smudged', direction: 'horizontal', threshold: 138, contrast: 76, exposure: 8, smudge: 32, smearSamples: 8, scanlines: 52, streaks: 44, dust: 30, scratches: 24, paper: '#eee8d7', ink: '#111111', anaglyph: 8, blur: 0.8, mix: 100, seed: 9 },
   foldedPaper: { folds: 5, strength: 32, angle: 0 },
-  scribble: { amount: 48, length: 18, threshold: 95 },
+  scribble: { density: 45, length: 24, width: 4, flow: 'jitter', angle: 35, jitter: 38, textureBlur: 4, displace: 45, smear: 65, layer: 52, blend: 'softlight', border: 0, palette: 'none', dither: 0, paper: '#f6f2e6', ink: '#33312c', seed: 7, mix: 100 },
   shapeGrid: { scale: 32, colorA: '#050505', colorB: '#245bff', colorC: '#ff2f92', colorD: '#fff045', mix: 100 },
 };
 
@@ -15535,26 +15548,206 @@ function fx38FoldedPaper(srcCanvas, W, H, p) {
   return cv;
 }
 
-// ---- Scribble (rabisco) ----
-function fx38Scribble(srcCanvas, W, H, p) {
-  const cv = fx7NewCanvas(W, H), ctx = cv.getContext('2d', { willReadFrequently: true });
-  ctx.drawImage(srcCanvas, 0, 0, W, H);
-  const d = fx32Pixels(srcCanvas, W, H);
-  const count = Math.round(Number(p.amount || 0) * 12);
-  const len = Number(p.length || 18), threshold = Number(p.threshold || 95);
-  ctx.strokeStyle = 'rgba(255,255,255,.45)';
-  ctx.lineWidth = 1;
-  for (let n = 0; n < count; n++) {
-    const x = fx38Hash(n, 1) * W, y = fx38Hash(n, 2) * H;
-    const i = fx38Idx(W, H, x, y);
-    if (fx38Luma(d[i], d[i + 1], d[i + 2]) < threshold) continue;
-    const a = fx38Hash(n, 4) * Math.PI * 2;
+// ---- Scribble (rabisco de pincel) ----
+// Refeito a partir do processo do post: a textura de rabisco é gerada aqui mesmo
+// (traços de pincel com direção, sobre papel), entra como mapa de deslocamento na
+// foto, puxa a cor por dentro dos traços (o "smear"), é achatada por cima com layer
+// mix e pode fechar com dither/paleta. O "animated look" do fim do processo sai da
+// timeline (keyframes em textureBlur/layer).
+const FX38_BAYER = [0, 8, 2, 10, 12, 4, 14, 6, 3, 11, 1, 9, 15, 7, 13, 5];
+
+// campo de direção dos traços: ângulo fixo, jitter ou o gradiente da própria foto.
+// Guarda também cos/sin por célula para o smear não pagar trigonometria por pixel.
+function fx38ScribbleDir(d, W, H, p) {
+  const n = 24, n2 = n * n;
+  const a = new Float32Array(n2), cs = new Float32Array(n2), sn = new Float32Array(n2);
+  const base = Number(p.angle || 0) * Math.PI / 180;
+  const seed = Number(p.seed || 0);
+  const flow = p.flow || 'jitter';
+  const jit = flow === 'angle' ? 0 : Number(p.jitter || 0) / 100 * (flow === 'image' ? 0.6 : 1);
+  for (let gy = 0; gy < n; gy++) for (let gx = 0; gx < n; gx++) {
+    const x = (gx + 0.5) / n * W, y = (gy + 0.5) / n * H;
+    let ang = base;
+    if (flow === 'image') {
+      const hw = Math.max(1, W / n / 2), hh = Math.max(1, H / n / 2);
+      const l = fx38Idx(W, H, x - hw, y), r = fx38Idx(W, H, x + hw, y);
+      const u = fx38Idx(W, H, x, y - hh), v = fx38Idx(W, H, x, y + hh);
+      const dx = fx38Luma(d[r], d[r + 1], d[r + 2]) - fx38Luma(d[l], d[l + 1], d[l + 2]);
+      const dy = fx38Luma(d[v], d[v + 1], d[v + 2]) - fx38Luma(d[u], d[u + 1], d[u + 2]);
+      ang = Math.atan2(dy, dx) + Math.PI / 2;   // o traço corre através da borda
+    }
+    ang += (fx38Hash(gx + seed * 31, gy - 7) - 0.5) * jit * 2.6;
+    const i = gy * n + gx;
+    a[i] = ang; cs[i] = Math.cos(ang); sn[i] = Math.sin(ang);
+  }
+  return { a, cs, sn, n };
+}
+// amostra bilinear de um campo n x n do nó
+function fx38ScribbleGrid(v, n, x, y, W, H) {
+  const fx = x / W * (n - 1), fy = y / H * (n - 1);
+  const x0 = Math.floor(fx), y0 = Math.floor(fy), tx = fx - x0, ty = fy - y0;
+  const cx = Math.max(0, Math.min(n - 1, x0)), cx1 = Math.max(0, Math.min(n - 1, x0 + 1));
+  const cy = Math.max(0, Math.min(n - 1, y0)) * n, cy1 = Math.max(0, Math.min(n - 1, y0 + 1)) * n;
+  const p0 = v[cy + cx] + (v[cy + cx1] - v[cy + cx]) * tx;
+  const p1 = v[cy1 + cx] + (v[cy1 + cx1] - v[cy1 + cx]) * tx;
+  return p0 + (p1 - p0) * ty;
+}
+
+// a textura: traços curtos e curvos, com ponta fina e alpha variável, sobre o papel
+function fx38ScribbleTex(W, H, p, dir) {
+  const cv = fx7NewCanvas(W, H), ctx = cv.getContext('2d');
+  const paper = fx5Hex(p.paper || '#f5f2ea'), ink = fx5Hex(p.ink || '#151515');
+  ctx.fillStyle = 'rgb(' + paper.r + ',' + paper.g + ',' + paper.b + ')';
+  ctx.fillRect(0, 0, W, H);
+  const seed = Number(p.seed || 0);
+  const density = clamp01(Number(p.density || 0) / 100);
+  const step = Math.max(3.5, 19 - density * 0.13);
+  const len = Math.max(2, Number(p.length || 26));
+  const wid = Math.max(0.4, Number(p.width || 1.6));
+  const n = dir.n;
+  ctx.lineCap = 'round';
+  ctx.lineJoin = 'round';
+  let k = 0;
+  for (let gy = -step; gy < H + step; gy += step) for (let gx = -step; gx < W + step; gx += step) {
+    k++;
+    const h1 = fx38Hash(gx + seed * 17, gy + 3), h2 = fx38Hash(gx - 5, gy + seed * 23);
+    let x = gx + (h1 - 0.5) * step * 0.9, y = gy + (h2 - 0.5) * step * 0.9;
+    const ci = Math.max(0, Math.min(n - 1, Math.floor(y / H * n))) * n + Math.max(0, Math.min(n - 1, Math.floor(x / W * n)));
+    let a = dir.a[ci];
+    const seg = 2 + Math.floor(h1 * 3), segLen = len / seg, bend = (h2 - 0.5) * 0.3;
+    ctx.strokeStyle = 'rgba(' + ink.r + ',' + ink.g + ',' + ink.b + ',' + (0.4 + h1 * 0.45).toFixed(3) + ')';
+    ctx.lineWidth = wid * (0.5 + h2);
     ctx.beginPath();
     ctx.moveTo(x, y);
-    ctx.quadraticCurveTo(x + Math.cos(a) * len * 0.5, y + Math.sin(a) * len * 0.5, x + Math.cos(a + 1.2) * len, y + Math.sin(a + 1.2) * len);
+    for (let s = 0; s < seg; s++) {
+      a += bend + (fx38Hash(k + s, 9) - 0.5) * 0.18;
+      x += Math.cos(a) * segLen;
+      y += Math.sin(a) * segLen;
+      ctx.lineTo(x, y);
+    }
     ctx.stroke();
   }
   return cv;
+}
+
+// campo da textura em grade grossa (lido com interpolação bilinear)
+function fx38ScribbleField(td, W, H, step) {
+  const gw = Math.max(2, Math.ceil(W / step)), gh = Math.max(2, Math.ceil(H / step));
+  const v = new Float32Array(gw * gh);
+  for (let gy = 0; gy < gh; gy++) for (let gx = 0; gx < gw; gx++) {
+    const i = fx38Idx(W, H, (gx + 0.5) * step, (gy + 0.5) * step);
+    v[gy * gw + gx] = fx38Luma(td[i], td[i + 1], td[i + 2]) / 255;
+  }
+  return { v, gw, gh, step };
+}
+function fx38ScribbleAt(F, x, y) {
+  const fx = x / F.step - 0.5, fy = y / F.step - 0.5;
+  const x0 = Math.floor(fx), y0 = Math.floor(fy), tx = fx - x0, ty = fy - y0;
+  const cx = Math.max(0, Math.min(F.gw - 1, x0)), cx1 = Math.max(0, Math.min(F.gw - 1, x0 + 1));
+  const cy = Math.max(0, Math.min(F.gh - 1, y0)) * F.gw, cy1 = Math.max(0, Math.min(F.gh - 1, y0 + 1)) * F.gw;
+  const a = F.v[cy + cx] + (F.v[cy + cx1] - F.v[cy + cx]) * tx;
+  const b = F.v[cy1 + cx] + (F.v[cy1 + cx1] - F.v[cy1 + cx]) * tx;
+  return a + (b - a) * ty;
+}
+// modos de camada (0..1 em cada canal)
+function fx38ScribbleBlend(b, t, mode) {
+  if (mode === 'overlay') return b < 0.5 ? 2 * b * t : 1 - 2 * (1 - b) * (1 - t);
+  if (mode === 'multiply') return b * t;
+  if (mode === 'screen') return 1 - (1 - b) * (1 - t);
+  if (mode === 'normal') return t;
+  return b + (2 * t - 1) * b * (1 - b);          // soft light
+}
+
+function fx38Scribble(srcCanvas, W, H, p) {
+  const d = fx32Pixels(srcCanvas, W, H);
+  const dir = fx38ScribbleDir(d, W, H, p);
+  const tex = fx38ScribbleTex(W, H, p, dir);
+  const F = fx38ScribbleField(fx32Pixels(tex, W, H), W, H, 3);      // textura crua: traço e camada
+  const blur = Number(p.textureBlur || 0);
+  const FD = blur > 0.05 ? fx38ScribbleField(fx28Blurred(tex, W, H, blur), W, H, 3) : F;  // "texture blur" (etapa 2)
+  const disp = Number(p.displace || 0) / 100 * Math.min(W, H) * 0.07;
+  const smear = clamp01(Number(p.smear || 0) / 100) * Math.min(W, H) * 0.05;
+  const layer = clamp01(Number(p.layer ?? 55) / 100);
+  const mode = p.blend || 'softlight';
+  const palette = p.palette || 'none';
+  const dith = clamp01(Number(p.dither || 0) / 100);
+  const paper = fx5Hex(p.paper || '#f5f2ea'), ink = fx5Hex(p.ink || '#151515');
+  const bm = Math.min(W, H) * clamp01(Number(p.border || 0) / 100);
+  const pr = paper.r / 255, pg = paper.g / 255, pb = paper.b / 255;
+  const ir = ink.r / 255, ig = ink.g / 255, ib = ink.b / 255;
+  const out = new Uint8ClampedArray(W * H * 4);
+  for (let y = 0; y < H; y++) {
+    for (let x = 0; x < W; x++) {
+      const o = (y * W + x) * 4;
+      const t = fx38ScribbleAt(F, x, y);                      // 1 = papel, 0 = tinta
+      // deslocamento: o gradiente da textura empurra a foto para dentro do traço
+      let sx = x, sy = y;
+      if (disp > 0.05) {
+        // deslocamento anisotrópico: a foto escorrega ao longo do traço (não em todas as direções)
+        const push = (1 - t) * disp;
+        sx += fx38ScribbleGrid(dir.cs, dir.n, x, y, W, H) * push;
+        sy += fx38ScribbleGrid(dir.sn, dir.n, x, y, W, H) * push;
+      }
+      const x0 = Math.floor(sx), y0 = Math.floor(sy), tx2 = sx - x0, ty2 = sy - y0;
+      const i00 = fx38Idx(W, H, x0, y0), i10 = fx38Idx(W, H, x0 + 1, y0);
+      const i01 = fx38Idx(W, H, x0, y0 + 1), i11 = fx38Idx(W, H, x0 + 1, y0 + 1);
+      const w00 = (1 - tx2) * (1 - ty2), w10 = tx2 * (1 - ty2), w01 = (1 - tx2) * ty2, w11 = tx2 * ty2;
+      let r = (d[i00] * w00 + d[i10] * w10 + d[i01] * w01 + d[i11] * w11) / 255;
+      let g = (d[i00 + 1] * w00 + d[i10 + 1] * w10 + d[i01 + 1] * w01 + d[i11 + 1] * w11) / 255;
+      let b = (d[i00 + 2] * w00 + d[i10 + 2] * w10 + d[i01 + 2] * w01 + d[i11 + 2] * w11) / 255;
+      const al = (d[i00 + 3] * w00 + d[i10 + 3] * w10 + d[i01 + 3] * w01 + d[i11 + 3] * w11) / 255;
+      // smear: dentro do traço a cor é puxada ao longo da direção do pincel
+      const stroke = 1 - t;
+      if (smear > 0.05 && stroke > 0.05) {
+        const dx = fx38ScribbleGrid(dir.cs, dir.n, x, y, W, H) * smear;
+        const dy = fx38ScribbleGrid(dir.sn, dir.n, x, y, W, H) * smear;
+        let sr = 0, sg = 0, sb = 0, sw = 0;
+        for (let tap = -1; tap <= 1; tap += 2) {
+          const i1 = fx38Idx(W, H, sx + dx * tap, sy + dy * tap);
+          const i2 = fx38Idx(W, H, sx + dx * tap * 0.45, sy + dy * tap * 0.45);
+          sr += (d[i1] * 0.34 + d[i2] * 0.16) / 255;
+          sg += (d[i1 + 1] * 0.34 + d[i2 + 1] * 0.16) / 255;
+          sb += (d[i1 + 2] * 0.34 + d[i2 + 2] * 0.16) / 255;
+          sw += 0.5;
+        }
+        const m = stroke * 0.9;
+        r += (sr / sw - r) * m; g += (sg / sw - g) * m; b += (sb / sw - b) * m;
+      }
+      // layer mix: a mesma textura por cima da foto
+      if (layer > 0.001) {
+        const tl = FD === F ? t : fx38ScribbleAt(FD, x, y);   // camada usa a textura desfocada
+        const tr = ir + (pr - ir) * tl, tg = ig + (pg - ig) * tl, tb = ib + (pb - ib) * tl;
+        r += (fx38ScribbleBlend(r, tr, mode) - r) * layer;
+        g += (fx38ScribbleBlend(g, tg, mode) - g) * layer;
+        b += (fx38ScribbleBlend(b, tb, mode) - b) * layer;
+      }
+      // margem de papel: a foto não chega até a borda
+      if (bm > 0.5) {
+        const ed = Math.min(x, y, W - 1 - x, H - 1 - y);
+        if (ed < bm) {
+          let e = 1 - ed / bm;
+          e = e * e * (3 - 2 * e) * (0.55 + 0.45 * t);
+          r += (pr - r) * e; g += (pg - g) * e; b += (pb - b) * e;
+        }
+      }
+      // dither / paleta
+      if (dith > 0.001 && palette !== 'none') {
+        const bay = (FX38_BAYER[(y & 3) * 4 + (x & 3)] / 16 - 0.47) * dith;
+        if (palette === 'duotone') {
+          const l = 0.2126 * r + 0.7152 * g + 0.0722 * b + bay * 0.6;
+          if (l < 0.5) { r = ir; g = ig; b = ib; } else { r = pr; g = pg; b = pb; }
+        } else {
+          r = Math.round(clamp01(r * 3 + bay * 1.1)) / 3;
+          g = Math.round(clamp01(g * 3 + bay * 1.1)) / 3;
+          b = Math.round(clamp01(b * 3 + bay * 1.1)) / 3;
+        }
+      }
+      out[o] = r * 255; out[o + 1] = g * 255; out[o + 2] = b * 255; out[o + 3] = al * 255;
+    }
+  }
+  const cv = fx7NewCanvas(W, H);
+  cv.getContext('2d', { willReadFrequently: true }).putImageData(new ImageData(out, W, H), 0, 0);
+  return fx34Blend(srcCanvas, cv, p.mix, W, H);
 }
 
 // ---- Shape Grid (grid of shapes by luminance; same body as the shapeGrid mode of v1.6) ----
@@ -20220,7 +20413,7 @@ const WF_T_EXP = [
     liga: [[0, 1], [1, 2], [2, 3], [3, 4]] },
   { id: 'rabisco', cat: 'exp', nome: 'Scribble',
     desc: 'Scribble + sobel (ink) + grain: the shaky drawing done freehand.',
-    nos: [['image', 60, 120], ['scribble', 340, 120, { amount: 60, length: 40, threshold: 140 }], ['sobelEffect', 620, 120, { amount: 50, threshold: 60 }], ['grain', 900, 120, { amount: 12 }], ['output', 1180, 120]],
+    nos: [['image', 60, 120], ['scribble', 340, 120, { density: 48, length: 26, displace: 48, layer: 55, border: 6, palette: 'duotone', dither: 45 }], ['sobelEffect', 620, 120, { amount: 50, threshold: 60 }], ['grain', 900, 120, { amount: 12 }], ['output', 1180, 120]],
     liga: [[0, 1], [1, 2], [2, 3], [3, 4]] },
   { id: 'grade-de-formas', cat: 'exp', nome: 'Shape grid',
     desc: 'Shape grid + gradient map + grain: a colorful geometric mosaic.',
