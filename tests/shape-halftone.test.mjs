@@ -43,7 +43,7 @@ const campos = [
   ['Paper Grain', /HNUM\('paperGrain', 'Paper Grain', 0, 1, 0\.3, 0\.01\)/],
   ['Misregistration', /HNUM\('misreg', 'Misregistration', 0, 40, 0\.42, 0\.01\)/],
   ['Ink Mode', /HENUM\('inkMode', 'Ink Mode', SH_INK_MODES, 'additive'\)/],
-  ['Ink Curve', /HCURVE\('inkCurve', 'Ink Curve', \[0, 0\.33, 0\.67, 1\]\)/],
+  ['Ink Curve', /HCURVE\('inkCurve', 'Ink Curve', \[0\.42, 0\.06, 0\.58, 0\.94\]\)/],
   ['Threshold Range', /HRANGE\('threshold', 'Threshold Range', \[0\.08, 0\.92\]\)/],
   ['Red Shape', /HENUM\('redShape', 'Red Shape', SH_SHAPES, 'smileys'\)/],
   ['Red Angle', /HNUM\('redAngle', 'Red Angle', 0, 180, 33, 1\)/],
@@ -59,7 +59,7 @@ const campos = [
   ['Blue Intensity', /HNUM\('blueInt', 'Blue Intensity', 0, 3, 1\.56, 0\.01\)/],
   ['Contrast', /HNUM\('contrast', 'Contrast', 0, 3, 1, 0\.01\)/],
   ['Gamma', /HNUM\('gamma', 'Gamma', 0\.1, 4, 1, 0\.01\)/],
-  ['Invert', /HSW\('invert', 'Invert', 'sim'\)/],
+  ['Invert', /HSW\('invert', 'Invert', 'nao'\)/],
 ];
 for (const [nome, re] of campos) ok(re.test(def), 'controle: ' + nome);
 
@@ -88,7 +88,9 @@ const sh = recorta('  shapeHalftone: `', '\n`,\n};');
 ok(/uniform sampler2D uSrc, uGlyph, uCurveTex;/.test(sh), 'lê a imagem, o atlas de glifos e a LUT da curva');
 ok(/uniform vec2 uRes, uPos, uSize;/.test(sh), 'resolução e transform da camada (posição/tamanho)');
 ok(/uniform float uOpacity, uGlow, uExposure, uCell, uSpread, uGain, uGrain, uMisreg;/.test(sh), 'opacidade, glow, exposição, célula, spread, ganho, grão e misregistration');
-ok(/uniform float uThrA, uThrB, uContrast, uGamma, uShow, uInvert, uInkMode;/.test(sh), 'threshold, contraste, gamma, show source, invert e modo de tinta');
+ok(/uniform float uThrA, uThrB, uContrast, uGamma, uShow, uInvert, uInkMode, uFallback;/.test(sh), 'threshold, contraste, gamma, show source, invert, modo de tinta e fallback');
+ok(/float vazio = step\(0\.5, uFallback\);/.test(sh), 'fallback do atlas é lido no shader', 'fallback');
+ok(/1\.0 - smoothstep\(1\.0 - e\.x, 1\.0 \+ e\.x, length\(gu\)\)/.test(sh), 'sem atlas imprime o ponto redondo clássico', 'ponto');
 ok(/uniform float uShape\[3\], uAng\[3\], uInt\[3\];/.test(sh), 'forma/ângulo/intensidade por canal');
 ok(/uniform vec3 uInkR, uInkG, uInkB;/.test(sh), 'as três tintas');
 ok(!/uPaper/.test(sh), 'sem uniforme de papel (controle removido na 3.5.2)', 'paper');
@@ -146,18 +148,24 @@ ok(!/shField|sdTri|sdBox/.test(sh), 'nada de forma procedural no GLSL: o desenho
 
 /* ---------- atlas rasterizado no canvas ---------- */
 {
-  const fonte = recorta('let shAtlasTex = null;', 'function shGlyphAtlas(') + funcao('shGlyphAtlas');
+  const fonte = recorta('let shAtlasTex = null, shAtlasVazio = 0;', 'function shGlyphAtlas(') + funcao('shGlyphAtlas');
   const LISTA = [['dot'], ['square'], ['diamond'], ['triangle'], ['lines'], ['arrows'], ['smileys'], ['stars'],
     ['plus'], ['ring'], ['hexagon'], ['grid'], ['waves'], ['heart'], ['ellipse'], ['solid']];
   const GLIFOS = {};
   for (const [id] of LISTA) GLIFOS[id] = ['M0 0h10v10H0Z'];
   const preenchidos = [];
   let canvas = null, tex = 0, mip = 0;
+  let alfaAtlas = 0;
   const ctx = {
     clearRect() {}, save() {}, restore() {},
     translate(x, y) { this.tx = x; this.ty = y; },
     scale() {}, set fillStyle(v) { this.cor = v; },
     fill(p, regra) { preenchidos.push({ d: p.d, regra, x: this.tx, y: this.ty, cor: this.cor }); },
+    getImageData(x, y, w, h) {
+      const data = new Uint8ClampedArray(w * h * 4);
+      if (alfaAtlas) for (let i = 3; i < data.length; i += 4) data[i] = alfaAtlas;
+      return { data };
+    },
   };
   const doc = { createElement: () => (canvas = { width: 0, height: 0, getContext: () => ctx }) };
   const glF = {
@@ -166,8 +174,9 @@ ok(!/shField|sdTri|sdBox/.test(sh), 'nada de forma procedural no GLSL: o desenho
     generateMipmap() { mip++; }, texParameteri() {},
   };
   const fab = new Function('document', 'Path2D', 'gl', 'SH_SHAPES', 'SH_GLYPHS',
-    fonte + '\nreturn shGlyphAtlas;');
-  const atlas = fab(doc, class { constructor(d) { this.d = d; } }, glF, LISTA, GLIFOS);
+    fonte + '\nreturn { shGlyphAtlas, vazio: () => shAtlasVazio };');
+  const mod = fab(doc, class { constructor(d) { this.d = d; } }, glF, LISTA, GLIFOS);
+  const atlas = mod.shGlyphAtlas;
   const t1 = atlas();
   ok(t1 === tex, 'atlas vira textura na primeira chamada');
   ok(canvas && canvas.width === 512 && canvas.height === 512, 'atlas 4x4 de 128 px = 512x512', canvas && [canvas.width, canvas.height]);
@@ -179,6 +188,13 @@ ok(!/shField|sdTri|sdBox/.test(sh), 'nada de forma procedural no GLSL: o desenho
   ok(preenchidos[0].regra === 'evenodd', 'regra padrão even-odd');
   ok(mip === 1, 'atlas gera mipmap uma vez');
   ok(atlas() === tex && preenchidos.length === 16, 'segunda chamada reaproveita o atlas (sem redesenhar)');
+  ok(mod.vazio() === 1, 'atlas sem tinta liga o fallback (nunca folha lisa)', mod.vazio());
+
+  /* com tinta no canvas o fallback fica desligado */
+  alfaAtlas = 255;
+  const mod2 = fab(doc, class { constructor(d) { this.d = d; } }, glF, LISTA, GLIFOS);
+  mod2.shGlyphAtlas();
+  ok(mod2.vazio() === 0, 'atlas com tinta não liga o fallback', mod2.vazio());
 }
 
 /* ---------- curva de tinta (matemática pura) ---------- */
@@ -203,7 +219,7 @@ ok(!/shField|sdTri|sdBox/.test(sh), 'nada de forma procedural no GLSL: o desenho
 
 /* ---------- execução: parâmetros → uniforms ---------- */
 {
-  const fonte = funcao('runShapeHalftone');
+  const fonte = funcao('runShapeHalftone').replace('uFallback: shAtlasVazio,', 'uFallback: __vazio(),');
   const SH_SHAPES_T = [['dot', 'Dot'], ['square', 'Square'], ['diamond', 'Diamond'], ['triangle', 'Triangle'],
     ['lines', 'Lines'], ['arrows', 'Arrows'], ['smileys', 'Smileys'], ['stars', 'Stars'], ['plus', 'Plus'],
     ['ring', 'Ring'], ['hexagon', 'Hexagon'], ['grid', 'Grid'], ['waves', 'Waves'], ['heart', 'Heart'],
@@ -213,8 +229,9 @@ ok(!/shField|sdTri|sdBox/.test(sh), 'nada de forma procedural no GLSL: o desenho
   const BLEND_T = [['normal', 'Normal'], ['multiply', 'Multiply'], ['screen', 'Screen'], ['overlay', 'Overlay']];
   const fonteCurva = funcao('shCurveBake');
   let atlasPedido = 0, lutPedida = null;
+  let atlasVazio = 0;
   const fabrica = new Function('pointOp', 'clamp', 'BLEND', 'SH_SHAPES', 'SH_INK_MODES', 'hexRGB', 'isFinite',
-    'shGlyphAtlas', 'shCurveTexus',
+    'shGlyphAtlas', 'shCurveTexus', '__vazio',
     'const shShapeId = v => { const i = SH_SHAPES.findIndex(x => x[0] === v); return i < 0 ? 0 : i; };' +
     'const shInkModeId = v => { const i = SH_INK_MODES.findIndex(x => x[0] === v); return i < 0 ? 0 : i; };' +
     fonteCurva + fonte + '\nreturn runShapeHalftone;');
@@ -224,7 +241,7 @@ ok(!/shField|sdTri|sdBox/.test(sh), 'nada de forma procedural no GLSL: o desenho
     hex => [parseInt(hex.slice(1, 3), 16) / 255, parseInt(hex.slice(3, 5), 16) / 255, parseInt(hex.slice(5, 7), 16) / 255],
     isFinite,
     () => (++atlasPedido, 'atlas-tex'),
-    curva => (lutPedida = curva, 'lut-tex'));
+    curva => (lutPedida = curva, 'lut-tex'), () => atlasVazio);
 
   const p = {
     opacity: 80, blend: 'multiply', showSource: 'sim', posX: 12, posY: -30, sizeW: 100, sizeH: 100, proporcao: 'locked',
@@ -244,6 +261,7 @@ ok(!/shField|sdTri|sdBox/.test(sh), 'nada de forma procedural no GLSL: o desenho
   ok(u.uSize[0] === 640 && u.uSize[1] === 480, 'Size 100% = imagem inteira (sem zoom no padrão)', u.uSize);
   ok(Math.abs(u.uPos[0] - 76.8) < 1e-6 && Math.abs(u.uPos[1] + 144) < 1e-6, 'posição em % vira pixels do quadro', u.uPos);
   ok(pedido.extra.uGlyph === 'atlas-tex' && pedido.extra.uCurveTex === 'lut-tex', 'atlas e LUT entram como texturas', pedido.extra);
+  ok(u.uFallback === 0, 'atlas bom → sem fallback', u.uFallback);
   ok(atlasPedido === 1, 'o atlas é pedido uma vez por execução');
   ok(lutPedida === p.inkCurve, 'a LUT é montada a partir da curva do nó');
   ok(Math.abs(u.uOpacity - 0.8) < 1e-9, 'opacidade em 0–1', u.uOpacity);
@@ -285,6 +303,12 @@ ok(!/shField|sdTri|sdBox/.test(sh), 'nada de forma procedural no GLSL: o desenho
   ok(pedido.extra.uCurveTex === 'lut-tex', 'curva ausente cai na padrão (LUT gerada mesmo assim)');
   ok(pedido.u.uMode >= 0, 'blend desconhecido cai em Normal');
   ok(run({ id: 9, params: p }, null) === null, 'sem imagem ligada devolve null (nada desenha)');
+
+  /* com o atlas vazio o shader imprime o ponto (nunca folha em branco) */
+  atlasVazio = 1;
+  pedido = null;
+  run({ id: 10, params: p }, { w: 64, h: 64, tex: 't' });
+  ok(pedido && pedido.u.uFallback === 1, 'atlas vazio manda o fallback para o shader', pedido && pedido.u.uFallback);
 }
 
 /* ---------- integração com o editor ---------- */
