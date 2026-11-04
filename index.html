@@ -40,6 +40,24 @@
 .animbox{margin-top:2px;border-top:1px solid var(--line);padding-top:3px}.animhead{display:flex;align-items:center;gap:4px;cursor:pointer;color:var(--text-muted);font-size:11px;padding:1px 1px;border-radius:3px}.animhead:hover{color:var(--text-strong);background:var(--hover)}.animtri{font-size:9px;color:var(--brand)}.animttl{flex:1}.animdot{font-size:9px;opacity:.22}.animdot.keyed{opacity:.75}.animdot.on{opacity:1;color:var(--sel)}.animb{display:none;flex-direction:column;gap:3px;margin-top:3px}.animbox.open .animb{display:flex}.animgrp{display:flex;flex-direction:column;gap:2px}.animgrphead{display:flex;align-items:center;gap:4px}.animgrplab{flex:1;font-size:10px;color:var(--text-dim)}.animfields{display:flex;align-items:center;gap:3px}.anumwrap{display:flex;align-items:center;gap:2px;flex:1;min-width:0}.anaxis{font-size:9.5px;color:var(--text-dim)}.anum{position:relative;flex:1;min-width:0;height:16px;background:var(--panel2);border:1px solid var(--view);border-radius:3px;cursor:ew-resize;overflow:hidden}.anum:hover{border-color:var(--line3)}.anum.keyed{border-color:var(--sel)}.anum.atkey{background:var(--sel)}.anum.atkey .anumedit{color:var(--edge)}.anumedit{position:absolute;inset:0;width:100%;background:transparent;border:0;outline:none;color:var(--text-strong);font:10.5px "Segoe UI",Inter,system-ui,sans-serif;text-align:center;padding:0;cursor:ew-resize}.anumedit:focus{cursor:text;background:var(--panel3)}/* diálogo: renderizar animação */
 .tldlgback{position:fixed;inset:0;background:rgba(0,0,0,.55);display:flex;align-items:center;justify-content:center;z-index:9600;padding:12px}.tldlg{width:min(470px,100%);background:var(--panel3);border:1px solid var(--accent);border-radius:8px;padding:14px;box-shadow:0 10px 40px rgba(0,0,0,.6);max-height:calc(100vh - 24px);overflow:auto}.tldlgt{font-size:14px;font-weight:600;color:var(--text-strong);margin-bottom:8px}.tldlgrow{display:flex;align-items:center;gap:8px;margin:6px 0}.tldlglab{flex:0 0 118px;font-size:11.5px;color:var(--text-muted)}.tldlgin{flex:1;min-width:0;height:24px;background:var(--field);border:1px solid var(--line);border-radius:4px;color:var(--text-strong);padding:0 5px;font-size:12px}.tldlgin.num{max-width:96px;flex:0 0 96px}.tldlghint{font-size:10.5px;color:var(--text-dim)}.tldlgtarget{flex:1;min-width:0;font-size:12px;color:var(--text-strong);font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.tldlgsz{display:block;font-size:11px;font-weight:600;color:var(--text-muted);white-space:nowrap}#tlRenderTarget{white-space:normal;text-align:right;line-height:1.3}.tldlgnote{font-size:11px;color:var(--text-dim);margin:8px 0;line-height:1.4}.tlprogwrap{height:8px;background:var(--field);border-radius:4px;overflow:hidden;margin:6px 0}.tlprog{height:100%;width:0;background:var(--accent);transition:width .1s linear}.tldlgmsg{font-size:11.5px;color:var(--text-muted);min-height:16px}.tldlgbtns{display:flex;justify-content:flex-end;gap:8px;margin-top:10px}.tldlgbtn{background:var(--btn2);color:var(--text-strong);border:1px solid var(--btn);border-radius:4px;padding:6px 12px;font-size:12px;cursor:pointer}.tldlgbtn:hover{background:var(--line3)}.tldlgbtn.primary{background:var(--accent);border-color:var(--accent);color:var(--on-accent)}.tldlgbtn.primary:hover{background:var(--accent-hover)}.tldlgbtn:disabled{opacity:.5;cursor:default}
 
+/* 3.6.2: carrossel da comunidade (#everythingeditor) na Home */
+.cmty{margin:4px 0 2px}
+.cmty[hidden]{display:none}
+.cmty-tag{color:var(--brand);font-weight:600;text-transform:none;letter-spacing:0}
+.cmty-vp{overflow:hidden;position:relative;-webkit-mask-image:linear-gradient(90deg,transparent,#000 26px,#000 calc(100% - 26px),transparent);mask-image:linear-gradient(90deg,transparent,#000 26px,#000 calc(100% - 26px),transparent)}
+.cmty-track{display:flex;width:max-content;animation:cmtyGo var(--cmty-dur,60s) linear infinite;will-change:transform}
+.cmty-vp:hover .cmty-track,.cmty-vp:focus-within .cmty-track{animation-play-state:paused}
+@keyframes cmtyGo{from{transform:translateX(0)}to{transform:translateX(-50%)}}
+.cmty-card{flex:none;width:132px;margin-right:12px;display:flex;flex-direction:column;gap:6px;text-decoration:none;color:inherit;border-radius:10px;outline-offset:3px}
+.cmty-th{width:132px;height:165px;border-radius:10px;overflow:hidden;background:var(--edge);border:1px solid var(--line);box-sizing:border-box}
+.cmty-th img{width:100%;height:100%;object-fit:cover;display:block}
+.cmty-card:hover .cmty-th,.cmty-card:focus-visible .cmty-th{border-color:var(--brand)}
+.cmty-who{display:flex;align-items:center;gap:6px;min-width:0}
+.cmty-handle{flex:1;min-width:0;font-size:12px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cmty-badge{flex:none;font-size:9.5px;letter-spacing:.04em;text-transform:uppercase;font-weight:700;border-radius:999px;padding:2px 6px;border:1px solid var(--line);color:var(--text-muted)}
+.cmty-badge.ig{color:#f3a1c6;border-color:#7a3a56}
+.cmty-badge.tb{color:#9fc3f3;border-color:#3a557a}
+@media (prefers-reduced-motion: reduce){.cmty-vp{overflow-x:auto}.cmty-track{animation:none}}
 </style>
 <style id="ee-mobile-css">/* =========================================================
    CAMADA MOBILE (Android · Realme Note 70 · 720×1600, 6, 74")
@@ -376,6 +394,12 @@ html, body{overscroll-behavior:none;-webkit-tap-highlight-color:transparent}/* 1
       <button id="ssContinue" class="ss-btn primary" type="button" hidden>Continue last session</button>
       <button id="ssOpenFile" class="ss-btn" type="button">Open file…</button>
     </div>
+    <div class="cmty" id="cmty" hidden>
+      <h4>Community · <span class="cmty-tag">#everythingeditor</span></h4>
+      <div class="cmty-vp" id="cmtyVp" role="region" aria-label="Community artwork — #everythingeditor">
+        <div class="cmty-track" id="cmtyTrack"></div>
+      </div>
+    </div>
     <h4>New document</h4>
     <div class="ss-tabs" id="ssTabs">
       <button type="button" data-tab="social" class="on">Social media</button>
@@ -414,7 +438,7 @@ html, body{overscroll-behavior:none;-webkit-tap-highlight-color:transparent}/* 1
 
 /* Versão do editor — o arquivo VERSION na raiz é a fonte da verdade
    (o build do APK usa o mesmo número no versionName e falha se divergir). */
-const APP_VERSION = '3.6.1';
+const APP_VERSION = '3.6.2';
 /* sem a telinha, a versão aparece no tooltip da marca (e o título da aba segue curto) */
 {
   const marca = document.getElementById('brandBtn');
@@ -15555,7 +15579,7 @@ function fx38FoldedPaper(srcCanvas, W, H, p) {
 // mix e pode fechar com dither/paleta. O "animated look" do fim do processo sai da
 // timeline (keyframes em textureBlur/layer).
 //
-// Custo (3.6.1): a foto é copiada de uma vez, blocos de papel são pulados, o traço é
+// Custo (3.6.2): a foto é copiada de uma vez, blocos de papel são pulados, o traço é
 // calculado de 2 em 2 pixels (pintado em blocos de 2x2) e o campo da textura é lido
 // em meia resolução — o nó caiu de ~180 ms para ~45 ms num quadro de 520 px.
 const FX38_BAYER = [0, 8, 2, 10, 12, 4, 14, 6, 3, 11, 1, 9, 15, 7, 13, 5];
@@ -31832,6 +31856,125 @@ function ssStartFolderRename(f, nameEl) {
   inp.focus(); inp.select();
 }
 
+/* =========================================================
+   Comunidade — carrossel infinito da Home (#everythingeditor)
+   O papel de backend é do GitHub Actions (scripts/community.mjs): ele consulta o
+   Instagram Graph API e o Tumblr, baixa as miniaturas para community/ e publica
+   community.json. Aqui só lemos esse JSON (com cache no navegador) e, quando ele
+   não existe — o caso do APK sem internet —, cai no seed embutido abaixo.
+   ========================================================= */
+/* CMTY_SEED_START (gerado por scripts/community.mjs — não editar à mão) */
+const CMTY_SEED = [];
+/* CMTY_SEED_END */
+const CMTY_JSON = 'community.json';
+const CMTY_PAGES = 'https://mdgverse.github.io/EverythingEditorV3/';
+const CMTY_CACHE = 'ee_community_v1';
+const CMTY_TTL = 6 * 60 * 60 * 1000;      // o Action republica a cada 6 h
+const CMTY_LIMITE = 24;
+let cmtyItens = [], cmtyBuscando = false;
+
+/* no APK o index.html roda em file:// (ou no esquema do WebView): relativo não resolve */
+function cmtyForaDoSite() {
+  const p = location.protocol;
+  return p === 'file:' || p === 'capacitor:' || p === 'ionic:' || p === 'app:';
+}
+function cmtyEndereco(caminho) {
+  if (/^(https?:|data:|blob:)/i.test(caminho)) return caminho;
+  return cmtyForaDoSite() ? CMTY_PAGES + caminho.replace(/^\.?\//, '') : caminho;
+}
+/* só entra o que é link de verdade, imagem e plataforma conhecida; sem repetir */
+function cmtyValidos(lista) {
+  const vistos = new Set(), saida = [];
+  for (const it of Array.isArray(lista) ? lista : []) {
+    if (!it || typeof it !== 'object') continue;
+    if (!/^https?:\/\//i.test(String(it.url || ''))) continue;
+    if (typeof it.img !== 'string' || !it.img) continue;
+    if (it.platform !== 'instagram' && it.platform !== 'tumblr') continue;
+    if (vistos.has(it.url)) continue;
+    vistos.add(it.url);
+    saida.push(it);
+    if (saida.length >= CMTY_LIMITE) break;
+  }
+  return saida;
+}
+function cmtyCard(it) {
+  const a = document.createElement('a');
+  a.className = 'cmty-card';
+  a.href = it.url;
+  a.target = '_blank';
+  a.rel = 'noopener noreferrer';
+  a.title = (it.author || 'unknown') + ' · ' + (it.platform === 'tumblr' ? 'Tumblr' : 'Instagram');
+  const th = E('div', 'cmty-th');
+  const img = new Image();
+  img.loading = 'lazy';
+  img.decoding = 'async';
+  img.width = 132;
+  img.height = 165;
+  img.alt = it.alt || ('Artwork by ' + (it.author || 'unknown'));
+  img.src = cmtyEndereco(String(it.img));
+  th.appendChild(img);
+  const who = E('div', 'cmty-who');
+  who.appendChild(E('span', 'cmty-handle', it.author || '@unknown'));
+  who.appendChild(E('span', 'cmty-badge ' + (it.platform === 'tumblr' ? 'tb' : 'ig'),
+    it.platform === 'tumblr' ? 'Tumblr' : 'Instagram'));
+  a.appendChild(th);
+  a.appendChild(who);
+  a.addEventListener('click', e => cmtyAbre(e, it.url));
+  return a;
+}
+/* no app, target="_blank" pode não abrir: tenta a janela nova e, se não houver, navega */
+function cmtyAbre(e, url) {
+  if (!cmtyForaDoSite()) return;
+  e.preventDefault();
+  let w = null;
+  try { w = window.open(url, '_blank', 'noopener'); } catch (_) {}
+  if (!w) location.href = url;
+}
+function cmtyMostra(itens) {
+  const sec = document.getElementById('cmty');
+  const track = document.getElementById('cmtyTrack');
+  if (!sec || !track) return;
+  cmtyItens = itens;
+  track.textContent = '';
+  sec.hidden = !itens.length;
+  if (!itens.length) return;
+  const volta = itens.concat(itens);            // duas cópias: o laço não tem emenda
+  for (const it of volta) track.appendChild(cmtyCard(it));
+  track.style.setProperty('--cmty-dur', Math.max(28, itens.length * 4.2) + 's');
+  track.dataset.total = String(itens.length);
+}
+async function cmtyCarrega() {
+  if (cmtyBuscando) return;
+  cmtyBuscando = true;
+  try {
+    let cache = null;
+    try { cache = JSON.parse(localStorage.getItem(CMTY_CACHE) || 'null'); } catch (_) {}
+    if (cache && Array.isArray(cache.itens)) {
+      const guardados = cmtyValidos(cache.itens);
+      if (guardados.length) cmtyMostra(guardados);
+      if (cache.t && Date.now() - cache.t < CMTY_TTL) return;   // ainda vale
+    }
+    let dados = null;
+    try {
+      const r = await fetch(cmtyEndereco(CMTY_JSON) + '?t=' + Date.now(), { cache: 'no-store' });
+      if (r.ok) dados = await r.json();
+    } catch (_) {}
+    const itens = cmtyValidos(dados && dados.items);
+    if (itens.length) {
+      cmtyMostra(itens);
+      try { localStorage.setItem(CMTY_CACHE, JSON.stringify({ t: Date.now(), itens })); } catch (_) {}
+      return;
+    }
+    if (!cmtyItens.length) {
+      const seed = cmtyValidos(CMTY_SEED);
+      if (seed.length) cmtyMostra(seed);
+    }
+  } finally { cmtyBuscando = false; }
+}
+/* abre a Home: carrega uma vez por sessão */
+function cmtyNaHome() { if (!cmtyItens.length) cmtyCarrega(); }
+window.cmtyCarrega = cmtyCarrega;
+
 function startScreenOpen() {
   const scr = document.getElementById('ssScr');
   if (!scr) return;
@@ -31841,6 +31984,7 @@ function startScreenOpen() {
   scr.scrollTop = 0;
   ssRenderTemplates('social');
   ssRenderRecent();
+  cmtyNaHome();
   ssWhenReady().then(() => {
     let had = ssHadSession;
     try { if (!had && localStorage.getItem('node-image-editor:autosave')) had = true; } catch (_) {}

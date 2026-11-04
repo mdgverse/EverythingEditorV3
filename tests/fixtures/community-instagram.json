@@ -1,0 +1,6 @@
+[
+  { "id": "17900000000000001", "media_type": "IMAGE", "media_url": "https://scontent.cdninstagram.com/v/t51/1/a.jpg", "permalink": "https://www.instagram.com/p/AAA111/", "username": "maker.one", "caption": "Poster feito no #everythingeditor", "timestamp": "2026-11-01T12:00:00+0000" },
+  { "id": "17900000000000002", "media_type": "VIDEO", "media_url": "https://scontent.cdninstagram.com/v/t51/1/b.mp4", "thumbnail_url": "https://scontent.cdninstagram.com/v/t51/1/b.jpg", "permalink": "https://www.instagram.com/p/BBB222/", "username": "studio_two", "caption": "Loop animado", "timestamp": "2026-10-31T09:00:00+0000" },
+  { "id": "17900000000000003", "media_type": "CAROUSEL_ALBUM", "media_url": "https://scontent.cdninstagram.com/v/t51/1/c.jpg", "permalink": "https://www.instagram.com/p/CCC333/", "username": "ateliê.tres", "caption": "Carrossel de teste", "timestamp": "2026-10-30T18:00:00+0000" },
+  { "id": "17900000000000004", "media_type": "IMAGE", "media_url": "https://scontent.cdninstagram.com/v/t51/1/a.jpg", "permalink": "https://www.instagram.com/p/AAA111/", "username": "maker.one", "caption": "repetido, deve sair", "timestamp": "2026-10-29T18:00:00+0000" }
+]

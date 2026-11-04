@@ -1,0 +1,5 @@
+[
+  { "id": "9001", "type": "photo", "blog_name": "cyanstudio", "post_url": "https://cyanstudio.tumblr.com/post/9001", "date": "2026-11-02 10:00:00 GMT", "summary": "Estudo de cor <b>#everythingeditor</b>", "photos": [{ "original_size": { "url": "https://64.media.tumblr.com/1.jpg", "width": 1280, "height": 1600 }, "alt_sizes": [{ "url": "https://64.media.tumblr.com/1_500.jpg", "width": 500, "height": 625 }] }] },
+  { "id": "9002", "type": "photo", "blog_name": "noite-boa", "post_url": "https://noite-boa.tumblr.com/post/9002", "date": "2026-11-01 21:00:00 GMT", "summary": "Print do editor", "photos": [{ "original_size": { "url": "https://64.media.tumblr.com/3.jpg", "width": 900, "height": 900 } }] },
+  { "id": "9003", "type": "text", "blog_name": "sem-foto", "post_url": "https://sem-foto.tumblr.com/post/9003", "summary": "post de texto, deve ser ignorado" }
+]
