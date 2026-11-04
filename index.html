@@ -143,31 +143,6 @@ html, body{overscroll-behavior:none;-webkit-tap-highlight-color:transparent}/* 1
   .gal-grid{grid-template-columns:repeat(auto-fill,minmax(88px,1fr));gap:7px;padding:7px}
 }
 </style>
-<style id="ee-halftone-css">/* ===== Shape Halftone (3.5.0) — seções dobráveis e controles próprios ===== */
-.sh-sec{margin:6px 0 0;border-top:1px solid var(--line);padding-top:4px}
-.sh-sec.fold>.sh-sec-b{display:none}
-.sh-sec-h{display:flex;align-items:center;gap:5px;height:17px;cursor:pointer;font-size:10px;letter-spacing:.06em;text-transform:uppercase;color:var(--text-muted);user-select:none;-webkit-user-select:none}
-.sh-sec-h:hover{color:var(--text-strong)}
-.sh-caret{font-size:9px;line-height:1;width:9px;flex:none;opacity:.85}
-.sh-sec-b{display:flex;flex-direction:column;gap:3px;padding:3px 0 2px}
-.sh-sw{width:36px;height:18px;border-radius:999px;background:var(--panel3);border:1px solid var(--line3);position:relative;cursor:pointer;flex:none;padding:0}
-.sh-sw>i{position:absolute;top:2px;left:2px;width:12px;height:12px;border-radius:50%;background:var(--text-muted);transition:left .12s ease,background .12s ease}
-.sh-sw.on{background:var(--accent);border-color:var(--accent)}
-.sh-sw.on>i{left:20px;background:#fff}
-.sh-curve{position:relative;height:92px;border:1px solid var(--line);border-radius:4px;background:var(--field3);overflow:hidden}
-.sh-curve canvas{display:block;width:100%;height:100%;touch-action:none;cursor:crosshair}
-.sh-range{position:relative;height:20px;border:1px solid var(--line);border-radius:4px;background:var(--panel2);touch-action:none;cursor:ew-resize;overflow:hidden}
-.sh-rfill{position:absolute;top:0;bottom:0;background:var(--accent);opacity:.32;pointer-events:none}
-.sh-rth{position:absolute;top:50%;width:11px;height:15px;margin:-7.5px 0 0 -5.5px;border-radius:3px;background:var(--btn2);border:1px solid var(--line3);box-shadow:0 1px 2px rgba(0,0,0,.45);pointer-events:none}
-.sh-hint{font-size:10px;line-height:1.3;color:var(--text-dim);padding:1px 1px 0}
-body.mobile .sh-sec-h{height:26px;font-size:12px}
-.node.in-sheet .sh-sec-h{height:30px;font-size:12px}
-.node.in-sheet .sh-curve{height:170px}
-.node.in-sheet .sh-range{height:34px}
-.node.in-sheet .sh-sw{width:56px;height:30px}
-.node.in-sheet .sh-sw>i{width:22px;height:22px;top:3px;left:3px}
-.node.in-sheet .sh-sw.on>i{left:29px}
-</style>
 </head>
 <body>
 <div class="app">
@@ -439,7 +414,7 @@ body.mobile .sh-sec-h{height:26px;font-size:12px}
 
 /* Versão do editor — o arquivo VERSION na raiz é a fonte da verdade
    (o build do APK usa o mesmo número no versionName e falha se divergir). */
-const APP_VERSION = '3.5.3';
+const APP_VERSION = '3.5.4';
 /* sem a telinha, a versão aparece no tooltip da marca (e o título da aba segue curto) */
 {
   const marca = document.getElementById('brandBtn');
@@ -880,54 +855,6 @@ const FILE  = (key, label, accept = 'image/*') => ({ type: 'file', key, label, a
 const LOCK  = (key, label, def = 'locked') => ({ type: 'lock', key, label, def });   // on/off lock with an icon
 const BTN   = (key, label, action, button) => ({ type: 'button', key, label, action, button, def: '' });
 const FONT  = (key, label, def) => ({ type: 'font', key, label, def });
-/* 3.5.0 — Shape Halftone: controles montados no painel do nó (shPanel), então
-   os parâmetros ficam marcados como hidden e o inspetor não os repete. */
-const SH_SHAPES = [['dot', 'Dot'], ['square', 'Square'], ['diamond', 'Diamond'], ['triangle', 'Triangle'],
-  ['lines', 'Lines'], ['arrows', 'Arrows'], ['smileys', 'Smileys'], ['stars', 'Stars'], ['plus', 'Plus'],
-  ['ring', 'Ring'], ['hexagon', 'Hexagon'], ['grid', 'Grid'], ['waves', 'Waves'], ['heart', 'Heart'],
-  ['ellipse', 'Ellipse'], ['solid', 'Solid']];
-const SH_INK_MODES = [['additive', 'Additive'], ['multiply', 'Multiply'], ['screen', 'Screen'],
-  ['overlay', 'Overlay'], ['softlight', 'Soft light'], ['difference', 'Difference'], ['subtract', 'Subtract']];
-/* 3.5.1 — as formas do Shape Halftone são SVG (Path2D), rasterizadas num atlas
-   4x4 no primeiro uso: o glifo continua vetorial em qualquer tamanho de célula. */
-function shStarPath(n = 5, R = 49, r = 20, cx = 50, cy = 52) {
-  const pts = [];
-  for (let i = 0; i < n * 2; i++) {
-    const a = (-90 + i * 180 / n) * Math.PI / 180;
-    const rad = i % 2 ? r : R;
-    pts.push((cx + rad * Math.cos(a)).toFixed(1) + ' ' + (cy + rad * Math.sin(a)).toFixed(1));
-  }
-  return 'M' + pts.join('L') + 'Z';
-}
-const SH_GLYPHS = {
-  dot: ['M50 0a50 50 0 1 0 0 100a50 50 0 1 0 0-100Z'],
-  square: ['M2 2h96v96H2Z'],
-  diamond: ['M50 1 99 50 50 99 1 50Z'],
-  triangle: ['M50 4 97 96H3Z'],
-  lines: ['M0 6h100v18H0Zm0 29h100v18H0Zm0 29h100v18H0Z'],
-  arrows: ['M50 2 97 52H70v46H30V52H3Z'],
-  smileys: ['M50 0a50 50 0 1 0 0 100a50 50 0 1 0 0-100Z'
-    + 'M30 28a9 9 0 1 0 0 18a9 9 0 1 0 0-18Z'
-    + 'M70 28a9 9 0 1 0 0 18a9 9 0 1 0 0-18Z'
-    + 'M22 56A28 28 0 0 0 78 56L66 56A16 16 0 0 1 34 56Z'],
-  stars: [shStarPath()],
-  plus: ['M37 0h26v37h37v26H63v37H37V63H0V37h37Z'],
-  ring: ['M50 0a50 50 0 1 0 0 100a50 50 0 1 0 0-100ZM50 26a24 24 0 1 1 0 48a24 24 0 1 1 0-48Z'],
-  hexagon: ['M50 1 97 26v48L50 99 3 74V26Z'],
-  grid: ['M0 0h100v13H0Zm0 29h100v13H0Zm0 29h100v13H0Zm0 29h100v13H0Z'
-    + 'M0 0h13v100H0Zm29 0h13v100H29Zm29 0h13v100H58Zm29 0h13v100H87Z', 'nonzero'],
-  waves: ['M0 46q25-32 50 0t50 0v34q-25 32-50 0t-50 0Z'],
-  heart: ['M50 96 8 54a25 25 0 1 1 42-31a25 25 0 1 1 42 31Z'],
-  ellipse: ['M50 2a50 46 0 1 0 0 92a50 46 0 1 0 0-92Z'],
-  solid: ['M0 0h100v100H0Z'],
-};
-const HNUM   = (key, label, min, max, def, step = 1) => ({ ...NUM(key, label, min, max, def, step), hidden: true });
-const HENUM  = (key, label, options, def) => ({ ...ENUM(key, label, options, def), hidden: true });
-const HCOL   = (key, label, def) => ({ ...COL(key, label, def), hidden: true });
-const HLOCK  = (key, label, def = 'locked') => ({ ...LOCK(key, label, def), hidden: true });
-const HSW    = (key, label, def = 'nao') => ({ type: 'switch', key, label, def, hidden: true });
-const HCURVE = (key, label, def) => ({ type: 'curve', key, label, def, hidden: true });
-const HRANGE = (key, label, def) => ({ type: 'range', key, label, def, hidden: true });
 
 /* ===== HalfMode (effect engine; id "halftone" up to 2.9.56) ===== */
 /* ============================================================================
@@ -4142,53 +4069,7 @@ const NODE_TYPES = {
     kw: 'audio pan pan left right sound',
     params: [NUM('pan', 'Pan', -100, 100, 0)],
   },
-  shapeHalftone: {
-    title: 'Shape Halftone', cat: 'style', inputs: ['Image'], outs: ['Image'],
-    kw: 'halftone shader print screen dots smileys arrows lines paper ink rgb channels misregistration grain bezier curve threshold risograph screen print shapes',
-    params: [
-      /* Transform */
-      HNUM('opacity', 'Opacity', 0, 100, 100, 1),
-      HENUM('blend', 'Blend', BLEND, 'normal'),
-      HSW('showSource', 'Show Source', 'nao'),
-      HNUM('posX', 'Position X', -200, 200, 0, 0.5),
-      HNUM('posY', 'Position Y', -200, 200, 0, 0.5),
-      HNUM('sizeW', 'Size W', 5, 400, 100, 1),
-      HNUM('sizeH', 'Size H', 5, 400, 100, 1),
-      HLOCK('proporcao', 'Lock ratio', 'locked'),
-      /* Glow */
-      HNUM('glow', 'Glow', 0, 1, 0, 0.01),
-      HNUM('exposure', 'Exposure', 0, 4, 1, 0.01),
-      /* Shape */
-      HNUM('cellSize', 'Cell Size', 2, 80, 11, 0.1),
-      HNUM('sizeSpread', 'Size Spread', 0, 1, 0, 0.01),
-      HNUM('dotGain', 'Dot Gain', 0, 3, 1.133, 0.001),
-      /* Texture */
-      HNUM('paperGrain', 'Paper Grain', 0, 1, 0.3, 0.01),
-      /* Distortion */
-      HNUM('misreg', 'Misregistration', 0, 40, 0.42, 0.01),
-      /* Blend & curve */
-      HENUM('inkMode', 'Ink Mode', SH_INK_MODES, 'additive'),
-      HCURVE('inkCurve', 'Ink Curve', [0.42, 0.06, 0.58, 0.94]),
-      HRANGE('threshold', 'Threshold Range', [0.08, 0.92]),
-      /* Channel separation */
-      HENUM('redShape', 'Red Shape', SH_SHAPES, 'smileys'),
-      HNUM('redAngle', 'Red Angle', 0, 180, 33, 1),
-      HCOL('redInk', 'Red Ink', '#e8322a'),
-      HNUM('redInt', 'Red Intensity', 0, 3, 1.1, 0.01),
-      HENUM('greenShape', 'Green Shape', SH_SHAPES, 'lines'),
-      HNUM('greenAngle', 'Green Angle', 0, 180, 29, 1),
-      HCOL('greenInk', 'Green Ink', '#1fa35a'),
-      HNUM('greenInt', 'Green Intensity', 0, 3, 1, 0.01),
-      HENUM('blueShape', 'Blue Shape', SH_SHAPES, 'arrows'),
-      HNUM('blueAngle', 'Blue Angle', 0, 180, 121, 1),
-      HCOL('blueInk', 'Blue Ink', '#2a4fd6'),
-      HNUM('blueInt', 'Blue Intensity', 0, 3, 1.56, 0.01),
-      /* General */
-      HNUM('contrast', 'Contrast', 0, 3, 1, 0.01),
-      HNUM('gamma', 'Gamma', 0.1, 4, 1, 0.01),
-      HSW('invert', 'Invert', 'nao'),
-    ],
-  },  output: {
+  output: {
     title: 'Output', cat: 'output', inputs: ['Image'], params: [],
   },
 };
@@ -7523,127 +7404,8 @@ void main(){
   col = mix(src.rgb, col, uMixF);
   outColor = vec4(clamp(col, 0.0, 1.0), mix(src.a, dis.a, uMixF));
 }`,
-  /* Shape Halftone (3.5.0): meio-tom por canal — o tom de cada canal vira
-     cobertura, a cobertura vira o tamanho da forma na célula, e as três
-     tintas se juntam sobre o papel. */
-  shapeHalftone: `uniform sampler2D uSrc, uGlyph, uCurveTex;
-uniform vec2 uRes, uPos, uSize;
-uniform float uOpacity, uGlow, uExposure, uCell, uSpread, uGain, uGrain, uMisreg;
-uniform float uThrA, uThrB, uContrast, uGamma, uShow, uInvert, uInkMode, uFallback;
-uniform float uShape[3], uAng[3], uInt[3];
-uniform vec3 uInkR, uInkG, uInkB;
-uniform int uMode;
-${BLEND_GLSL}
-vec2 shRot(vec2 p, float a){ float c = cos(a), s = sin(a); return vec2(c * p.x - s * p.y, s * p.x + c * p.y); }
-/* Cada forma é um SVG (Path2D) rasterizado num atlas 4x4; aqui só se escolhe
-   a casinha do atlas e se lê o glifo com margem de meio texel. */
-vec2 shGlyphUV(float id, vec2 gu){
-  int sh = int(id + 0.5);
-  vec2 tile = vec2(float(sh - (sh / 4) * 4), float(sh / 4));
-  return (tile + vec2(gu.x * 0.496 + 0.5, gu.y * 0.496 + 0.5)) * 0.25;
-}
-/* como a tinta se assenta no papel (overlay, soft light, difference, subtract) */
-vec3 shInkOnPaper(int m, vec3 a, vec3 b){
-  if (m == 3) return mix(2.0 * a * b, 1.0 - 2.0 * (1.0 - a) * (1.0 - b), step(0.5, a));
-  if (m == 4) return a + b - 2.0 * a * b;
-  if (m == 5) return abs(a - b);
-  if (m == 6) return max(a - b, vec3(0.0));
-  return b;
-}
-void main(){
-  vec2 res = max(uRes, vec2(1.0));
-  vec2 px = vec2(floor(vUv.x * res.x), floor(vUv.y * res.y));
-  vec2 size = max(uSize, vec2(16.0));
-  vec2 center = res * 0.5 + uPos;
-  vec2 luv = (px - (center - size * 0.5)) / size;
-
-  vec4 s0 = texture(uSrc, clamp(luv, vec2(0.0), vec2(1.0)));
-  vec3 src = s0.rgb;
-
-  float gA = hash(px.x, px.y) - 0.5;
-  float gB = hash(px.x * 0.41 + 13.0, px.y * 0.41 - 7.0) - 0.5;
-  /* papel fixo (3.5.2: o controle Paper saiu — o papel é sempre este creme) */
-  const vec3 PAPEL = vec3(0.9569, 0.9373, 0.8941);
-  vec3 paper = clamp(PAPEL * (1.0 + uGrain * (gA * 0.30 + gB * 0.16)), vec3(0.0), vec3(1.0));
-
-  float cell = max(uCell, 1.0);
-  vec3 dens = vec3(0.0);
-  vec3 mulAcc = vec3(1.0);
-  vec3 lightAcc = vec3(0.0);
-  float alphaMax = 0.0;
-  float alphaSum = 0.0;
-  for (int c = 0; c < 3; c++){
-    float ch = float(c);
-    float mi = (ch - 1.0) * uMisreg;
-    vec2 off = vec2(mi, -mi * 0.6);
-    vec3 sC = texture(uSrc, clamp(luv - off / size, vec2(0.0), vec2(1.0))).rgb;
-    float v = c == 0 ? sC.r : (c == 1 ? sC.g : sC.b);
-    v = clamp((v - 0.5) * uContrast + 0.5, 0.0, 1.0);
-    v = pow(v, 1.0 / max(uGamma, 0.02));
-    if (uInvert > 0.5) v = 1.0 - v;
-
-    float tone = v;                            // Ink Curve: tom do canal -> cobertura (LUT de 256 px)
-    float k = texture(uCurveTex, vec2(clamp(tone, 0.0, 1.0), 0.5)).r;
-    float cov = (uThrB - uThrA) < 0.004 ? step(uThrA, k) : smoothstep(uThrA, uThrB, k);
-    cov = pow(clamp(cov, 0.0, 1.0), 1.0 / max(uGain, 0.08));
-
-    float ang = radians(c == 0 ? uAng[0] : (c == 1 ? uAng[1] : uAng[2]));
-    vec2 gq = shRot(px - center + off, ang) / cell;
-    vec2 id = floor(gq);
-    vec2 local = fract(gq) - 0.5;
-    float rnd = hash(id.x + ch * 53.0, id.y - ch * 97.0);
-    cov = clamp(cov * (1.0 + uSpread * (rnd - 0.5) * 1.6), 0.0, 1.0);
-
-    float esc = max(cov, 0.02);                // a cobertura encolhe/aumenta o glifo na célula
-    vec2 gu = vec2(local.x, -local.y) * 2.0 / esc;
-    vec2 e = fwidth(gu) * 1.25;
-    float dentro = (1.0 - smoothstep(1.0 - e.x, 1.0 + e.x, abs(gu.x))) *
-                   (1.0 - smoothstep(1.0 - e.y, 1.0 + e.y, abs(gu.y)));
-    vec2 auv = shGlyphUV(c == 0 ? uShape[0] : (c == 1 ? uShape[1] : uShape[2]), gu * 0.5 + 0.5);
-    /* sem atlas (navegador que não rasterizou o SVG) imprime o ponto clássico */
-    float vazio = step(0.5, uFallback);
-    float glifo = mix(texture(uGlyph, auv).a, 1.0 - smoothstep(1.0 - e.x, 1.0 + e.x, length(gu)), vazio) * dentro;
-    float halo = (1.0 - vazio) * uGlow * 0.8 * textureLod(uGlyph, auv, 1.5).a * dentro;
-    float amt = clamp(glifo + halo * (1.0 - glifo), 0.0, 1.0);
-
-    float inten = max(0.0, c == 0 ? uInt[0] : (c == 1 ? uInt[1] : uInt[2]));
-    vec3 ink = c == 0 ? uInkR : (c == 1 ? uInkG : uInkB);
-    float alpha = clamp(amt * inten, 0.0, 1.0);
-    dens += (1.0 - ink) * alpha;                       // cada tinta absorve o seu complemento
-    mulAcc *= 1.0 - alpha * (1.0 - ink);               // tintas empilhadas, uma por cima da outra
-    lightAcc += ink * alpha;
-    alphaMax = 1.0 - (1.0 - alphaMax) * (1.0 - alpha);
-    alphaSum += alpha;
-  }
-  float total = clamp(alphaMax, 0.0, 1.0);
-  vec3 inkPix = clamp(paper - dens, vec3(0.0), vec3(1.0));
-  vec3 lightPix = clamp(paper * (1.0 - total) + lightAcc, vec3(0.0), vec3(1.0));
-  vec3 inkMix = lightAcc / max(alphaSum, 1e-4);
-  int modo = int(uInkMode + 0.5);
-  vec3 col;
-  if (modo == 0) col = lightPix;                                          // additive: as tintas somam luz
-  else if (modo == 1) col = clamp(paper * mulAcc, vec3(0.0), vec3(1.0));   // multiply: uma tinta por cima da outra
-  else if (modo == 2) col = clamp(paper + (1.0 - paper) * inkMix * total, vec3(0.0), vec3(1.0));  // screen
-  else col = mix(paper, clamp(shInkOnPaper(modo, paper, inkPix), vec3(0.0), vec3(1.0)), total);
-  col = clamp(col * uExposure, 0.0, 1.0);
-
-  float inside = step(0.0, luv.x) * step(luv.x, 1.0) * step(0.0, luv.y) * step(luv.y, 1.0);
-  col = mix(paper, col, inside);
-  if (uShow > 0.5) col = mix(col, src, 0.65 * inside);
-
-  vec3 outC = mix(src, blendRGB(src, col), clamp(uOpacity, 0.0, 1.0));
-  outColor = vec4(clamp(outC, 0.0, 1.0), s0.a);
-}
-`,
 };
 
-function compileShader(type, src) {
-  const s = gl.createShader(type);
-  gl.shaderSource(s, src);
-  gl.compileShader(s);
-  if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) throw new Error(gl.getShaderInfoLog(s));
-  return s;
-}
 /* Holographic sticker — rainbow band that follows the light/dark of the image, brightness
    glassy, metal-leaf grain and a repeated watermark on top.
 
@@ -22021,7 +21783,6 @@ const RUN = {
   audGate: (n, ins) => ins[0] || null,
   audFaixa: (n, ins) => ins[0] || null,
   holo: (n, ins) => runHolo(n, ins),
-  shapeHalftone: (n, ins) => runShapeHalftone(n, ins[0]),
   vetor: n => runVetor(n),
   blNoiseTex: (n, [rampaIn]) => fxRampaAplica(n, 0, rampaIn, runBlNoiseTex(n)),
   rampa: (n, ins) => runRampa(n, ins),
@@ -25280,7 +25041,6 @@ function buildControls(n, body) {
     body.addEventListener('change', () => { if (n.ui.pviewAgenda) n.ui.pviewAgenda(); });
   }
   if (n.type === 'blurStudio') blurAplicaVis(body, n.params);
-  if (n.type === 'shapeHalftone') shPanel(n, body);
   if (n.type === 'bandMachine') bandAplicaVis(body, n.params);
   if (n.type === 'halfmode') halfModeAplicaVis(body, n.params);
 }
@@ -25323,411 +25083,6 @@ function selectFromControl(n) {
   refreshSelection();
 }
 
-/* =========================================================
-   Shape Halftone (3.5.0)
-   Inspector com as seções do Shape Halftone do Nexus (Transform,
-   Color, Glow, Shape, Texture, Distortion, Blend, Red/Green/Blue,
-   General). O desenho é um shader só: por canal (R/G/B) o tom vira
-   cobertura, a cobertura vira o tamanho da forma na célula, e as três
-   tintas se juntam sobre o papel.
-   ========================================================= */
-const SH_SECOES = [
-  ['Transform', ['opacity', 'blend', 'showSource', 'posX', 'posY', 'sizeW', 'sizeH', 'proporcao']],
-  ['Glow', ['glow', 'exposure']],
-  ['Shape', ['cellSize', 'sizeSpread', 'dotGain']],
-  ['Texture', ['paperGrain']],
-  ['Distortion', ['misreg']],
-  ['Blend', ['inkMode', 'inkCurve', 'threshold']],
-  ['Red', ['redShape', 'redAngle', 'redInk', 'redInt']],
-  ['Green', ['greenShape', 'greenAngle', 'greenInk', 'greenInt']],
-  ['Blue', ['blueShape', 'blueAngle', 'blueInk', 'blueInt']],
-  ['General', ['contrast', 'gamma', 'invert']],
-];
-function shShapeId(v) { const i = SH_SHAPES.findIndex(x => x[0] === v); return i < 0 ? 0 : i; }
-function shInkModeId(v) { const i = SH_INK_MODES.findIndex(x => x[0] === v); return i < 0 ? 0 : i; }
-
-/* curva de tinta: bezier (0,0)-(x1,y1)-(x2,y2)-(1,1) amostrada em 16 pontos
-   (é o que o shader lê: tom -> cobertura) */
-function shCurveBake(pts) {
-  const p = Array.isArray(pts) && pts.length >= 4 ? pts : [0.42, 0.06, 0.58, 0.94];
-  const x1 = clamp(Number(p[0]) || 0, 0.001, 0.999);
-  const y1 = clamp(Number(p[1]) || 0, -0.4, 1.4);
-  const x2 = clamp(Number(p[2]) || 0, x1, 0.999);
-  const y2 = clamp(Number(p[3]) || 0, -0.4, 1.4);
-  const bez = (a, b, t) => { const u = 1 - t; return 3 * u * u * t * a + 3 * u * t * t * b + t * t * t; };
-  const saida = [];
-  for (let i = 0; i < 16; i++) {
-    const x = i / 15;
-    let lo = 0, hi = 1, t = x;
-    for (let k = 0; k < 20; k++) {
-      t = (lo + hi) * 0.5;
-      if (bez(x1, x2, t) < x) lo = t; else hi = t;
-    }
-    saida.push(clamp(bez(y1, y2, t), 0, 1));
-  }
-  return saida;
-}
-
-/* Atlas dos glifos: 4x4 tiles de 128 px, desenhados uma vez com Path2D (SVG) */
-let shAtlasTex = null, shAtlasVazio = 0;
-function shGlyphAtlas() {
-  if (shAtlasTex) return shAtlasTex;
-  const N = 4, T = 128, S = N * T;
-  let pintou = false;
-  const cv = document.createElement('canvas');
-  cv.width = cv.height = S;
-  const g = cv.getContext('2d');
-  if (g) {
-    g.clearRect(0, 0, S, S);
-    g.fillStyle = '#ffffff';
-    try {
-      SH_SHAPES.forEach(([id], i) => {
-        const glifo = SH_GLYPHS[id];
-        if (!glifo) return;
-        g.save();
-        g.translate((i % N) * T, Math.floor(i / N) * T);
-        g.scale(T / 100, T / 100);               // o desenho é um SVG de 100x100
-        g.fill(new Path2D(glifo[0]), glifo[1] || 'evenodd');
-        g.restore();
-      });
-      /* 3.5.3: confere se o atlas saiu com tinta — navegador que não rasteriza
-         Path2D não pode virar folha em branco, o shader cai no ponto redondo */
-      const d = g.getImageData(0, 0, S, S).data;
-      for (let i = 3; i < d.length; i += 4) if (d[i] > 8) { pintou = true; break; }
-    } catch (_) { pintou = false; }
-  }
-  shAtlasVazio = pintou ? 0 : 1;
-  const tex = gl.createTexture();
-  gl.bindTexture(gl.TEXTURE_2D, tex);
-  gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, false);
-  gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, cv);
-  gl.generateMipmap(gl.TEXTURE_2D);
-  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_LINEAR);
-  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
-  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
-  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-  shAtlasTex = tex;
-  return tex;
-}
-
-/* Curva de tinta em LUT de 256 px (sem array de uniforme com índice dinâmico) */
-const shLutCache = new Map();
-function shCurveTexus(curva) {
-  const c = shCurveBake(curva);
-  const chave = c.map(v => v.toFixed(3)).join(',');
-  let tex = shLutCache.get(chave);
-  if (tex) return tex;
-  if (shLutCache.size > 12) {
-    const [velha, alvo] = shLutCache.entries().next().value;
-    gl.deleteTexture(alvo);
-    shLutCache.delete(velha);
-  }
-  const dados = new Uint8Array(256 * 4);
-  for (let i = 0; i < 256; i++) {
-    const x = (i / 255) * 15;
-    const j = Math.min(14, Math.floor(x));
-    const v = clamp(c[j] * (1 - (x - j)) + c[j + 1] * (x - j), 0, 1);
-    const b = Math.round(v * 255);
-    dados[i * 4] = b; dados[i * 4 + 1] = b; dados[i * 4 + 2] = b; dados[i * 4 + 3] = 255;
-  }
-  tex = gl.createTexture();
-  gl.bindTexture(gl.TEXTURE_2D, tex);
-  gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 256, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE, dados);
-  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
-  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
-  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
-  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-  shLutCache.set(chave, tex);
-  return tex;
-}
-
-function runShapeHalftone(n, a) {
-  if (!a) return null;
-  const p = n.params;
-  const W = Math.max(1, a.w), H = Math.max(1, a.h);
-  const num = (v, d) => (isFinite(Number(v)) ? Number(v) : d);
-  /* 3.5.1: Position e Size são % da moldura (100% = imagem inteira). Sessões
-     antigas guardaram px — o que passar da faixa é convertido uma vez. */
-  const pctPos = (v, ref) => { const q = num(v, 0); return clamp(Math.abs(q) > 200 ? q / ref * 100 : q, -200, 200); };
-  const pctTam = (v, ref) => { let q = num(v, 100); if (!(q > 0)) q = 100; return clamp(q > 400 ? q / ref * 100 : q, 5, 400); };
-  const px = pctPos(p.posX, W) / 100 * W;
-  const py = pctPos(p.posY, H) / 100 * H;
-  const lw = pctTam(p.sizeW, W) / 100 * W;
-  const lh = pctTam(p.sizeH, H) / 100 * H;
-  const atlas = shGlyphAtlas();
-  if (!atlas) return null;
-  const thr = Array.isArray(p.threshold) ? p.threshold : [0.08, 0.92];
-  const lo = clamp(Number(thr[0]) || 0, 0, 1);
-  const hi = clamp(Number(thr[1]) || 1, lo + 0.004, 1);
-  return pointOp(a, 'shapeHalftone', {
-    uRes: [W, H],
-    uPos: [px, py],
-    uSize: [lw, lh],
-    uOpacity: clamp(num(p.opacity, 100) / 100, 0, 1),
-    uMode: Math.max(0, BLEND.findIndex(m => m[0] === p.blend)),
-    uShow: p.showSource === 'sim' ? 1 : 0,
-    uGlow: Math.max(0, num(p.glow, 0)),
-    uExposure: Math.max(0, num(p.exposure, 1)),
-    uCell: Math.max(1, num(p.cellSize, 11)),
-    uSpread: clamp(num(p.sizeSpread, 0), 0, 1),
-    uGain: Math.max(0.08, num(p.dotGain, 1)),
-    uGrain: clamp(num(p.paperGrain, 0), 0, 1),
-    uMisreg: Math.max(0, num(p.misreg, 0)),
-    uInkMode: shInkModeId(p.inkMode),
-    uThrA: lo, uThrB: hi,
-    uShape: [shShapeId(p.redShape), shShapeId(p.greenShape), shShapeId(p.blueShape)],
-    uAng: [num(p.redAngle, 0), num(p.greenAngle, 0), num(p.blueAngle, 0)],
-    uInt: [Math.max(0, num(p.redInt, 0)), Math.max(0, num(p.greenInt, 0)), Math.max(0, num(p.blueInt, 0))],
-    uInkR: hexRGB(p.redInk), uInkG: hexRGB(p.greenInk), uInkB: hexRGB(p.blueInk),
-    uContrast: Math.max(0, num(p.contrast, 1)),
-    uGamma: Math.max(0.02, num(p.gamma, 1)),
-    uInvert: p.invert === 'sim' ? 1 : 0,
-    uFallback: shAtlasVazio,
-  }, { uGlyph: atlas, uCurveTex: shCurveTexus(p.inkCurve) });
-}
-
-/* ----- painel: seções dobráveis, cada uma com os seus controles ----- */
-function shPanel(n, body) {
-  const porChave = {};
-  for (const p of NODE_TYPES.shapeHalftone.params) porChave[p.key] = p;
-  n.shAberto = n.shAberto || {};
-  const refs = {};
-  for (const [titulo, chaves] of SH_SECOES) {
-    const sec = E('div', 'sh-sec');
-    const aberto = n.shAberto[titulo] !== false;
-    if (!aberto) sec.classList.add('fold');
-    const cab = E('div', 'sh-sec-h');
-    cab.title = 'Show/hide the ' + titulo + ' controls';
-    const seta = E('span', 'sh-caret', aberto ? '▾' : '▸');
-    cab.append(seta, E('span', '', titulo));
-    const corpo = E('div', 'sh-sec-b');
-    cab.addEventListener('pointerdown', e => e.stopPropagation());
-    cab.addEventListener('click', e => {
-      e.stopPropagation();
-      const fechado = !sec.classList.contains('fold');
-      sec.classList.toggle('fold', fechado);
-      n.shAberto[titulo] = !fechado;
-      seta.textContent = fechado ? '▸' : '▾';
-      if (n.el) drawLinks();
-    });
-    for (const k of chaves) {
-      const p = porChave[k];
-      if (!p) continue;
-      let el = null;
-      if (p.type === 'num') el = makeSlider(n, p, true);
-      else if (p.type === 'enum') el = makeEnum(n, p);
-      else if (p.type === 'color') el = makeColor(n, p);
-      else if (p.type === 'lock') el = makeLock(n, p);
-      else if (p.type === 'switch') el = shSwitch(n, p);
-      else if (p.type === 'curve') el = shCurveCtl(n, p);
-      else if (p.type === 'range') el = shRangeCtl(n, p);
-      if (!el) continue;
-      el.dataset.pkey = k;
-      refs[k] = el;
-      corpo.append(el);
-    }
-    if (titulo === 'Transform') {
-      const dica = E('div', 'sh-hint', 'Position and Size are in % of the frame (100% = the whole image)');
-      corpo.append(dica);
-    }
-    if (titulo === 'Blend') corpo.append(E('div', 'sh-hint', 'Ink Curve: tone → coverage · Threshold Range: where the ink enters and saturates'));
-    sec.append(cab, corpo);
-    body.append(sec);
-  }
-  shTravaProporcao(n, body, refs);
-}
-
-/* Size W/H com o cadeado: o H acompanha a proporção guardada quando o W muda */
-function shTravaProporcao(n, corpo, refs) {
-  let razao = 0;
-  const ler = () => {
-    const w = Number(n.params.sizeW) || 0, h = Number(n.params.sizeH) || 0;
-    return w > 0.5 && h > 0.5 ? h / w : 0;
-  };
-  razao = ler();
-  const trava = () => n.params.proporcao !== 'free';
-  const aplica = () => {
-    if (!trava()) return;
-    if (!razao) razao = ler();
-    if (!razao) razao = 0;
-    const w = Number(n.params.sizeW) || 0;
-    const alvo = razao ? Math.max(1, Math.round(w * razao)) : 0;
-    if (alvo && Math.abs((Number(n.params.sizeH) || 0) - alvo) > 0.5) {
-      n.params.sizeH = alvo;
-      if (n.ui.sizeH) n.ui.sizeH();
-      markDirty(n.id);
-      requestRender();
-    }
-  };
-  const aoSoltar = e => {
-    if (!trava()) return;
-    const alvo = e.target && e.target.closest ? e.target.closest('[data-pkey="sizeW"]') : null;
-    if (!alvo) return;
-    aplica();
-    commit();
-  };
-  corpo.addEventListener('pointerup', aoSoltar);
-  corpo.addEventListener('change', aoSoltar);
-  const uiCadeado = n.ui.proporcao;
-  if (uiCadeado) n.ui.proporcao = () => { uiCadeado(); razao = 0; aplica(); };
-  if (refs.sizeW) refs.sizeW.title = 'Width of the print layer (0 = the whole frame)';
-}
-
-/* Show Source / Invert */
-function shSwitch(n, p) {
-  const row = E('div', 'prow');
-  row.append(E('span', 'plbl', p.label));
-  const btn = E('button', 'sh-sw');
-  btn.type = 'button';
-  btn.append(E('i', ''));
-  const refresh = () => {
-    const on = n.params[p.key] === 'sim';
-    btn.classList.toggle('on', on);
-    btn.setAttribute('aria-checked', on ? 'true' : 'false');
-    btn.title = (on ? 'On' : 'Off') + ' — click to turn it ' + (on ? 'off' : 'on');
-  };
-  btn.addEventListener('pointerdown', e => { e.stopPropagation(); selectFromControl(n); });
-  btn.addEventListener('click', e => {
-    e.stopPropagation();
-    n.params[p.key] = n.params[p.key] === 'sim' ? 'nao' : 'sim';
-    refresh(); markDirty(n.id); requestRender(); commit();
-  });
-  n.ui[p.key] = refresh;
-  refresh();
-  row.append(btn);
-  return row;
-}
-
-/* Ink Curve: as duas alças do bezier, desenhadas sobre a própria amostra do shader */
-function shCurveCtl(n, p) {
-  const wrap = E('div', 'sh-curve');
-  const cv = document.createElement('canvas');
-  wrap.append(cv);
-  const pontos = () => {
-    if (!Array.isArray(n.params[p.key]) || n.params[p.key].length < 4) n.params[p.key] = [0.42, 0.06, 0.58, 0.94];
-    return n.params[p.key];
-  };
-  let arrastando = -1;
-  const desenha = () => {
-    const r = cv.getBoundingClientRect();
-    const w = Math.max(40, Math.round(r.width || 150)), h = Math.max(30, Math.round(r.height || 92));
-    const dpr = Math.min(2, window.devicePixelRatio || 1);
-    const bw = Math.round(w * dpr), bh = Math.round(h * dpr);
-    if (cv.width !== bw || cv.height !== bh) { cv.width = bw; cv.height = bh; }
-    const g = cv.getContext('2d');
-    if (!g) return;
-    g.setTransform(dpr, 0, 0, dpr, 0, 0);
-    g.clearRect(0, 0, w, h);
-    g.strokeStyle = 'rgba(150,162,180,.24)';
-    g.lineWidth = 1;
-    for (let i = 1; i < 4; i++) {
-      const x = (w * i) / 4, y = (h * i) / 4;
-      g.beginPath(); g.moveTo(x, 0.5); g.lineTo(x, h - 0.5); g.stroke();
-      g.beginPath(); g.moveTo(0.5, y); g.lineTo(w - 0.5, y); g.stroke();
-    }
-    g.strokeStyle = 'rgba(255,255,255,.18)';
-    g.setLineDash([3, 3]);
-    g.beginPath(); g.moveTo(0, h); g.lineTo(w, 0); g.stroke();
-    g.setLineDash([]);
-    const c = pontos();
-    const px = v => v * w, py = v => h - v * h;
-    const amostras = shCurveBake(c);
-    g.strokeStyle = '#e9eef7';
-    g.lineWidth = 1.8;
-    g.beginPath();
-    for (let i = 0; i < 16; i++) {
-      const x = px(i / 15), y = py(amostras[i]);
-      if (i) g.lineTo(x, y); else g.moveTo(x, y);
-    }
-    g.stroke();
-    g.lineWidth = 1;
-    g.strokeStyle = 'rgba(160,180,210,.45)';
-    g.beginPath(); g.moveTo(px(0), py(0)); g.lineTo(px(c[0]), py(c[1])); g.stroke();
-    g.beginPath(); g.moveTo(px(1), py(1)); g.lineTo(px(c[2]), py(c[3])); g.stroke();
-    g.fillStyle = '#7fb3ff'; g.fillRect(px(c[0]) - 3.5, py(c[1]) - 3.5, 7, 7);
-    g.fillStyle = '#ffcf6b'; g.fillRect(px(c[2]) - 3.5, py(c[3]) - 3.5, 7, 7);
-  };
-  const move = e => {
-    const r = cv.getBoundingClientRect();
-    const nx = clamp((e.clientX - r.left) / Math.max(1, r.width), 0.001, 0.999);
-    const ny = clamp(1 - (e.clientY - r.top) / Math.max(1, r.height), -0.3, 1.3);
-    const c = pontos();
-    if (arrastando === 0) { c[0] = Math.min(nx, c[2]); c[1] = ny; }
-    else { c[2] = Math.max(nx, c[0]); c[3] = ny; }
-    desenha();
-    markDirty(n.id);
-    requestRender();
-  };
-  cv.addEventListener('pointerdown', e => {
-    e.preventDefault();
-    e.stopPropagation();
-    selectFromControl(n);
-    const r = cv.getBoundingClientRect();
-    const c = pontos();
-    const mx = (e.clientX - r.left) / Math.max(1, r.width);
-    const my = 1 - (e.clientY - r.top) / Math.max(1, r.height);
-    const d0 = Math.hypot(mx - c[0], my - c[1]);
-    const d1 = Math.hypot(mx - c[2], my - c[3]);
-    arrastando = d0 <= d1 ? 0 : 1;
-    if (cv.setPointerCapture) { try { cv.setPointerCapture(e.pointerId); } catch (_) {} }
-    move(e);
-  });
-  cv.addEventListener('pointermove', e => { if (arrastando >= 0) move(e); });
-  cv.addEventListener('pointerup', () => { if (arrastando >= 0) { arrastando = -1; commit(); } });
-  cv.addEventListener('pointercancel', () => { arrastando = -1; });
-  n.ui[p.key] = desenha;
-  requestAnimationFrame(desenha);
-  return wrap;
-}
-
-/* Threshold Range: duas alças no mesmo trilho */
-function shRangeCtl(n, p) {
-  const wrap = E('div', 'sh-range');
-  const fill = E('div', 'sh-rfill');
-  const ta = E('div', 'sh-rth');
-  const tb = E('div', 'sh-rth');
-  wrap.append(fill, ta, tb);
-  const vals = () => {
-    if (!Array.isArray(n.params[p.key]) || n.params[p.key].length < 2) n.params[p.key] = [0.08, 0.92];
-    return n.params[p.key];
-  };
-  let puxa = -1;
-  const refresh = () => {
-    const v = vals();
-    const a = clamp(Number(v[0]) || 0, 0, 1), b = clamp(Number(v[1]) || 1, 0, 1);
-    fill.style.left = (a * 100) + '%';
-    fill.style.width = Math.max(0, (b - a) * 100) + '%';
-    ta.style.left = (a * 100) + '%';
-    tb.style.left = (b * 100) + '%';
-  };
-  const move = e => {
-    const r = wrap.getBoundingClientRect();
-    const x = clamp((e.clientX - r.left) / Math.max(1, r.width), 0, 1);
-    const v = vals();
-    if (puxa === 0) v[0] = Math.min(x, v[1] - 0.01);
-    else v[1] = Math.max(x, v[0] + 0.01);
-    refresh();
-    markDirty(n.id);
-    requestRender();
-  };
-  wrap.addEventListener('pointerdown', e => {
-    e.preventDefault();
-    e.stopPropagation();
-    selectFromControl(n);
-    const r = wrap.getBoundingClientRect();
-    const x = (e.clientX - r.left) / Math.max(1, r.width);
-    const v = vals();
-    puxa = Math.abs(x - v[0]) <= Math.abs(x - v[1]) ? 0 : 1;
-    if (wrap.setPointerCapture) { try { wrap.setPointerCapture(e.pointerId); } catch (_) {} }
-    move(e);
-  });
-  wrap.addEventListener('pointermove', e => { if (puxa >= 0) move(e); });
-  wrap.addEventListener('pointerup', () => { if (puxa >= 0) { puxa = -1; commit(); } });
-  wrap.addEventListener('pointercancel', () => { puxa = -1; });
-  n.ui[p.key] = refresh;
-  refresh();
-  return wrap;
-}
 function makeSlider(n, p, keyable) {
   const wrap = E('div', 'ctrl');
   const fill = E('div', 'fill');
@@ -30685,13 +30040,50 @@ function redo() {
   setStatus('Refeito.');
 }
 
+/* 3.5.4: nós que saíram do app. O Shape Halftone some do grafo e a imagem de
+   entrada passa direto para quem consumia a saída dele (o projeto abre sem buraco). */
+function bypassShapeHalftone(data, rawLinks) {
+  const shIds = new Set((data.nodes || []).filter(nd => nd.type === 'shapeHalftone').map(nd => nd.id));
+  if (!shIds.size) return rawLinks;
+  const entra = new Map();
+  for (const l of rawLinks) if (shIds.has(l.to) && !entra.has(l.to)) entra.set(l.to, l);
+  const origem = id => {
+    const visto = new Set();
+    let cur = id;
+    while (shIds.has(cur) && !visto.has(cur)) {
+      visto.add(cur);
+      const l = entra.get(cur);
+      if (!l) return null;
+      cur = l.from;
+    }
+    return shIds.has(cur) ? null : cur;
+  };
+  const porSaida = new Map();
+  for (const l of rawLinks) if (shIds.has(l.from) && !porSaida.has(l.from)) porSaida.set(l.from, l);
+  const novos = [];
+  for (const l of rawLinks) {
+    if (shIds.has(l.to)) continue;    // aresta para dentro do nó removido (entrada ou elo interno)
+    if (shIds.has(l.from)) {
+      const de = origem(l.from);
+      if (de != null && de !== l.to) {
+        const saida = (porSaida.get(l.from) || {}).output || 0;
+        novos.push(Object.assign({}, l, { from: de, output: saida }));
+      }
+      continue;
+    }
+    novos.push(l);
+  }
+  return novos;
+}
+
 function restoreGraph(data) {
   for (const n of nodes.values()) { releaseNode(n); if (n.el) n.el.remove(); }
   nodes.clear();
   selected.clear();
   // LINEweight lost its Path socket: drop old Path links, shift Mask/Background down
   const lwIds = new Set((data.nodes || []).filter(nd => nd.type === 'lineweight').map(nd => nd.id));
-  const rawLinks = (data.links || []).filter(l => !(lwIds.has(l.to) && l.input === 1)).map(l => (lwIds.has(l.to) && l.input >= 2) ? Object.assign({}, l, { input: l.input - 1 }) : l);
+  let rawLinks = (data.links || []).filter(l => !(lwIds.has(l.to) && l.input === 1)).map(l => (lwIds.has(l.to) && l.input >= 2) ? Object.assign({}, l, { input: l.input - 1 }) : l);
+  rawLinks = bypassShapeHalftone(data, rawLinks);
   links = rawLinks.map(linkFromData);
   previewId = data.previewId ?? null;
   for (const nd of data.nodes || []) {
