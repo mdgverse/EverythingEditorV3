@@ -1,11 +1,11 @@
 {
   "version": 1,
-  "updated": "2026-11-04T03:52:36.093Z",
+  "updated": "2026-11-04T10:18:27.087Z",
   "tags": [
     "everythingeditor",
     "EverythingEditor"
   ],
-  "total": 10,
+  "total": 4,
   "notices": [
     "instagram: sem IG_TOKEN/IG_USER_ID"
   ],
@@ -57,78 +57,6 @@
       "alt": "I'm developing my own image editor, everyday I try something different. Today I tried to make a desk card kind, with Emma. I'm...",
       "tag": "everythingeditor",
       "ts": "1792282661"
-    },
-    {
-      "id": "tumblr:279313b22b41",
-      "platform": "tumblr",
-      "url": "https://mdgverse.tumblr.com/post/829284734318329856",
-      "author": "@mdgverse",
-      "img": "community/tumblr-279313b22b41.jpg",
-      "w": 1280,
-      "h": 558,
-      "alt": "In last few days I did a sketch and refined it with ai my Aston Martin concept car. Tell me what do you think about it. Loved to...",
-      "tag": "everythingeditor",
-      "ts": "1790867552"
-    },
-    {
-      "id": "tumblr:483a1a84a312",
-      "platform": "tumblr",
-      "url": "https://mdgverse.tumblr.com/post/829280566982705152",
-      "author": "@mdgverse",
-      "img": "community/tumblr-483a1a84a312.jpg",
-      "w": 1280,
-      "h": 558,
-      "alt": "In last few days I did a sketch and refined it with ai my Aston Martin concept car. Tell me what do you think about it. Loved to...",
-      "tag": "everythingeditor",
-      "ts": "1790863577"
-    },
-    {
-      "id": "tumblr:1653b4b3a113",
-      "platform": "tumblr",
-      "url": "https://mdgverse.tumblr.com/post/828965602797469696",
-      "author": "@mdgverse",
-      "img": "community/tumblr-1653b4b3a113.jpg",
-      "w": 1151,
-      "h": 2048,
-      "alt": "Any Absolute Wonder Woman fans here?",
-      "tag": "everythingeditor",
-      "ts": "1790563204"
-    },
-    {
-      "id": "tumblr:1a5f18f49b4b",
-      "platform": "tumblr",
-      "url": "https://mdgverse.tumblr.com/post/828602711645798400",
-      "author": "@mdgverse",
-      "img": "community/tumblr-1a5f18f49b4b.jpg",
-      "w": 1151,
-      "h": 2048,
-      "alt": "Invincible: Brand New Day fanposter",
-      "tag": "everythingeditor",
-      "ts": "1790217124"
-    },
-    {
-      "id": "tumblr:cad6b29d5768",
-      "platform": "tumblr",
-      "url": "https://mdgverse.tumblr.com/post/827216719388000256",
-      "author": "@mdgverse",
-      "img": "community/tumblr-cad6b29d5768.jpg",
-      "w": 1280,
-      "h": 866,
-      "alt": "Nos últimos dias descobri alguns remix trapsoul de algumas músicas do Michael, daí me veio uma inspiração para imaginar como...",
-      "tag": "everythingeditor",
-      "ts": "1788895339"
-    },
-    {
-      "id": "tumblr:54d893263ce8",
-      "platform": "tumblr",
-      "url": "https://mdgverse.tumblr.com/post/825772022468624385",
-      "author": "@mdgverse",
-      "img": "community/tumblr-54d893263ce8.jpg",
-      "w": 1254,
-      "h": 1254,
-      "alt": "After Dawn Fan poster and Merch Design.",
-      "tag": "everythingeditor",
-      "ts": "1787517569"
     }
   ]
 }
