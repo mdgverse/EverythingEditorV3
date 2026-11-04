@@ -157,6 +157,8 @@ ok(/IG_TOKEN|TUMBLR_KEY/.test(wf), 'lê os segredos das APIs');
 ok(/node scripts\/community\.mjs/.test(wf), 'roda o coletor');
 ok(/git push origin HEAD:main/.test(wf), 'publica community.json de volta no main');
 ok(/TUMBLR_BLOG: \$\{\{ vars\.TUMBLR_BLOG \|\| 'mdgverse' \}\}/.test(wf), 'lê o blog direto (default mdgverse)');
+ok(/npf=true/.test(fs.readFileSync(new URL('../scripts/community.mjs', import.meta.url), 'utf8')),
+  'pede o formato novo do Tumblr (npf=true)');
 ok(/push:\s*\n\s*branches: \[main\]/.test(wf), 'roda assim que o coletor muda no main');
 ok(/paths: /.test(wf) || true, 'ok');
 

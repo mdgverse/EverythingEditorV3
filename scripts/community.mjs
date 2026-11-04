@@ -181,7 +181,7 @@ export function postsDaResposta(r) {
 export async function buscaBlog(blog, chave, limite = 20) {
   const nome = String(blog || '').replace(/^https?:\/\//, '').replace(/\/+$/, '');
   const url = `${API_BLOG}${encodeURIComponent(nome)}.tumblr.com/posts` +
-    `?limit=${limite}&filter=text&api_key=${encodeURIComponent(chave)}`;
+    `?limit=${limite}&filter=text&npf=true&api_key=${encodeURIComponent(chave)}`;
   return normaliza('tumblr', postsDaResposta(await json(url)));
 }
 
@@ -258,11 +258,14 @@ export async function coleta({ fixtures = false, seco = false, raiz = RAIZ } = {
   const tumblrBlog = process.env.TUMBLR_BLOG || BLOG_PADRAO;
   const brutos = [];
   const avisos = [];
+  const fontes = [];
 
   if (fixtures) {
-    brutos.push(...normaliza('instagram', await leFixture('community-instagram.json')));
-    brutos.push(...normaliza('tumblr', await leFixture('community-tumblr.json')));
-    brutos.push(...normaliza('tumblr', postsDaResposta(await leFixture('community-tumblr-blog.json'))));
+    const fIg = normaliza('instagram', await leFixture('community-instagram.json'));
+    const fTb = normaliza('tumblr', await leFixture('community-tumblr.json'));
+    const fBlog = normaliza('tumblr', postsDaResposta(await leFixture('community-tumblr-blog.json')));
+    brutos.push(...fIg, ...fTb, ...fBlog);
+    fontes.push('fixtures: instagram ' + fIg.length + ', tag ' + fTb.length + ', blog ' + fBlog.length);
   } else {
     if (token && userId) {
       for (const tag of TAGS) {
@@ -271,21 +274,27 @@ export async function coleta({ fixtures = false, seco = false, raiz = RAIZ } = {
       }
     } else avisos.push('instagram: sem IG_TOKEN/IG_USER_ID');
     if (tumblrKey) {
-      try { brutos.push(...await buscaBlog(tumblrBlog, tumblrKey)); }
-      catch (e) { avisos.push('tumblr blog ' + tumblrBlog + ': ' + e.message); }
+      try {
+        const doBlog = await buscaBlog(tumblrBlog, tumblrKey);
+        brutos.push(...doBlog);
+        fontes.push('blog ' + tumblrBlog + ': ' + doBlog.length + ' com imagem');
+      } catch (e) { avisos.push('tumblr blog ' + tumblrBlog + ': ' + e.message); }
       for (const tag of TAGS) {
-        try { brutos.push(...await buscaTumblr(tag, tumblrKey)); }
-        catch (e) { avisos.push('tumblr ' + tag + ': ' + e.message); }
+        try {
+          const daTag = await buscaTumblr(tag, tumblrKey);
+          brutos.push(...daTag);
+          fontes.push('tag ' + tag + ': ' + daTag.length + ' com imagem');
+        } catch (e) { avisos.push('tumblr ' + tag + ': ' + e.message); }
       }
     } else avisos.push('tumblr: sem TUMBLR_KEY');
   }
 
   const escolhidos = escolhe(brutos);
   const comCache = await cacheia(escolhidos, raiz, seco || fixtures);
-  return { itens: comCache, avisos, encontrados: brutos.length };
+  return { itens: comCache, avisos, fontes, encontrados: brutos.length };
 }
 
-export async function publica({ itens, avisos }, raiz = RAIZ, seco = false) {
+export async function publica({ itens, avisos, fontes = [] }, raiz = RAIZ, seco = false) {
   const dados = {
     version: 1,
     updated: new Date().toISOString(),
@@ -312,6 +321,7 @@ async function main() {
   const r = await coleta({ fixtures, seco });
   const dados = await publica(r, RAIZ, seco);
   console.log(`  ${r.encontrados} posts lidos · ${dados.items.length} no carrossel · ${SEED_MAX} no seed`);
+  for (const f of r.fontes || []) console.log('  · ' + f);
   for (const a of r.avisos) console.log('  · ' + a);
   if (!dados.items.length) console.log('  (nada publicado: o carrossel fica escondido)');
 }
