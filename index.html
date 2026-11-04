@@ -59,6 +59,28 @@
 .cmty-badge.ig{color:#f3a1c6;border-color:#7a3a56}
 .cmty-badge.tb{color:#9fc3f3;border-color:#3a557a}
 @media (prefers-reduced-motion: reduce){.cmty-vp{overflow-x:auto}.cmty-track{animation:none}}
+/* 3.7.0: Screencast keys — interruptor no menu da marca e overlay de entradas no canto */
+.bm-tg{display:flex;align-items:center;gap:9px;cursor:pointer;min-height:32px;user-select:none}
+.bm-tg input{position:absolute;width:1px;height:1px;opacity:0;margin:0;pointer-events:none}
+.bm-tg-rail{position:relative;flex:none;width:36px;height:20px;border-radius:999px;background:#4a4a52;box-shadow:inset 0 0 0 1px rgba(255,255,255,.14);transition:background .16s ease}
+.bm-tg-dot{position:absolute;left:3px;top:3px;width:14px;height:14px;border-radius:50%;background:#d7d7de;transition:transform .16s ease,background .16s ease}
+.bm-tg input:checked+.bm-tg-rail{background:var(--brand2,#e07b1f)}
+.bm-tg input:checked+.bm-tg-rail .bm-tg-dot{transform:translateX(16px);background:#141414}
+.bm-tg input:focus-visible+.bm-tg-rail{outline:2px solid var(--link,#c7c729);outline-offset:2px}
+.bm-tg-txt{font-size:12px;color:#cfd3dc}
+#sckOverlay{position:absolute;left:12px;bottom:30px;z-index:6;pointer-events:none;max-width:min(330px,62vw);font:12px/1.35 "Segoe UI",Inter,system-ui,sans-serif;color:#fff;display:flex;flex-direction:column;gap:4px}
+#sckOverlay[hidden]{display:none}
+.sck-h{display:flex;align-items:center;gap:6px;align-self:flex-start;padding:3px 8px;border-radius:8px;background:rgba(12,12,16,.78);border:1px solid rgba(255,255,255,.14);font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:#b9b9c4}
+.sck-dot{width:6px;height:6px;border-radius:50%;background:#ff4d4d;box-shadow:0 0 6px #ff4d4d}
+.sck-live{box-sizing:border-box;min-height:27px;padding:6px 9px;border-radius:8px;background:rgba(12,12,16,.8);border:1px solid rgba(255,255,255,.14);font-weight:700;word-break:break-word}
+.sck-live.parado{font-weight:400;color:#9a9aa6}
+.sck-log{display:flex;flex-direction:column;gap:4px}
+.sck-l{align-self:flex-start;max-width:100%;padding:4px 8px;border-radius:7px;background:rgba(12,12,16,.72);border:1px solid rgba(255,255,255,.12);animation:sckIn .14s ease-out both;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.sck-l.err{color:#ffb4b4;border-color:rgba(255,120,120,.4)}
+.sck-l.sai{animation:sckOut .4s ease-in forwards}
+@keyframes sckIn{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+@keyframes sckOut{to{opacity:0;transform:translateY(-4px)}}
+@media (prefers-reduced-motion: reduce){.sck-l{animation:none}.sck-l.sai{animation:none;opacity:0}}
 </style>
 <style id="ee-mobile-css">/* =========================================================
    CAMADA MOBILE (Android · Realme Note 70 · 720×1600, 6, 74")
@@ -194,6 +216,13 @@ html, body{overscroll-behavior:none;-webkit-tap-highlight-color:transparent}/* 1
   <div class="bm-sec"><div class="bm-h">Node picker</div>
     <select class="bm-sel" id="addViewSel" title="Wheel: the radial menu · Gallery: node cards with a sample and the controls"><option value="wheel">Wheel (base)</option><option value="gallery">Gallery (alternative)</option></select>
   </div>
+  <div class="bm-sec"><div class="bm-h">Screencast keys</div>
+    <label class="bm-tg" title="Shows keys, clicks and the commands the editor runs, live in the corner — for screen recording">
+      <input type="checkbox" id="sckToggle" role="switch" aria-label="Screencast keys">
+      <span class="bm-tg-rail" aria-hidden="true"><span class="bm-tg-dot"></span></span>
+      <span class="bm-tg-txt" id="sckState">Off</span>
+    </label>
+  </div>
 </div>
 
   <div id="projTabs" class="proj-tabs" style="display:none"></div>
@@ -206,6 +235,11 @@ html, body{overscroll-behavior:none;-webkit-tap-highlight-color:transparent}/* 1
         <svg id="zipLayer"></svg>
       </div>
       <div class="hint">[ / ]: move the selected keys · Ctrl+D: duplicate keys · Middle mouse / Space + drag: pan · Alt + drag across wires: zip tie · Wheel: zoom · Drag on empty space: select · Shift+A: add · Ctrl+X: cut · Ctrl+C: copy · Ctrl+V: paste · Ctrl+D: duplicate · Del: delete · Ctrl+Z: undo · Home: frame all · Timeline: I: key · K: play · ←→: frame · ↑↓: previous/next key</div>
+      <div id="sckOverlay" hidden aria-hidden="true">
+      <div class="sck-h"><span class="sck-dot"></span>Screencast keys</div>
+      <div class="sck-live parado" id="sckLive">waiting for input</div>
+      <div class="sck-log" id="sckLog"></div>
+      </div>
       <div id="grpMenu" class="add-menu grp-menu" hidden></div>
       <div id="addMenu" class="add-menu" hidden>
         <div id="addWheel" class="add-wheel">
@@ -439,7 +473,7 @@ html, body{overscroll-behavior:none;-webkit-tap-highlight-color:transparent}/* 1
 
 /* Versão do editor — o arquivo VERSION na raiz é a fonte da verdade
    (o build do APK usa o mesmo número no versionName e falha se divergir). */
-const APP_VERSION = '3.6.12';
+const APP_VERSION = '3.6.13';
 /* sem a telinha, a versão aparece no tooltip da marca (e o título da aba segue curto) */
 {
   const marca = document.getElementById('brandBtn');
@@ -739,6 +773,8 @@ themeSel.addEventListener('click', () => { if (themeSel.value === 'custom') tcAb
 setTheme(document.documentElement.getAttribute('data-theme') || 'dark');
 
 function setStatus(msg, err = false) {
+  /* screencast keys: os comandos do editor aparecem no overlay */
+  try { sckComando(msg, err); } catch (_) { /* módulo ainda não existe */ }
   statusEl.textContent = (msg || '');
   statusEl.classList.toggle('err', !!err);
   /* a tela de Assets cobre a barra superior: a mensagem também aparece lá dentro */
@@ -26153,6 +26189,124 @@ function setWireCurve(mode, tension) {
   if (typeof linksEl !== 'undefined' && linksEl) drawLinks();
 }
 // "Node Link" icon: two nodes joined by a curved wire (stroke 2, rounded corners, currentColor)
+
+/* =========================================================
+   Screencast keys — mostra na tela o que você aperta e o que o editor
+   executa (teclas, cliques e comandos), no espírito do add-on do Blender.
+   Nasce desligado; o interruptor fica no menu da marca, abaixo do Node picker.
+   Nada aqui bloqueia evento: só escuta (passive) e pinta um canto da tela.
+   ========================================================= */
+const SCK_PREF = 'ee_screencast_keys';
+const SCK_TTL = 2200;              // ms que cada linha fica na tela
+const SCK_MAX = 5;                 // linhas visíveis no histórico
+const SCK_ROTULO = {               // nomes legíveis das teclas especiais
+  ' ': 'Spacebar', Escape: 'Esc', Enter: 'Enter', Tab: 'Tab', Backspace: 'Backspace',
+  Delete: 'Del', Insert: 'Ins', Home: 'Home', End: 'End', PageUp: 'PgUp', PageDown: 'PgDn',
+  ArrowUp: '↑', ArrowDown: '↓', ArrowLeft: '←', ArrowRight: '→', ContextMenu: 'Menu',
+  Control: 'Ctrl', Shift: 'Shift', Alt: 'Alt', Meta: '⌘', CapsLock: 'Caps',
+};
+const SCK_BOTAO = { 0: 'Left click', 1: 'Middle click', 2: 'Right click', 3: 'Back click', 4: 'Forward click' };
+let sckOn = false;
+let sckEls = null;
+let sckUltimo = { texto: '', t: 0 };
+const sckHeld = new Set();          // o que está pressionado agora
+
+function sckNomeTecla(key, code) {
+  if (SCK_ROTULO[key]) return SCK_ROTULO[key];
+  if (key && key.length === 1) return key.toUpperCase();
+  return key || code || '?';
+}
+function sckBotao(n) { return SCK_BOTAO[n] || ('Button ' + (n + 1)); }
+function sckMods(e) {
+  const m = [];
+  if (e.ctrlKey) m.push('Ctrl'); else if (e.metaKey) m.push('⌘');
+  if (e.shiftKey) m.push('Shift');
+  if (e.altKey) m.push('Alt');
+  return m;
+}
+/* linha de baixo: o que está segurado neste instante (Ctrl + Shift, Left click…) */
+function sckPinta() {
+  if (!sckEls || !sckEls.live) return;
+  const partes = [...sckHeld];
+  sckEls.live.textContent = partes.length ? partes.join(' + ') : 'waiting for input';
+  sckEls.live.classList.toggle('parado', partes.length === 0);
+}
+/* histórico: cada entrada some sozinha depois de SCK_TTL */
+function sckLoga(texto, erro) {
+  if (!sckOn || !sckEls || !texto) return;
+  const agora = Date.now();
+  if (texto === sckUltimo.texto && agora - sckUltimo.t < 500) return;   // rajada do mesmo comando
+  sckUltimo = { texto, t: agora };
+  const li = document.createElement('div');
+  li.className = 'sck-l' + (erro ? ' err' : '');
+  li.textContent = texto;
+  sckEls.log.appendChild(li);
+  while (sckEls.log.children.length > SCK_MAX) sckEls.log.firstElementChild.remove();
+  setTimeout(() => {
+    li.classList.add('sai');
+    setTimeout(() => li.remove(), 420);
+  }, SCK_TTL);
+}
+/* comandos do editor: tudo passa pelo setStatus, então é lá que a gente escuta */
+function sckComando(msg, erro) { sckLoga(String(msg || '').trim(), erro); }
+function sckLiga(on, salvar) {
+  sckOn = !!on;
+  const chk = document.getElementById('sckToggle');
+  const estado = document.getElementById('sckState');
+  if (chk) chk.checked = sckOn;
+  if (estado) estado.textContent = sckOn ? 'On' : 'Off';
+  if (sckEls && sckEls.wrap) sckEls.wrap.hidden = !sckOn;
+  if (salvar !== false) { try { localStorage.setItem(SCK_PREF, sckOn ? '1' : '0'); } catch (_) {} }
+  sckHeld.clear();
+  sckUltimo = { texto: '', t: 0 };
+  if (sckEls && sckEls.log) sckEls.log.textContent = '';
+  sckPinta();
+  if (sckOn) sckLoga('Screencast keys on');
+}
+window.screencastKeys = sckLiga;   // liga/desliga pelo console: screencastKeys(true)
+{
+  sckEls = {
+    wrap: document.getElementById('sckOverlay'),
+    live: document.getElementById('sckLive'),
+    log: document.getElementById('sckLog'),
+  };
+  const chk = document.getElementById('sckToggle');
+  if (chk) {
+    chk.addEventListener('change', () => sckLiga(chk.checked));
+  }
+  let salvo = null;
+  try { salvo = localStorage.getItem(SCK_PREF); } catch (_) {}
+  sckLiga(salvo === '1', false);
+
+  window.addEventListener('keydown', e => {
+    if (!sckOn) return;
+    const nome = sckNomeTecla(e.key, e.code);
+    sckHeld.add(nome);
+    if (!e.repeat) sckLoga(sckMods(e).filter(m => m !== nome).concat([nome]).join(' + '));
+    sckPinta();
+  }, { capture: true, passive: true });
+  window.addEventListener('keyup', e => {
+    if (!sckOn) return;
+    sckHeld.delete(sckNomeTecla(e.key, e.code));
+    sckPinta();
+  }, { capture: true, passive: true });
+  /* clique também é entrada: mostra o botão e os modificadores (Shift + Left click) */
+  document.addEventListener('pointerdown', e => {
+    if (!sckOn) return;
+    const b = sckBotao(e.button);
+    sckHeld.add(b);
+    sckLoga(sckMods(e).concat([b]).join(' + '));
+    sckPinta();
+  }, { capture: true, passive: true });
+  const solta = e => {
+    if (!sckOn) return;
+    sckHeld.delete(sckBotao(e.button));
+    sckPinta();
+  };
+  document.addEventListener('pointerup', solta, { capture: true, passive: true });
+  document.addEventListener('pointercancel', solta, { capture: true, passive: true });
+  window.addEventListener('blur', () => { sckHeld.clear(); sckPinta(); });
+}
 
 // brand menu: opens under "Everything Editor v3"; closes with a click/tap outside or Escape
 function brandMenuOpen(on) {

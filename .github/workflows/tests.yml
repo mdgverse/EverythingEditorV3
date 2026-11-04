@@ -46,6 +46,8 @@ jobs:
         run: node tests/scribble.test.mjs
       - name: Layer mix (mesclagem no lugar, sem cópia da camada)
         run: node tests/layermix.test.mjs
+      - name: Screencast keys (interruptor abaixo do Node picker e overlay de entradas)
+        run: node tests/screencast.test.mjs
       - name: Comunidade (carrossel da Home e coletor do feed)
         run: node tests/community.test.mjs
       - name: Versão (VERSION = index.html = APK)
