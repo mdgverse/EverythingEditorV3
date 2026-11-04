@@ -19,7 +19,8 @@ permissions:
 
 concurrency:
   group: build-apk
-  cancel-in-progress: true
+  # dois builds disputando os mesmos assets da release geram 502: um espera o outro
+  cancel-in-progress: false
 
 jobs:
   build:
@@ -133,29 +134,43 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          set -e
+          set -uo pipefail
           VER="${{ steps.ver.outputs.name }}"
           NOTES="Everything Editor **v$VER** — commit ${GITHUB_SHA:0:7}.
           Baixe \"everything-editor-$VER.apk\" (a versão mais recente também fica em \"EverythingEditor.apk\").
           Instale no celular (Android 10+) permitindo \"instalar apps desconhecidos\"."
-          if ! gh release view apk-latest > /dev/null 2>&1; then
-            gh release create apk-latest \
-              --title "Everything Editor — APK" \
-              --notes "$NOTES"
+
+          # a release é única e compartilhada entre builds: nada aqui pode
+          # derrubar o job sem antes tentar de novo
+          if ! gh release view apk-latest >/dev/null 2>&1; then
+            gh release create apk-latest --title "Everything Editor — APK" --notes "$NOTES" \
+              || echo "aviso: a release já existia"
           fi
-          gh release edit apk-latest --title "Everything Editor — APK v$VER" --notes "$NOTES"
-          # dois builds ao mesmo tempo (branch + main) disputam os mesmos
-          # assets: uma tentativa extra resolve o 502 sem quebrar a release
+          gh release edit apk-latest --title "Everything Editor — APK v$VER" --notes "$NOTES" \
+            || echo "aviso: não deu para editar o texto da release"
+
+          enviado=0
           for i in 1 2 3; do
             if gh release upload apk-latest \
-              "dist/everything-editor-$VER.apk" "dist/everything-editor-$VER.aab" \
-              dist/EverythingEditor.apk dist/EverythingEditor.aab --clobber; then
+              "dist/everything-editor-$VER.apk#everything-editor-$VER.apk" \
+              "dist/everything-editor-$VER.aab#everything-editor-$VER.aab" \
+              "dist/EverythingEditor.apk#EverythingEditor.apk" \
+              "dist/EverythingEditor.aab#EverythingEditor.aab" --clobber; then
+              enviado=1
               break
             fi
-            echo "upload falhou (tentativa $i), tentando de novo em 10 s"
-            sleep 10
-            if [ "$i" = "3" ]; then exit 1; fi
+            echo "upload falhou (tentativa $i), tentando de novo em $((i * 10)) s"
+            sleep $((i * 10))
           done
+
+          # o que importa é o resultado: a release tem o build desta execução?
+          local_apk=$(stat -c%s dist/EverythingEditor.apk)
+          remoto=$(gh release view apk-latest --json assets --jq '[.assets[] | select(.name == "EverythingEditor.apk")][0].size' 2>/dev/null || echo "")
+          if [ "$remoto" != "$local_apk" ]; then
+            echo "::error title=Release desatualizada::o APK na release está com ${remoto:-nada} bytes, este build tem $local_apk. O arquivo continua no artefato da execução."
+            exit 1
+          fi
+          echo "release apk-latest com o APK de v$VER ($local_apk bytes)"
 
       # mantém a release com UMA versão só: apaga os assets de versões antigas
       - name: Limpar versões antigas
