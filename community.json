@@ -1,14 +1,13 @@
 {
   "version": 1,
-  "updated": "2026-11-04T03:10:19.246Z",
+  "updated": "2026-11-04T03:30:22.321Z",
   "tags": [
     "everythingeditor",
     "EverythingEditor"
   ],
   "total": 0,
   "notices": [
-    "instagram: sem IG_TOKEN/IG_USER_ID",
-    "tumblr: sem TUMBLR_KEY"
+    "instagram: sem IG_TOKEN/IG_USER_ID"
   ],
   "items": []
 }
