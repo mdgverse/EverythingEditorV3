@@ -46,6 +46,10 @@ jobs:
         with:
           node-version: '20'
 
+      - name: Instalar o redutor de miniaturas
+        # opcional: sem isso o coletor guarda a imagem como veio
+        run: npm install --no-save --no-audit --no-fund sharp
+
       - name: Coletar e cachear os posts
         env:
           IG_TOKEN: ${{ secrets.IG_TOKEN }}

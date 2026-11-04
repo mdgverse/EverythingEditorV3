@@ -27,7 +27,9 @@ export const TAGS = ['everythingeditor', 'EverythingEditor'];
 export const LIMITE = 24;          // cartões no carrossel
 export const SEED_MAX = 12;        // quantos vão embutidos no index.html
 export const BLOG_PADRAO = 'mdgverse';   // posts do próprio blog, mesmo sem tag
-export const FOTO_MAX = 1280;      // largura máxima guardada no repositório
+export const FOTO_MAX = 1280;      // largura máxima baixada do CDN
+export const MINI_MAX = 320;       // largura da miniatura que fica no repositório
+const MINI_PESO = 120 * 1024;      // acima disso vale reencodar
 const API_IG = 'https://graph.facebook.com/v21.0';
 const API_TB = 'https://api.tumblr.com/v2/tagged';
 const API_BLOG = 'https://api.tumblr.com/v2/blog/';
@@ -199,6 +201,20 @@ async function baixaImagem(url, destino) {
   return buf.length;
 }
 
+/** encolhe a miniatura para MINI_MAX com sharp (o cartão tem 132 px).
+ *  Sem o sharp instalado, o arquivo original fica como está. */
+export async function encolhe(arquivo) {
+  let sharp;
+  try { ({ default: sharp } = await import('sharp')); } catch { return false; }
+  const { size } = await fs.stat(arquivo);
+  if (size <= MINI_PESO) return false;
+  const tmp = arquivo + '.tmp.jpg';
+  await sharp(arquivo).rotate().resize(MINI_MAX, 400, { fit: 'cover' })
+    .jpeg({ quality: 82, mozjpeg: true }).toFile(tmp);
+  await fs.rename(tmp, arquivo);
+  return true;
+}
+
 /** troca a URL remota pelo arquivo local (community/<id>.jpg) */
 export async function cacheia(itens, raiz = RAIZ, seco = false) {
   const saida = [];
@@ -209,6 +225,8 @@ export async function cacheia(itens, raiz = RAIZ, seco = false) {
       if (!seco) {
         try { await fs.access(destino); }
         catch { await baixaImagem(it.img, destino); }
+        try { await encolhe(destino); }
+        catch (e) { console.warn('  ! não deu para encolher:', it.id, e.message); }
       }
       saida.push({ ...it, img: nome });
     } catch (e) {
