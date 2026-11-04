@@ -43,14 +43,48 @@ function textoLimpo(v, max) {
   return s.length > max ? s.slice(0, max - 1) + '…' : s;
 }
 
-/** a foto que vai para o cache: a maior até FOTO_MAX (o cartão tem 132 px) */
-export function melhorFoto(foto) {
-  const original = (foto && foto.original_size) || null;
-  const alt = ((foto && foto.alt_sizes) || []).filter(a => a && a.url && a.width);
-  const cabe = alt.filter(a => a.width <= FOTO_MAX).sort((a, b) => b.width - a.width)[0];
-  const escolhida = cabe || original || alt[0] || null;
-  if (!escolhida || !escolhida.url) return null;
+/** a maior mídia que ainda cabe em FOTO_MAX (o cartão tem 132 px) */
+function escolheMidia(lista) {
+  const validas = (lista || []).filter(m => m && m.url);
+  if (!validas.length) return null;
+  const cabe = validas.filter(m => m.width && m.width <= FOTO_MAX).sort((a, b) => b.width - a.width)[0];
+  const escolhida = cabe || validas.slice().sort((a, b) => (b.width || 0) - (a.width || 0))[0];
   return { url: escolhida.url, w: escolhida.width || 0, h: escolhida.height || 0 };
+}
+
+/** foto de um post do Tumblr no formato antigo (photos[].original_size / alt_sizes) */
+export function melhorFoto(foto) {
+  if (!foto) return null;
+  const original = foto.original_size && foto.original_size.url ? [foto.original_size] : [];
+  return escolheMidia(original.concat((foto.alt_sizes || []).filter(a => a && a.url)));
+}
+
+/** foto de um post no formato novo do Tumblr (NPF: content[] com blocos de imagem) */
+export function fotoDeBlocos(blocos) {
+  if (!Array.isArray(blocos)) return null;
+  const midias = [];
+  for (const b of blocos) {
+    if (!b || b.type !== 'image') continue;
+    midias.push(...(b.media || []));
+  }
+  return escolheMidia(midias);
+}
+
+/** blog/view/... é o link feio da API: volta para o endereço do post.
+ *  Atenção: o id do Tumblr passa de 2^53, o JSON.parse arredonda — o id_string é o certo. */
+export function urlDoPost(b) {
+  const url = b.post_url || '';
+  if (url && !/\/blog\/view\//.test(url)) return url;
+  const id = b.id_string || b.id;
+  if (b.blog_name && id) return 'https://' + b.blog_name + '.tumblr.com/post/' + id;
+  return url || null;
+}
+
+function legendaDoPost(b) {
+  if (b.summary) return b.summary;
+  if (b.caption) return b.caption;
+  return (Array.isArray(b.content) ? b.content : [])
+    .filter(x => x && x.type === 'text' && x.text).map(x => x.text).join(' ');
 }
 
 function arroba(nome) {
@@ -74,19 +108,18 @@ export function normaliza(plataforma, brutos) {
       autor = b.username || null;
       legenda = b.caption || '';
     } else {
-      const fotos = b.photos || (b.type === 'photo' && b.photos) || [];
-      const foto = melhorFoto(fotos[0]);
+      const foto = melhorFoto((b.photos || [])[0]) || fotoDeBlocos(b.content);
       img = foto && foto.url;
       w = (foto && foto.w) || 0;
       h = (foto && foto.h) || 0;
-      url = b.post_url || (b.blog_name ? 'https://' + b.blog_name + '.tumblr.com/post/' + b.id : null);
+      url = urlDoPost(b);
       autor = b.blog_name || null;
-      legenda = (b.summary || b.caption || '').replace(/<[^>]*>/g, ' ');
+      legenda = legendaDoPost(b);
     }
     if (!img || !url) continue;
     if (!/^https?:\/\//i.test(img) || !/^https?:\/\//i.test(url)) continue;
     const item = {
-      id: idDe(plataforma, b.id || url),
+      id: idDe(plataforma, b.id_string || b.id || url),
       platform: plataforma,
       url,
       author: arroba(autor),
@@ -147,8 +180,8 @@ export function postsDaResposta(r) {
 /** posts do próprio blog (o /tagged só devolve post marcado com a hashtag) */
 export async function buscaBlog(blog, chave, limite = 20) {
   const nome = String(blog || '').replace(/^https?:\/\//, '').replace(/\/+$/, '');
-  const url = `${API_BLOG}${encodeURIComponent(nome)}.tumblr.com/posts?type=photo` +
-    `&limit=${limite}&filter=text&api_key=${encodeURIComponent(chave)}`;
+  const url = `${API_BLOG}${encodeURIComponent(nome)}.tumblr.com/posts` +
+    `?limit=${limite}&filter=text&api_key=${encodeURIComponent(chave)}`;
   return normaliza('tumblr', postsDaResposta(await json(url)));
 }
 
@@ -183,6 +216,21 @@ export async function cacheia(itens, raiz = RAIZ, seco = false) {
     }
   }
   return saida;
+}
+
+/** apaga as miniaturas que saíram do carrossel (o repositório não guarda lixo) */
+export async function limpaCache(itens, raiz = RAIZ) {
+  const pasta = path.join(raiz, 'community');
+  let nomes = [];
+  try { nomes = await fs.readdir(pasta); }
+  catch { return 0; }
+  const usados = new Set((itens || []).map(i => path.basename(String(i.img || ''))));
+  let apagados = 0;
+  for (const n of nomes) {
+    if (n === '.gitkeep' || usados.has(n)) continue;
+    try { await fs.unlink(path.join(pasta, n)); apagados++; } catch (_) {}
+  }
+  return apagados;
 }
 
 /* --------------------------------------------------------------- publicação */
@@ -252,6 +300,7 @@ export async function publica({ itens, avisos }, raiz = RAIZ, seco = false) {
   const html = await fs.readFile(arq, 'utf8');
   const seed = itens.slice(0, SEED_MAX);
   await fs.writeFile(arq, trocaSeed(html, seed));
+  await limpaCache(itens, raiz);
   return dados;
 }
 

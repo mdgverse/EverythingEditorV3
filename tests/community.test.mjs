@@ -3,8 +3,10 @@
    consulta Instagram e Tumblr, cacheia as miniaturas em community/ e publica
    community.json; o APK sem internet usa o seed embutido no index.html. */
 import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
 import { ok, resumo } from './kit.mjs';
-import { normaliza, escolhe, trocaSeed, melhorFoto, postsDaResposta, TAGS, LIMITE, MARCA_INI, MARCA_FIM, BLOG_PADRAO, FOTO_MAX } from '../scripts/community.mjs';
+import { normaliza, escolhe, trocaSeed, melhorFoto, fotoDeBlocos, urlDoPost, postsDaResposta, limpaCache, TAGS, LIMITE, MARCA_INI, MARCA_FIM, BLOG_PADRAO, FOTO_MAX } from '../scripts/community.mjs';
 
 const html = fs.readFileSync(new URL('../index.html', import.meta.url), 'utf8');
 const fixtures = n => JSON.parse(fs.readFileSync(new URL('./fixtures/' + n, import.meta.url), 'utf8'));
@@ -29,7 +31,7 @@ ok(ig[0].alt.length > 0 && ig[0].alt.length <= 140, 'alt curto a partir da legen
 
 const tb = normaliza('tumblr', fixtures('community-tumblr.json'));
 ok(tb.length === 2, 'ignora post de texto do Tumblr', tb.length);
-ok(tb[0].img === 'https://64.media.tumblr.com/1_500.jpg', 'prefere a versão de 500 px (o cartão tem 132)');
+ok(tb[0].img === 'https://64.media.tumblr.com/1.jpg', 'original que já cabe no teto é mantido');
 ok(tb[0].author === '@cyanstudio' && tb[0].url === 'https://cyanstudio.tumblr.com/post/9001', 'autor e link do Tumblr');
 ok(tb[0].alt.includes('Estudo de cor'), 'legenda sem HTML', tb[0].alt);
 
@@ -37,9 +39,15 @@ const blogBruto = postsDaResposta(fixtures('community-tumblr-blog.json'));
 const blog = normaliza('tumblr', blogBruto);
 ok(BLOG_PADRAO === 'mdgverse', 'lê o blog do próprio editor por padrão', BLOG_PADRAO);
 ok(blogBruto.length === 4 && blog.length === 3, 'do blog só entra post com foto', blog.length);
-ok(blog[0].url.includes('832038252529762304'), 'guarda o link do post do blog');
+ok(blog[0].url === 'https://mdgverse.tumblr.com/post/832038252529762304', 'link bonito no lugar de blog/view', blog[0].url);
 ok(blog[0].author === '@mdgverse', 'autor do blog vira @mdgverse', blog[0].author);
-ok(blog[0].img === 'https://64.media.tumblr.com/dispatch_1280.jpg', 'baixa a versão de 1280 px, não o original', blog[0].img);
+ok(blog[0].img === 'https://64.media.tumblr.com/dispatch_1280.jpg', 'NPF: imagem do bloco, em 1280 px', blog[0].img);
+ok(blog[0].alt.includes('Dispatch'), 'texto do bloco vira alt', blog[0].alt);
+ok(blog[1].img === 'https://64.media.tumblr.com/queen_1600.jpg', 'sem versão menor, usa a que tem', blog[1].img);
+ok(fotoDeBlocos([{ type: 'text', text: 'oi' }]) === null, 'bloco sem imagem é ignorado');
+ok(urlDoPost({ post_url: 'https://x.tumblr.com/post/7' }) === 'https://x.tumblr.com/post/7', 'link já certo passa intacto');
+ok(urlDoPost({ post_url: 'https://www.tumblr.com/blog/view/b/832038252529762304', blog_name: 'b', id: 832038252529762304,
+  id_string: '832038252529762304' }) === 'https://b.tumblr.com/post/832038252529762304', 'usa id_string (o id numérico é arredondado)');
 ok(melhorFoto({ original_size: { url: 'o.jpg', width: 600, height: 600 } }).url === 'o.jpg', 'sem alt_sizes usa o original');
 ok(melhorFoto({ original_size: { url: 'o.jpg', width: 4000, height: 4000 }, alt_sizes: [{ url: 'g.jpg', width: 4000 }] }).url === 'o.jpg',
   'sem versão abaixo do teto, o original');
@@ -61,6 +69,18 @@ ok(/const CMTY_SEED = \[\{"id"/.test(seed), 'seed vira JSON no index.html');
 ok(seed.length > html.length - 4000, 'o resto do arquivo continua no lugar');
 const jsonSeed = JSON.parse(seed.match(/const CMTY_SEED = (\[.*?\]);/)[1]);
 ok(jsonSeed.length === 2 && jsonSeed[0].author && jsonSeed[0].img, 'seed com os campos que o front usa');
+
+/* miniatura que saiu do carrossel não fica no repositório */
+const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'cmty-'));
+fs.mkdirSync(path.join(tmp, 'community'));
+fs.writeFileSync(path.join(tmp, 'community', 'velho.jpg'), 'x');
+fs.writeFileSync(path.join(tmp, 'community', 'fica.jpg'), 'x');
+fs.writeFileSync(path.join(tmp, 'community', '.gitkeep'), '');
+const apagados = await limpaCache([{ img: 'community/fica.jpg' }], tmp);
+ok(apagados === 1 && !fs.existsSync(path.join(tmp, 'community', 'velho.jpg')), 'apaga a miniatura órfã', apagados);
+ok(fs.existsSync(path.join(tmp, 'community', 'fica.jpg')) && fs.existsSync(path.join(tmp, 'community', '.gitkeep')),
+  'mantém a usada e o .gitkeep');
+fs.rmSync(tmp, { recursive: true, force: true });
 
 const feed = JSON.parse(fs.readFileSync(new URL('../community.json', import.meta.url), 'utf8'));
 ok(feed.version === 1 && Array.isArray(feed.items) && Array.isArray(feed.tags), 'community.json com o contrato do front');
