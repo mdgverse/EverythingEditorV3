@@ -439,7 +439,7 @@ body.mobile .sh-sec-h{height:26px;font-size:12px}
 
 /* Versão do editor — o arquivo VERSION na raiz é a fonte da verdade
    (o build do APK usa o mesmo número no versionName e falha se divergir). */
-const APP_VERSION = '3.5.1';
+const APP_VERSION = '3.5.2';
 /* sem a telinha, a versão aparece no tooltip da marca (e o título da aba segue curto) */
 {
   const marca = document.getElementById('brandBtn');
@@ -4155,8 +4155,6 @@ const NODE_TYPES = {
       HNUM('sizeW', 'Size W', 5, 400, 100, 1),
       HNUM('sizeH', 'Size H', 5, 400, 100, 1),
       HLOCK('proporcao', 'Lock ratio', 'locked'),
-      /* Color */
-      HCOL('paper', 'Paper', '#f4efe4'),
       /* Glow */
       HNUM('glow', 'Glow', 0, 1, 0, 0.01),
       HNUM('exposure', 'Exposure', 0, 4, 1, 0.01),
@@ -7533,7 +7531,7 @@ uniform vec2 uRes, uPos, uSize;
 uniform float uOpacity, uGlow, uExposure, uCell, uSpread, uGain, uGrain, uMisreg;
 uniform float uThrA, uThrB, uContrast, uGamma, uShow, uInvert, uInkMode;
 uniform float uShape[3], uAng[3], uInt[3];
-uniform vec3 uPaper, uInkR, uInkG, uInkB;
+uniform vec3 uInkR, uInkG, uInkB;
 uniform int uMode;
 ${BLEND_GLSL}
 vec2 shRot(vec2 p, float a){ float c = cos(a), s = sin(a); return vec2(c * p.x - s * p.y, s * p.x + c * p.y); }
@@ -7564,7 +7562,9 @@ void main(){
 
   float gA = hash(px.x, px.y) - 0.5;
   float gB = hash(px.x * 0.41 + 13.0, px.y * 0.41 - 7.0) - 0.5;
-  vec3 paper = clamp(uPaper * (1.0 + uGrain * (gA * 0.30 + gB * 0.16)), vec3(0.0), vec3(1.0));
+  /* papel fixo (3.5.2: o controle Paper saiu — o papel é sempre este creme) */
+  const vec3 PAPEL = vec3(0.9569, 0.9373, 0.8941);
+  vec3 paper = clamp(PAPEL * (1.0 + uGrain * (gA * 0.30 + gB * 0.16)), vec3(0.0), vec3(1.0));
 
   float cell = max(uCell, 1.0);
   vec3 dens = vec3(0.0);
@@ -25330,7 +25330,6 @@ function selectFromControl(n) {
    ========================================================= */
 const SH_SECOES = [
   ['Transform', ['opacity', 'blend', 'showSource', 'posX', 'posY', 'sizeW', 'sizeH', 'proporcao']],
-  ['Color', ['paper']],
   ['Glow', ['glow', 'exposure']],
   ['Shape', ['cellSize', 'sizeSpread', 'dotGain']],
   ['Texture', ['paperGrain']],
@@ -25455,7 +25454,6 @@ function runShapeHalftone(n, a) {
     uOpacity: clamp(num(p.opacity, 100) / 100, 0, 1),
     uMode: Math.max(0, BLEND.findIndex(m => m[0] === p.blend)),
     uShow: p.showSource === 'sim' ? 1 : 0,
-    uPaper: hexRGB(p.paper),
     uGlow: Math.max(0, num(p.glow, 0)),
     uExposure: Math.max(0, num(p.exposure, 1)),
     uCell: Math.max(1, num(p.cellSize, 11)),

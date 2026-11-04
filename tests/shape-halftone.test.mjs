@@ -35,7 +35,6 @@ const campos = [
   ['Size W', /HNUM\('sizeW', 'Size W', 5, 400, 100, 1\)/],
   ['Size H', /HNUM\('sizeH', 'Size H', 5, 400, 100, 1\)/],
   ['trava de proporção', /HLOCK\('proporcao', 'Lock ratio', 'locked'\)/],
-  ['Paper', /HCOL\('paper', 'Paper', '#f4efe4'\)/],
   ['Glow', /HNUM\('glow', 'Glow', 0, 1, 0, 0.01\)/],
   ['Exposure', /HNUM\('exposure', 'Exposure', 0, 4, 1, 0.01\)/],
   ['Cell Size', /HNUM\('cellSize', 'Cell Size', 2, 80, 11, 0.1\)/],
@@ -68,7 +67,7 @@ for (const [nome, re] of campos) ok(re.test(def), 'controle: ' + nome);
 {
   const chaves = [...def.matchAll(/H(?:NUM|ENUM|COL|LOCK|SW|CURVE|RANGE)\('([a-zA-Z]+)'/g)].map(m => m[1]);
   const soHidden = [...def.matchAll(/^      H[A-Z]+\(/gm)].length;
-  ok(chaves.length >= 33, 'o nó tem os 33+ parâmetros do painel', chaves.length);
+  ok(chaves.length === 33, 'o nó tem os 33 controles do painel (Paper saiu na 3.5.2)', chaves.length);
   ok(soHidden === chaves.length, 'todos os parâmetros do nó ficam ocultos no inspetor genérico', soHidden);
   const secoes = recorta('const SH_SECOES = [', '];');
   const usadas = [...secoes.matchAll(/'([a-zA-Z]+)'/g)].map(m => m[1]).filter(k => /^(opacity|blend|showSource|posX|posY|sizeW|sizeH|proporcao|paper|glow|exposure|cellSize|sizeSpread|dotGain|paperGrain|misreg|inkMode|inkCurve|threshold|red|green|blue|contrast|gamma|invert)/.test(k));
@@ -80,7 +79,7 @@ for (const [nome, re] of campos) ok(re.test(def), 'controle: ' + nome);
 {
   const secoes = recorta('const SH_SECOES = [', '];');
   const titulos = [...secoes.matchAll(/^  \['([A-Za-z ]+)', \[/gm)].map(m => m[1]);
-  const pedidos = ['Transform', 'Color', 'Glow', 'Shape', 'Texture', 'Distortion', 'Blend', 'Red', 'Green', 'Blue', 'General'];
+  const pedidos = ['Transform', 'Glow', 'Shape', 'Texture', 'Distortion', 'Blend', 'Red', 'Green', 'Blue', 'General'];
   ok(titulos.join('|') === pedidos.join('|'), 'seções na ordem do inspector', titulos.join('|'));
 }
 
@@ -91,7 +90,9 @@ ok(/uniform vec2 uRes, uPos, uSize;/.test(sh), 'resolução e transform da camad
 ok(/uniform float uOpacity, uGlow, uExposure, uCell, uSpread, uGain, uGrain, uMisreg;/.test(sh), 'opacidade, glow, exposição, célula, spread, ganho, grão e misregistration');
 ok(/uniform float uThrA, uThrB, uContrast, uGamma, uShow, uInvert, uInkMode;/.test(sh), 'threshold, contraste, gamma, show source, invert e modo de tinta');
 ok(/uniform float uShape\[3\], uAng\[3\], uInt\[3\];/.test(sh), 'forma/ângulo/intensidade por canal');
-ok(/uniform vec3 uPaper, uInkR, uInkG, uInkB;/.test(sh), 'papel e as três tintas');
+ok(/uniform vec3 uInkR, uInkG, uInkB;/.test(sh), 'as três tintas');
+ok(!/uPaper/.test(sh), 'sem uniforme de papel (controle removido na 3.5.2)', 'paper');
+ok(/const vec3 PAPEL = vec3\(0\.9569, 0\.9373, 0\.8941\);/.test(sh), 'o papel é o creme fixo do print', 'papel');
 ok(/uniform int uMode;/.test(sh), 'blend da camada com a imagem de baixo');
 ok(/for \(int c = 0; c < 3; c\+\+\)\{/.test(sh), 'um passo por canal RGB');
 ok(/float mi = \(ch - 1\.0\) \* uMisreg;/.test(sh), 'misregistration desloca os canais', 'misreg');
@@ -227,7 +228,7 @@ ok(!/shField|sdTri|sdBox/.test(sh), 'nada de forma procedural no GLSL: o desenho
 
   const p = {
     opacity: 80, blend: 'multiply', showSource: 'sim', posX: 12, posY: -30, sizeW: 100, sizeH: 100, proporcao: 'locked',
-    paper: '#f4efe4', glow: 0.25, exposure: 1.2, cellSize: 9, sizeSpread: 0.5, dotGain: 1.4, paperGrain: 0.3,
+    glow: 0.25, exposure: 1.2, cellSize: 9, sizeSpread: 0.5, dotGain: 1.4, paperGrain: 0.3,
     misreg: 3, inkMode: 'screen', inkCurve: [0.42, 0.06, 0.58, 0.94], threshold: [0.2, 0.8],
     redShape: 'smileys', redAngle: 33, redInk: '#e8322a', redInt: 1.1,
     greenShape: 'lines', greenAngle: 29, greenInk: '#1fa35a', greenInt: 1,
@@ -260,7 +261,7 @@ ok(!/shField|sdTri|sdBox/.test(sh), 'nada de forma procedural no GLSL: o desenho
   ok(u.uInkR.length === 3 && u.uInkR[0] > 0.8 && u.uInkG[1] > 0.5 && u.uInkB[2] > 0.7, 'tintas em 0–1');
   ok(Math.abs(u.uContrast - 1.3) < 1e-9 && Math.abs(u.uGamma - 0.9) < 1e-9, 'contraste e gamma');
   ok(Math.abs(u.uGlow - 0.25) < 1e-9 && Math.abs(u.uExposure - 1.2) < 1e-9, 'glow e exposição');
-  ok(u.uPaper.length === 3 && u.uPaper[0] > 0.9, 'cor do papel');
+  ok(!('uPaper' in u), 'nenhuma cor de papel vai para o shader');
 
   /* transform em % da moldura */
   const meio = Object.assign({}, p, { sizeW: 50, sizeH: 25, posX: 0, posY: 0 });
@@ -376,7 +377,7 @@ ok(!/for \(let i = 0; i < 4096/.test(recorta('function shPanel(n, body) {', '\n}
     }
     return lista;
   }
-  ok(Object.keys(defs).length === 34, 'painel com os 34 controles do inspector', Object.keys(defs).length);
+  ok(Object.keys(defs).length === 33, 'painel com os 33 controles do inspector', Object.keys(defs).length);
 
   const criados = [];
   const celula = (n, p) => { const el = criaEl('div'); el.dataset.pkey = p.key; criados.push(p.key); return el; };
@@ -422,7 +423,7 @@ ok(!/for \(let i = 0; i < 4096/.test(recorta('function shPanel(n, body) {', '\n}
   try { shPanel(n, body); } catch (e) { erro = e; }
   ok(!erro, 'shPanel monta o painel sem erro' + (erro ? ': ' + erro.message : ''));
   const secoes = body.children.filter(c => /sh-sec/.test(c.className));
-  ok(secoes.length === 11, '11 seções no painel', secoes.length);
+  ok(secoes.length === 10, '10 seções no painel (Color saiu com o Paper)', secoes.length);
   const comChave = [];
   const conta = el => {
     if (!el) return;
@@ -430,7 +431,7 @@ ok(!/for \(let i = 0; i < 4096/.test(recorta('function shPanel(n, body) {', '\n}
     for (const c of (el.children || [])) conta(c);
   };
   conta(body);
-  ok(comChave.length === 34, '34 controles no painel (um por parâmetro)', comChave.length);
+  ok(comChave.length === 33, '33 controles no painel (um por parâmetro)', comChave.length);
   const repetido = comChave.filter((k, i) => comChave.indexOf(k) !== i);
   ok(repetido.length === 0, 'nenhum controle repetido', repetido.join(', '));
   const semUi = ['showSource', 'inkCurve', 'threshold', 'invert'].filter(k => typeof n.ui[k] !== 'function');
