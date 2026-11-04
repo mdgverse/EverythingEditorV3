@@ -316,16 +316,23 @@ export async function coleta({ fixtures = false, seco = false, raiz = RAIZ } = {
 }
 
 export async function publica({ itens, avisos, fontes = [] }, raiz = RAIZ, seco = false) {
+  const arquivo = path.join(raiz, 'community.json');
+  let antes = null;
+  try { antes = JSON.parse(await fs.readFile(arquivo, 'utf8')); } catch (_) {}
+  /* nada mudou? não grava — senão o cron faria um commit a cada 6 h à toa */
+  const igual = !!antes && JSON.stringify(antes.items) === JSON.stringify(itens) &&
+    JSON.stringify(antes.notices) === JSON.stringify(avisos);
   const dados = {
     version: 1,
-    updated: new Date().toISOString(),
+    updated: igual ? antes.updated : new Date().toISOString(),
     tags: TAGS,
     total: itens.length,
     notices: avisos,
     items: itens,
+    mudou: !igual,
   };
-  if (seco) return dados;
-  await fs.writeFile(path.join(raiz, 'community.json'), JSON.stringify(dados, null, 2) + '\n');
+  if (seco || igual) return dados;
+  await fs.writeFile(arquivo, JSON.stringify(dados, null, 2) + '\n');
   const arq = path.join(raiz, 'index.html');
   const html = await fs.readFile(arq, 'utf8');
   const seed = itens.slice(0, SEED_MAX);
@@ -344,7 +351,8 @@ async function main() {
   console.log(`  ${r.encontrados} posts lidos · ${dados.items.length} no carrossel · ${SEED_MAX} no seed`);
   for (const f of r.fontes || []) console.log('  · ' + f);
   for (const a of r.avisos) console.log('  · ' + a);
-  if (!dados.items.length) console.log('  (nada publicado: o carrossel fica escondido)');
+  if (!dados.mudou) console.log('  (feed igual ao que já estava publicado: nada a fazer)');
+  else if (!dados.items.length) console.log('  (nada publicado: o carrossel fica escondido)');
 }
 
 if (import.meta.url === pathToFileURL(process.argv[1] || '').href) {

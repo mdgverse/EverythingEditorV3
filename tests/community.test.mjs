@@ -6,7 +6,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { ok, resumo } from './kit.mjs';
-import { normaliza, escolhe, trocaSeed, melhorFoto, fotoDeBlocos, urlDoPost, postsDaResposta, limpaCache, encolhe, MINI_MAX, buscaBlog, TAGS, LIMITE, MARCA_INI, MARCA_FIM, BLOG_PADRAO, FOTO_MAX } from '../scripts/community.mjs';
+import { normaliza, escolhe, trocaSeed, melhorFoto, fotoDeBlocos, urlDoPost, postsDaResposta, limpaCache, encolhe, MINI_MAX, buscaBlog, publica, TAGS, LIMITE, MARCA_INI, MARCA_FIM, BLOG_PADRAO, FOTO_MAX } from '../scripts/community.mjs';
 
 const html = fs.readFileSync(new URL('../index.html', import.meta.url), 'utf8');
 const fixtures = n => JSON.parse(fs.readFileSync(new URL('./fixtures/' + n, import.meta.url), 'utf8'));
@@ -90,6 +90,21 @@ ok(await encolhe(pequena) === false, 'arquivo já pequeno não é reencodado');
 ok(fs.statSync(pequena).size === 1024, 'e continua intacto');
 fs.rmSync(tmpImg, { recursive: true, force: true });
 ok(MINI_MAX === 320, 'miniatura de 320 px no repositório', MINI_MAX);
+
+/* feed igual não vira commit a cada 6 h */
+const tmpPub = fs.mkdtempSync(path.join(os.tmpdir(), 'cmty-pub-'));
+fs.mkdirSync(path.join(tmpPub, 'community'));
+fs.writeFileSync(path.join(tmpPub, 'index.html'),
+  '<html>\n/* CMTY_SEED_START x */\nconst CMTY_SEED = [];\n/* CMTY_SEED_END */\n</html>');
+const itemA = { id: 'tumblr:a', platform: 'tumblr', url: 'https://b.tumblr.com/post/1', author: '@b', img: 'community/a.jpg', alt: 'a', tag: 'everythingeditor', ts: '1' };
+const p1 = await publica({ itens: [itemA], avisos: [] }, tmpPub, false);
+const p2 = await publica({ itens: [itemA], avisos: [] }, tmpPub, false);
+ok(p1.mudou === true && p2.mudou === false, 'feed igual não é reescrito', p1.mudou + '/' + p2.mudou);
+ok(p1.updated === p2.updated, 'o carimbo de atualização só muda com o feed');
+const p3 = await publica({ itens: [itemA, { ...itemA, id: 'tumblr:b', img: 'community/b.jpg', url: 'https://b.tumblr.com/post/2' }], avisos: [] }, tmpPub, false);
+ok(p3.mudou === true && JSON.parse(fs.readFileSync(path.join(tmpPub, 'community.json'), 'utf8')).total === 2, 'feed novo é gravado');
+ok(/const CMTY_SEED = \[\{"id":"tumblr:a"/.test(fs.readFileSync(path.join(tmpPub, 'index.html'), 'utf8')), 'e o seed acompanha');
+fs.rmSync(tmpPub, { recursive: true, force: true });
 
 const feed = JSON.parse(fs.readFileSync(new URL('../community.json', import.meta.url), 'utf8'));
 ok(feed.version === 1 && Array.isArray(feed.items) && Array.isArray(feed.tags), 'community.json com o contrato do front');
