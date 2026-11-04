@@ -9,9 +9,8 @@ name: Community feed
 #   IG_USER_ID   id da conta do Instagram ligada à página
 #   TUMBLR_KEY   consumer key da aplicação do Tumblr
 #
-# Variável opcional (não é segredo): TUMBLR_BLOG. Como o endpoint de hashtag só
-# devolve post marcado, o coletor também lê o blog direto — é assim que os posts
-# do próprio editor entram no carrossel sem depender de tag.
+# Variável opcional (não é segredo): TUMBLR_BLOG. O coletor lê esse blog direto,
+# mas só os posts marcados com a hashtag entram no carrossel.
 #
 # Sem os segredos o job roda, não acha nada e não altera nenhum arquivo.
 on:
@@ -26,6 +25,7 @@ on:
 
 permissions:
   contents: write
+  actions: write
 
 concurrency:
   group: community-feed
@@ -59,6 +59,8 @@ jobs:
         run: node scripts/community.mjs
 
       - name: Publicar se algo mudou
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
           git config user.name "everything-editor-bot"
           git config user.email "everything-editor-bot@users.noreply.github.com"
@@ -68,4 +70,8 @@ jobs:
           else
             git commit -m "comunidade: atualiza o feed do carrossel"
             git push origin HEAD:main
+            # push feito com o GITHUB_TOKEN não dispara outros workflows:
+            # o site e o APK precisam ser chamados na mão
+            gh workflow run deploy-pages.yml --ref main || echo "aviso: não deu para disparar o Pages"
+            gh workflow run build-apk.yml --ref main || echo "aviso: não deu para disparar o APK"
           fi
