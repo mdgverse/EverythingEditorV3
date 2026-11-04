@@ -78,4 +78,31 @@ ok(/ssSemSessao = true/.test(html), 'modo seguro não grava por cima da sessão'
   ok(/Começar do zero\?/.test(html), 'título do diálogo presente');
 }
 
+/* ---------- 3.5.4: o nó Shape Halftone saiu do app ---------- */
+console.log('Shape Halftone removido');
+ok(!/shapeHalftone: \{/.test(html), 'nó não está mais em NODE_TYPES');
+ok(!/shapeHalftone: `/.test(html), 'shader não está mais no dicionário');
+ok(!/runShapeHalftone|shPanel|shGlyphAtlas|shCurveTexus/.test(html), 'motor do nó apagado');
+ok(!/SH_SHAPES|SH_GLYPHS|SH_INK_MODES|SH_SECOES/.test(html), 'tabelas do nó apagadas');
+ok(!/\.sh-sec|\.sh-curve|\.sh-range|\.sh-sw/.test(html), 'CSS próprio apagado');
+{
+  const ini2 = html.indexOf('function bypassShapeHalftone(');
+  ok(ini2 > 0, 'existe a migração dos projetos antigos', ini2);
+  const bypass = new Function(recorta(html, ini2) + '\nreturn bypassShapeHalftone;')();
+  const sem = [{ from: 1, to: 2, input: 0, output: 0 }];
+  ok(bypass({ nodes: [] }, sem) === sem, 'grafo sem o nó passa intacto');
+
+  const um = bypass({ nodes: [{ id: 2, type: 'shapeHalftone' }] },
+    [{ from: 1, to: 2, input: 0, output: 0 }, { from: 2, to: 3, input: 0, output: 0 }]);
+  ok(um.length === 1 && um[0].from === 1 && um[0].to === 3, 'a imagem de entrada é religada no que vinha depois', JSON.stringify(um));
+
+  const dois = bypass({ nodes: [{ id: 2, type: 'shapeHalftone' }, { id: 3, type: 'shapeHalftone' }] },
+    [{ from: 1, to: 2, input: 0, output: 0 }, { from: 2, to: 3, input: 0, output: 0 }, { from: 3, to: 4, input: 0, output: 0 }]);
+  ok(dois.length === 1 && dois[0].from === 1 && dois[0].to === 4, 'dois nós em série viram um salto só', JSON.stringify(dois));
+
+  const orfao = bypass({ nodes: [{ id: 5, type: 'shapeHalftone' }] },
+    [{ from: 5, to: 6, input: 0, output: 0 }, { from: 7, to: 8, input: 0, output: 0 }]);
+  ok(orfao.length === 1 && orfao[0].from === 7, 'nó sem entrada some junto com as ligações dele', JSON.stringify(orfao));
+}
+
 process.exit(resumo() ? 0 : 1);

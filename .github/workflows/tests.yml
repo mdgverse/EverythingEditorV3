@@ -42,8 +42,6 @@ jobs:
         run: node tests/zoom.test.mjs
       - name: Add menu · Gallery (nós com amostra)
         run: node tests/gallery.test.mjs
-      - name: Shape Halftone (inspector do Nexus, shader e canais RGB)
-        run: node tests/shape-halftone.test.mjs
       - name: Versão (VERSION = index.html = APK)
         run: node tests/version.test.mjs
       - name: Higiene (código morto, CSS sem uso, reference/ fora)
