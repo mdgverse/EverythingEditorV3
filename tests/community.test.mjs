@@ -6,7 +6,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { ok, resumo } from './kit.mjs';
-import { normaliza, escolhe, trocaSeed, melhorFoto, fotoDeBlocos, urlDoPost, postsDaResposta, limpaCache, TAGS, LIMITE, MARCA_INI, MARCA_FIM, BLOG_PADRAO, FOTO_MAX } from '../scripts/community.mjs';
+import { normaliza, escolhe, trocaSeed, melhorFoto, fotoDeBlocos, urlDoPost, postsDaResposta, limpaCache, encolhe, MINI_MAX, TAGS, LIMITE, MARCA_INI, MARCA_FIM, BLOG_PADRAO, FOTO_MAX } from '../scripts/community.mjs';
 
 const html = fs.readFileSync(new URL('../index.html', import.meta.url), 'utf8');
 const fixtures = n => JSON.parse(fs.readFileSync(new URL('./fixtures/' + n, import.meta.url), 'utf8'));
@@ -81,6 +81,15 @@ ok(apagados === 1 && !fs.existsSync(path.join(tmp, 'community', 'velho.jpg')), '
 ok(fs.existsSync(path.join(tmp, 'community', 'fica.jpg')) && fs.existsSync(path.join(tmp, 'community', '.gitkeep')),
   'mantém a usada e o .gitkeep');
 fs.rmSync(tmp, { recursive: true, force: true });
+
+/* miniatura no repositório tem no máximo MINI_MAX px (o cartão tem 132) */
+const tmpImg = fs.mkdtempSync(path.join(os.tmpdir(), 'cmty-img-'));
+const pequena = path.join(tmpImg, 'p.jpg');
+fs.writeFileSync(pequena, Buffer.alloc(1024, 1));
+ok(await encolhe(pequena) === false, 'arquivo já pequeno não é reencodado');
+ok(fs.statSync(pequena).size === 1024, 'e continua intacto');
+fs.rmSync(tmpImg, { recursive: true, force: true });
+ok(MINI_MAX === 320, 'miniatura de 320 px no repositório', MINI_MAX);
 
 const feed = JSON.parse(fs.readFileSync(new URL('../community.json', import.meta.url), 'utf8'));
 ok(feed.version === 1 && Array.isArray(feed.items) && Array.isArray(feed.tags), 'community.json com o contrato do front');
@@ -162,6 +171,7 @@ ok(/git push origin HEAD:main/.test(wf), 'publica community.json de volta no mai
 ok(/TUMBLR_BLOG: \$\{\{ vars\.TUMBLR_BLOG \|\| 'mdgverse' \}\}/.test(wf), 'lê o blog direto (default mdgverse)');
 ok(/npf=true/.test(fs.readFileSync(new URL('../scripts/community.mjs', import.meta.url), 'utf8')),
   'pede o formato novo do Tumblr (npf=true)');
+ok(/npm install --no-save --no-audit --no-fund sharp/.test(wf), 'o job instala o redutor de miniaturas');
 ok(/push:\s*\n\s*branches: \[main\]/.test(wf), 'roda assim que o coletor muda no main');
 ok(/paths: /.test(wf) || true, 'ok');
 
