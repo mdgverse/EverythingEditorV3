@@ -414,7 +414,7 @@ html, body{overscroll-behavior:none;-webkit-tap-highlight-color:transparent}/* 1
 
 /* Versão do editor — o arquivo VERSION na raiz é a fonte da verdade
    (o build do APK usa o mesmo número no versionName e falha se divergir). */
-const APP_VERSION = '3.5.4';
+const APP_VERSION = '3.5.5';
 /* sem a telinha, a versão aparece no tooltip da marca (e o título da aba segue curto) */
 {
   const marca = document.getElementById('brandBtn');
@@ -7405,6 +7405,14 @@ void main(){
   outColor = vec4(clamp(col, 0.0, 1.0), mix(src.a, dis.a, uMixF));
 }`,
 };
+
+function compileShader(type, src) {
+  const s = gl.createShader(type);
+  gl.shaderSource(s, src);
+  gl.compileShader(s);
+  if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) throw new Error(gl.getShaderInfoLog(s));
+  return s;
+}
 
 /* Holographic sticker — rainbow band that follows the light/dark of the image, brightness
    glassy, metal-leaf grain and a repeated watermark on top.
