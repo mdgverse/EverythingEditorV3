@@ -10,6 +10,8 @@
  *   IG_TOKEN      token de acesso (Instagram Graph API, conta business/creator)
  *   IG_USER_ID    id da conta do Instagram ligada à página
  *   TUMBLR_KEY    consumer key da aplicação do Tumblr
+ *   TUMBLR_BLOG   blog lido direto (padrão: mdgverse) — pega os posts do dono
+ *                 do editor mesmo sem a hashtag, que é o caso mais comum
  *
  *   node scripts/community.mjs            → coleta de verdade
  *   node scripts/community.mjs --dry      → sem baixar imagens nem escrever
@@ -24,8 +26,11 @@ const RAIZ = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 export const TAGS = ['everythingeditor', 'EverythingEditor'];
 export const LIMITE = 24;          // cartões no carrossel
 export const SEED_MAX = 12;        // quantos vão embutidos no index.html
+export const BLOG_PADRAO = 'mdgverse';   // posts do próprio blog, mesmo sem tag
+export const FOTO_MAX = 1280;      // largura máxima guardada no repositório
 const API_IG = 'https://graph.facebook.com/v21.0';
 const API_TB = 'https://api.tumblr.com/v2/tagged';
+const API_BLOG = 'https://api.tumblr.com/v2/blog/';
 
 /* ---------------------------------------------------------------- utilidades */
 
@@ -36,6 +41,16 @@ function idDe(platform, postId) {
 function textoLimpo(v, max) {
   const s = String(v == null ? '' : v).replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
   return s.length > max ? s.slice(0, max - 1) + '…' : s;
+}
+
+/** a foto que vai para o cache: a maior até FOTO_MAX (o cartão tem 132 px) */
+export function melhorFoto(foto) {
+  const original = (foto && foto.original_size) || null;
+  const alt = ((foto && foto.alt_sizes) || []).filter(a => a && a.url && a.width);
+  const cabe = alt.filter(a => a.width <= FOTO_MAX).sort((a, b) => b.width - a.width)[0];
+  const escolhida = cabe || original || alt[0] || null;
+  if (!escolhida || !escolhida.url) return null;
+  return { url: escolhida.url, w: escolhida.width || 0, h: escolhida.height || 0 };
 }
 
 function arroba(nome) {
@@ -60,11 +75,10 @@ export function normaliza(plataforma, brutos) {
       legenda = b.caption || '';
     } else {
       const fotos = b.photos || (b.type === 'photo' && b.photos) || [];
-      const foto = fotos[0] || null;
-      const alt = foto && (foto.alt_sizes || []).find(s => s && s.width >= 400) || foto && foto.alt_sizes && foto.alt_sizes[0];
-      img = (foto && foto.original_size && foto.original_size.url) || (alt && alt.url) || null;
-      w = (foto && foto.original_size && foto.original_size.width) || (alt && alt.width) || 0;
-      h = (foto && foto.original_size && foto.original_size.height) || (alt && alt.height) || 0;
+      const foto = melhorFoto(fotos[0]);
+      img = foto && foto.url;
+      w = (foto && foto.w) || 0;
+      h = (foto && foto.h) || 0;
       url = b.post_url || (b.blog_name ? 'https://' + b.blog_name + '.tumblr.com/post/' + b.id : null);
       autor = b.blog_name || null;
       legenda = (b.summary || b.caption || '').replace(/<[^>]*>/g, ' ');
@@ -126,6 +140,18 @@ export async function buscaTumblr(tag, chave) {
   return normaliza('tumblr', lista.filter(p => p && (p.type === 'photo' || (p.photos && p.photos.length))));
 }
 
+export function postsDaResposta(r) {
+  return (r && r.response && r.response.posts) || [];
+}
+
+/** posts do próprio blog (o /tagged só devolve post marcado com a hashtag) */
+export async function buscaBlog(blog, chave, limite = 20) {
+  const nome = String(blog || '').replace(/^https?:\/\//, '').replace(/\/+$/, '');
+  const url = `${API_BLOG}${encodeURIComponent(nome)}.tumblr.com/posts?type=photo` +
+    `&limit=${limite}&filter=text&api_key=${encodeURIComponent(chave)}`;
+  return normaliza('tumblr', postsDaResposta(await json(url)));
+}
+
 /* ------------------------------------------------------------------ cache */
 
 async function baixaImagem(url, destino) {
@@ -181,12 +207,14 @@ export async function coleta({ fixtures = false, seco = false, raiz = RAIZ } = {
   const token = process.env.IG_TOKEN || '';
   const userId = process.env.IG_USER_ID || '';
   const tumblrKey = process.env.TUMBLR_KEY || '';
+  const tumblrBlog = process.env.TUMBLR_BLOG || BLOG_PADRAO;
   const brutos = [];
   const avisos = [];
 
   if (fixtures) {
     brutos.push(...normaliza('instagram', await leFixture('community-instagram.json')));
     brutos.push(...normaliza('tumblr', await leFixture('community-tumblr.json')));
+    brutos.push(...normaliza('tumblr', postsDaResposta(await leFixture('community-tumblr-blog.json'))));
   } else {
     if (token && userId) {
       for (const tag of TAGS) {
@@ -195,6 +223,8 @@ export async function coleta({ fixtures = false, seco = false, raiz = RAIZ } = {
       }
     } else avisos.push('instagram: sem IG_TOKEN/IG_USER_ID');
     if (tumblrKey) {
+      try { brutos.push(...await buscaBlog(tumblrBlog, tumblrKey)); }
+      catch (e) { avisos.push('tumblr blog ' + tumblrBlog + ': ' + e.message); }
       for (const tag of TAGS) {
         try { brutos.push(...await buscaTumblr(tag, tumblrKey)); }
         catch (e) { avisos.push('tumblr ' + tag + ': ' + e.message); }
