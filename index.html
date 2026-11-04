@@ -439,7 +439,7 @@ body.mobile .sh-sec-h{height:26px;font-size:12px}
 
 /* Versão do editor — o arquivo VERSION na raiz é a fonte da verdade
    (o build do APK usa o mesmo número no versionName e falha se divergir). */
-const APP_VERSION = '3.5.2';
+const APP_VERSION = '3.5.3';
 /* sem a telinha, a versão aparece no tooltip da marca (e o título da aba segue curto) */
 {
   const marca = document.getElementById('brandBtn');
@@ -4168,7 +4168,7 @@ const NODE_TYPES = {
       HNUM('misreg', 'Misregistration', 0, 40, 0.42, 0.01),
       /* Blend & curve */
       HENUM('inkMode', 'Ink Mode', SH_INK_MODES, 'additive'),
-      HCURVE('inkCurve', 'Ink Curve', [0, 0.33, 0.67, 1]),
+      HCURVE('inkCurve', 'Ink Curve', [0.42, 0.06, 0.58, 0.94]),
       HRANGE('threshold', 'Threshold Range', [0.08, 0.92]),
       /* Channel separation */
       HENUM('redShape', 'Red Shape', SH_SHAPES, 'smileys'),
@@ -4186,7 +4186,7 @@ const NODE_TYPES = {
       /* General */
       HNUM('contrast', 'Contrast', 0, 3, 1, 0.01),
       HNUM('gamma', 'Gamma', 0.1, 4, 1, 0.01),
-      HSW('invert', 'Invert', 'sim'),
+      HSW('invert', 'Invert', 'nao'),
     ],
   },  output: {
     title: 'Output', cat: 'output', inputs: ['Image'], params: [],
@@ -7529,7 +7529,7 @@ void main(){
   shapeHalftone: `uniform sampler2D uSrc, uGlyph, uCurveTex;
 uniform vec2 uRes, uPos, uSize;
 uniform float uOpacity, uGlow, uExposure, uCell, uSpread, uGain, uGrain, uMisreg;
-uniform float uThrA, uThrB, uContrast, uGamma, uShow, uInvert, uInkMode;
+uniform float uThrA, uThrB, uContrast, uGamma, uShow, uInvert, uInkMode, uFallback;
 uniform float uShape[3], uAng[3], uInt[3];
 uniform vec3 uInkR, uInkG, uInkB;
 uniform int uMode;
@@ -7600,8 +7600,10 @@ void main(){
     float dentro = (1.0 - smoothstep(1.0 - e.x, 1.0 + e.x, abs(gu.x))) *
                    (1.0 - smoothstep(1.0 - e.y, 1.0 + e.y, abs(gu.y)));
     vec2 auv = shGlyphUV(c == 0 ? uShape[0] : (c == 1 ? uShape[1] : uShape[2]), gu * 0.5 + 0.5);
-    float glifo = texture(uGlyph, auv).a * dentro;
-    float halo = uGlow * 0.8 * textureLod(uGlyph, auv, 1.5).a * dentro;
+    /* sem atlas (navegador que não rasterizou o SVG) imprime o ponto clássico */
+    float vazio = step(0.5, uFallback);
+    float glifo = mix(texture(uGlyph, auv).a, 1.0 - smoothstep(1.0 - e.x, 1.0 + e.x, length(gu)), vazio) * dentro;
+    float halo = (1.0 - vazio) * uGlow * 0.8 * textureLod(uGlyph, auv, 1.5).a * dentro;
     float amt = clamp(glifo + halo * (1.0 - glifo), 0.0, 1.0);
 
     float inten = max(0.0, c == 0 ? uInt[0] : (c == 1 ? uInt[1] : uInt[2]));
@@ -22087,7 +22089,8 @@ const RUN = {
       uVA: [asp('chevron'), asp('hex'), asp('diag'), asp('chain')],
       uVB: [asp('taper'), asp('barcode'), asp('circuit'), asp('maze')],
       uRes: [a.w, a.h], uIntensity: p.intensity / 100, uContrast: p.contrast / 100, uGamma: p.gamma / 100,
-      uInvert: p.invert === 'sim' ? 1 : 0, uStops: p.stops, uSmooth: p.smooth / 100, uMinWidth: p.minWidth / 100,
+      uInvert: p.invert === 'sim' ? 1 : 0,
+      uStops: p.stops, uSmooth: p.smooth / 100, uMinWidth: p.minWidth / 100,
       uPattern: pat, uScale: p.scale, uAngle: p.angle * Math.PI / 180, uAngleStep: p.angleStep * Math.PI / 180,
       uMisreg: p.misreg, uTexture: p.texture / 100, uRagged: p.ragged / 100, uGrain: p.grain / 500, uShading: p.shading / 100,
       uWidth: (p.patternWidth ?? 100) / 100, uMinSize: p.minSize || 0, uTransp: p.paperTransp === 'sim' ? 1 : 0,
@@ -25366,25 +25369,34 @@ function shCurveBake(pts) {
 }
 
 /* Atlas dos glifos: 4x4 tiles de 128 px, desenhados uma vez com Path2D (SVG) */
-let shAtlasTex = null;
+let shAtlasTex = null, shAtlasVazio = 0;
 function shGlyphAtlas() {
   if (shAtlasTex) return shAtlasTex;
   const N = 4, T = 128, S = N * T;
+  let pintou = false;
   const cv = document.createElement('canvas');
   cv.width = cv.height = S;
   const g = cv.getContext('2d');
-  if (!g) return null;
-  g.clearRect(0, 0, S, S);
-  g.fillStyle = '#ffffff';
-  SH_SHAPES.forEach(([id], i) => {
-    const glifo = SH_GLYPHS[id];
-    if (!glifo) return;
-    g.save();
-    g.translate((i % N) * T, Math.floor(i / N) * T);
-    g.scale(T / 100, T / 100);                 // o desenho é um SVG de 100x100
-    g.fill(new Path2D(glifo[0]), glifo[1] || 'evenodd');
-    g.restore();
-  });
+  if (g) {
+    g.clearRect(0, 0, S, S);
+    g.fillStyle = '#ffffff';
+    try {
+      SH_SHAPES.forEach(([id], i) => {
+        const glifo = SH_GLYPHS[id];
+        if (!glifo) return;
+        g.save();
+        g.translate((i % N) * T, Math.floor(i / N) * T);
+        g.scale(T / 100, T / 100);               // o desenho é um SVG de 100x100
+        g.fill(new Path2D(glifo[0]), glifo[1] || 'evenodd');
+        g.restore();
+      });
+      /* 3.5.3: confere se o atlas saiu com tinta — navegador que não rasteriza
+         Path2D não pode virar folha em branco, o shader cai no ponto redondo */
+      const d = g.getImageData(0, 0, S, S).data;
+      for (let i = 3; i < d.length; i += 4) if (d[i] > 8) { pintou = true; break; }
+    } catch (_) { pintou = false; }
+  }
+  shAtlasVazio = pintou ? 0 : 1;
   const tex = gl.createTexture();
   gl.bindTexture(gl.TEXTURE_2D, tex);
   gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, false);
@@ -25470,6 +25482,7 @@ function runShapeHalftone(n, a) {
     uContrast: Math.max(0, num(p.contrast, 1)),
     uGamma: Math.max(0.02, num(p.gamma, 1)),
     uInvert: p.invert === 'sim' ? 1 : 0,
+    uFallback: shAtlasVazio,
   }, { uGlyph: atlas, uCurveTex: shCurveTexus(p.inkCurve) });
 }
 
