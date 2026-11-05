@@ -81,30 +81,11 @@
 @keyframes sckIn{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
 @keyframes sckOut{to{opacity:0;transform:translateY(-4px)}}
 @media (prefers-reduced-motion: reduce){.sck-l{animation:none}.sck-l.sai{animation:none;opacity:0}}
-/* 3.7.0: anotações do grafo (notas, molduras e caneta) */
-#annLayer{position:absolute;left:0;top:0;width:1px;height:1px;overflow:visible;pointer-events:none}
+/* 3.7.1: anotações = nó Note (texto) + caneta livre no grafo */
 #annPen{position:absolute;left:0;top:0;width:1px;height:1px;overflow:visible;pointer-events:none}
-.ann{position:absolute;box-sizing:border-box;pointer-events:auto;color:#fff;font:13px/1.35 ui-sans-serif,system-ui,sans-serif;border-radius:8px;user-select:none;-webkit-user-select:none}
-.ann.sel{outline:2px solid var(--accent);outline-offset:1px}
-.ann-note{border:1.5px solid #ffd640;background:rgba(255,214,64,.14);padding:6px 8px;cursor:move;overflow:hidden}
-.ann-txt{outline:none;white-space:pre-wrap;word-break:break-word;min-height:1em}
-.ann-txt[contenteditable="true"]{cursor:text;user-select:text;-webkit-user-select:text}
-.ann-frame{border:2px solid #6ea8ff;background:rgba(110,168,255,.07);cursor:move;overflow:hidden}
-.ann-cap{height:22px;display:flex;align-items:center;gap:6px;padding:0 6px;font-weight:700;font-size:12px;background:#6ea8ff;color:#0b0d12;cursor:move;white-space:nowrap;overflow:hidden}
-.ann-fold{width:14px;text-align:center;cursor:pointer;opacity:.85}
-.ann-ttl{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis}
-.ann-body{position:absolute;inset:22px 0 0;pointer-events:none}
-.ann.collapsed{height:auto!important;min-height:0;border-radius:8px}
-.ann.collapsed .ann-body{display:none}
-.ann-h{position:absolute;width:11px;height:11px;border-radius:3px;background:#fff;border:1.5px solid var(--accent);display:none;touch-action:none}
-.ann.sel .ann-h{display:block}
-.ann-h[data-d="nw"]{left:-6px;top:-6px;cursor:nwse-resize}
-.ann-h[data-d="ne"]{right:-6px;top:-6px;cursor:nesw-resize}
-.ann-h[data-d="sw"]{left:-6px;bottom:-6px;cursor:nesw-resize}
-.ann-h[data-d="se"]{right:-6px;bottom:-6px;cursor:nwse-resize}
 .ann-pen{position:absolute;left:0;top:0;overflow:visible;pointer-events:none}
 .ann-stroke{fill:none;stroke-linecap:round;stroke-linejoin:round}
-.ann.sel .ann-stroke{filter:drop-shadow(0 0 3px var(--accent))}
+.ann-pen.sel .ann-stroke{filter:drop-shadow(0 0 3px var(--accent))}
 .ann-penhit{fill:none;stroke:transparent;pointer-events:stroke;cursor:move}
 #nodeView.ann-draw{cursor:crosshair}
 .ann-bar{position:fixed;z-index:9350;left:8px;top:84px;width:250px;box-sizing:border-box;padding:9px;border-radius:10px;background:#1d1f25;color:#eef1f6;border:1px solid rgba(255,255,255,.12);box-shadow:0 14px 34px rgba(0,0,0,.5);display:flex;flex-direction:column;gap:7px}
@@ -121,6 +102,16 @@
 .lyr-group-head{display:flex;align-items:center;gap:4px;padding:2px 4px;border-radius:4px;background:var(--panel2);border:1px solid var(--line3)}
 .lyr-gname{flex:1;min-width:0;font-size:11px;font-weight:600;color:var(--text-strong);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;cursor:text}
 .lyr-gfold{width:20px;padding:0}
+.note-node{border-color:#ffd640;min-width:220px}
+.note-node .nbody{padding:6px 8px 6px}
+.note-node .nhead{background:#6b5a12!important;color:#ffe9a3!important}
+.note-wrap{display:flex;flex-direction:column;gap:4px}
+.note-txt{width:100%;box-sizing:border-box;min-height:74px;resize:vertical;background:transparent;color:#fff;border:1px solid rgba(255,255,255,.18);border-radius:5px;padding:5px 6px;font:13px/1.35 ui-sans-serif,system-ui,sans-serif;outline:none}
+.note-txt:focus{border-color:var(--accent)}
+.note-row{display:flex;align-items:center;gap:5px;flex-wrap:wrap}
+.note-sw{display:flex;gap:3px}
+.note-fld{display:flex;align-items:center;gap:3px;font-size:9.5px;color:var(--text-muted)}
+.note-fld input{width:52px}
 </style>
 <style id="ee-mobile-css">/* =========================================================
    CAMADA MOBILE (Android · Realme Note 70 · 720×1600, 6, 74")
@@ -270,19 +261,19 @@ html, body{overscroll-behavior:none;-webkit-tap-highlight-color:transparent}/* 1
 <div class="ann-bar" id="annBar" hidden>
   <div class="ann-bar-h"><span>Annotate</span><span class="ann-bar-x" id="annClose" role="button" tabindex="0" title="Close the annotation tools (Esc)">×</span></div>
   <div class="ann-row">
-    <button class="stk-btn" id="annNote" type="button" title="New sticky note in the middle of the view (N)">+ Note</button>
-    <button class="stk-btn" id="annFrame" type="button" title="New empty frame in the middle of the view">+ Frame</button>
+    <button class="stk-btn" id="annNote" type="button" title="New Note node in the middle of the view">+ Note node</button>
+    <button class="stk-btn" id="annWrap" type="button" title="Frame the selected nodes (Ctrl+G)">Frame selection</button>
     <button class="stk-btn" id="annPenBtn" type="button" title="Freehand pen: draw directly on the graph (P)">Pen</button>
   </div>
   <div class="ann-row">
-    <button class="stk-btn" id="annWrap" type="button" title="Frame the selected nodes (Ctrl+G)">Frame selection</button>
-    <button class="stk-btn" id="annDup" type="button" title="Duplicate the selected annotation (Ctrl+D)">Duplicate</button>
-    <button class="stk-btn" id="annDel" type="button" title="Delete the selected annotation (Del)">Delete</button>
+    <button class="stk-btn" id="annDup" type="button" title="Duplicate the selected ink stroke">Duplicate ink</button>
+    <button class="stk-btn" id="annDel" type="button" title="Delete the selected ink stroke (Del)">Delete ink</button>
   </div>
   <div class="ann-row" id="annSwatches"></div>
-  <label class="ann-fld"><span>Font</span><input type="range" id="annFs" min="10" max="34" step="1" value="14"></label>
-  <label class="ann-fld"><span>Opacity</span><input type="range" id="annOp" min="10" max="100" step="1" value="100"></label>
+  <label class="ann-fld"><span>Note size</span><input type="range" id="annFs" min="10" max="34" step="1" value="14"></label>
+  <label class="ann-fld"><span>Note opacity</span><input type="range" id="annOp" min="10" max="100" step="1" value="100"></label>
 </div>
+
 
 
   <div class="main">
@@ -531,7 +522,7 @@ html, body{overscroll-behavior:none;-webkit-tap-highlight-color:transparent}/* 1
 
 /* Versão do editor — o arquivo VERSION na raiz é a fonte da verdade
    (o build do APK usa o mesmo número no versionName e falha se divergir). */
-const APP_VERSION = '3.7.0';
+const APP_VERSION = '3.7.1';
 /* sem a telinha, a versão aparece no tooltip da marca (e o título da aba segue curto) */
 {
   const marca = document.getElementById('brandBtn');
@@ -4068,6 +4059,11 @@ const NODE_TYPES = {
     title: 'Cut out object (subject + background)', cat: 'matte', inputs: ['Image'], outs: ['Object', 'Background'],
     params: [NUM('threshold', 'Sensitivity', 0, 100, 50)],
   },
+  note: {
+    title: 'Note (annotation)', cat: 'compose', annot: true, inputs: [], outs: [],
+    kw: 'note nota annotation annotate annotator comment comentario text texto sticky postit post-it label etiqueta documentation documentacao recado frame moldura',
+    params: [{ type: 'note', key: 'text', label: 'Note', def: 'Write your note here…' }],
+  },
   effectStack: {
     title: 'Effect stack', cat: 'compose', inputs: ['Image'],
     params: [{ type: 'stack', key: 'stack', label: 'Effects', def: [] }],
@@ -4077,7 +4073,8 @@ const NODE_TYPES = {
     params: [{ type: 'paint', key: 'maskId', label: 'Mask', def: 0 }, ENUM('invert', 'Invert', [['no', 'No'], ['yes', 'Yes']], 'no')],
   },
   layers: {
-    title: 'Layers (position)', cat: 'compose',
+    title: 'Layers (Layer Comp)', cat: 'compose',
+    kw: 'layer comp layercomp layers camadas pilha stack compositor compositing composite photoshop after effects aftereffects grupo group folder agrupar blend opacity opacity mascara mask matte clipping clip',
     inputs: ['Layer 1', 'Layer 2', 'Layer 3', 'Layer 4', 'Layer 5', 'Layer 6'],
     params: [{ type: 'layers', key: 'layers', label: 'Layers', def: [] }],
   },
@@ -25866,6 +25863,75 @@ function blurAplicaVis(raiz, params) {
   raiz.querySelectorAll('[data-pkey]').forEach(el => { el.style.display = vis.has(el.dataset.pkey) ? '' : 'none'; });
 }
 
+/* 3.7.1 — nó Note: a anotação agora é um nó (anda, duplica, apaga e salva como
+   qualquer outro). O corpo é o texto, com cor, tamanho e opacidade no próprio nó. */
+function makeNoteControl(n, p) {
+  if (n.params.color == null) n.params.color = ANN_CORES[0];
+  if (n.params.fs == null) n.params.fs = 14;
+  if (n.params.alpha == null) n.params.alpha = 100;
+  const wrap = E('div', 'note-wrap');
+  const ta = document.createElement('textarea');
+  ta.className = 'note-txt';
+  ta.spellcheck = false;
+  ta.value = String(n.params[p.key] ?? '');
+  ta.addEventListener('pointerdown', e => { e.stopPropagation(); selectFromControl(n); });
+  ta.addEventListener('keydown', e => e.stopPropagation());
+  ta.addEventListener('input', () => { n.params[p.key] = ta.value; marca(); });
+  ta.addEventListener('change', () => commit());
+  const linha = E('div', 'note-row');
+  const marcas = E('div', 'note-sw');
+  /* o elemento do nó só é ligado no fim do buildNodeEl: resolve na hora de pintar */
+  const alvo = () => n.el || document.querySelector('.node[data-id="' + n.id + '"]');
+  const pinta = () => {
+    const host = alvo();
+    const c = hexToRgb(n.params.color);
+    const a = Math.min(1, Math.max(0.1, Number(n.params.alpha) / 100));
+    if (host) {
+      host.classList.add('note-node');
+      host.style.borderColor = n.params.color;
+      host.style.background = `rgba(${c[0]},${c[1]},${c[2]},${(0.08 + 0.2 * a).toFixed(3)})`;
+    }
+    ta.style.fontSize = Math.max(10, Math.min(34, Number(n.params.fs) || 14)) + 'px';
+    ta.style.opacity = String(a);
+    for (const b of marcas.children) b.classList.toggle('on', b.dataset.c === n.params.color);
+    marca();
+  };
+  const marca = () => { markDirty(n.id); requestRender(); };
+  for (const c of ANN_CORES) {
+    const b = E('button', 'ann-sw');
+    b.type = 'button';
+    b.dataset.c = c;
+    b.style.background = c;
+    b.title = 'Note color ' + c;
+    b.addEventListener('click', e => {
+      e.stopPropagation();
+      n.params.color = c;
+      annCor = c;
+      pinta(); commit();
+    });
+    marcas.append(b);
+  }
+  const campo = (rotulo, min, max, chave, sufixo) => {
+    const l = E('label', 'note-fld');
+    const r = document.createElement('input');
+    r.type = 'range';
+    r.min = String(min); r.max = String(max); r.step = '1';
+    r.value = String(n.params[chave]);
+    r.title = rotulo;
+    r.addEventListener('pointerdown', e => e.stopPropagation());
+    r.addEventListener('input', () => { n.params[chave] = Number(r.value); pinta(); });
+    r.addEventListener('change', () => commit());
+    l.append(E('span', null, rotulo), r);
+    return l;
+  };
+  linha.append(marcas, campo('Size', 10, 34, 'fs'), campo('Opacity', 10, 100, 'alpha'));
+  wrap.append(ta, linha);
+  n.ui.noteLook = pinta;
+  pinta();                                     // ainda sem elemento: só valida os params
+  if (typeof requestAnimationFrame === 'function') requestAnimationFrame(pinta);
+  return wrap;
+}
+
 function buildControls(n, body) {
   for (const p of NODE_TYPES[n.type].params) {
     if (p.hidden) continue;                      // 3.5.0: este controle é montado pelo painel do nó
@@ -25875,6 +25941,7 @@ function buildControls(n, body) {
     else if (p.type === 'color') el = makeColor(n, p);
     else if (p.type === 'paint') el = makePaintControl(n);
     else if (p.type === 'text') el = makeText(n, p);
+    else if (p.type === 'note') el = makeNoteControl(n, p);
     else if (p.type === 'blocos') el = makeTextBlocks(n, p);
     else if (p.type === 'file') el = makeFile(n, p);
     else if (p.type === 'lock') el = makeLock(n, p);
@@ -27933,26 +28000,24 @@ function openGroupMenuCenter() {
   showGroupMenu(r.left + r.width / 2 - 120, r.top + r.height / 3);
 }
 /* =========================================================
-   3.7.0 — Anotações do grafo (inspirado no Node Annotator do Blender)
-   Notas adesivas (texto/cor/fonte/opacidade), molduras coloridas
-   recolhíveis e caneta livre. Tudo vive dentro do #world, então anda e
-   dá zoom junto com os nós, e entra no save/undo pelo serialize().
+   3.7.1 — Anotações
+   Duas formas, escolhidas pelo usuário:
+   · o NÓ Note (tipo 'note'): texto, cor, tamanho e opacidade, com toda a
+     mecânica de nó (arrastar, duplicar, apagar, agrupar, salvar, undo);
+   · a CANETA: tinta livre sobre o grafo, desenhada em coordenadas do mundo
+     (#annPen) e salva junto com o projeto.
+   As anotações flutuantes da 3.7.0 são migradas para nós Note ao carregar.
    ========================================================= */
 const NS_SVG = 'http://www.w3.org/2000/svg';
 const ANN_CORES = ['#ffd640', '#6ea8ff', '#7ee787', '#ff8ab3', '#c792ea', '#ffa657'];
-let annots = [];
+let annots = [];          // só a tinta da caneta
 let annSeq = 1;
-let annSel = new Set();
+let annSel = new Set();   // traços selecionados
 let annPenOn = false;
 let annCor = ANN_CORES[0];
 let annAt = null;
 
 function annById(id) { return annots.find(a => a.id === id) || null; }
-function annLayer() {
-  let l = document.getElementById('annLayer');
-  if (!l) { l = E('div'); l.id = 'annLayer'; worldEl.prepend(l); }
-  return l;
-}
 function annPenLayer() {
   let l = document.getElementById('annPen');
   if (!l) { l = document.createElementNS(NS_SVG, 'svg'); l.id = 'annPen'; worldEl.append(l); }
@@ -27962,21 +28027,10 @@ function annCentro() {
   const r = viewEl.getBoundingClientRect();
   return screenToWorld(r.left + r.width / 2, r.top + r.height / 2);
 }
-function annNovo(kind, x, y, extra) {
-  const a = Object.assign({
-    id: 'an' + (annSeq++), kind,
-    x: Math.round(x), y: Math.round(y),
-    w: kind === 'frame' ? 320 : 220, h: kind === 'frame' ? 200 : 92,
-    color: annCor, alpha: 100, fs: 14, lw: 3,
-    title: kind === 'frame' ? 'Frame' : '', text: kind === 'note' ? 'Double-click to write…' : '',
-    collapsed: false, pts: [],
-  }, extra || {});
+function annNovoTraco(x, y) {
+  const a = { id: 'an' + (annSeq++), kind: 'pen', x: Math.round(x), y: Math.round(y), pts: [Math.round(x), Math.round(y)], color: annCor, lw: 3, alpha: 100 };
   annots.push(a);
   return a;
-}
-function annFundo(a) {
-  const c = hexToRgb(a.color);
-  return `rgba(${c[0]},${c[1]},${c[2]},${a.kind === 'frame' ? 0.08 : 0.16})`;
 }
 function annPathDe(pts) {
   if (!pts || pts.length < 4) return '';
@@ -27988,7 +28042,11 @@ function annStrokePath(svg, a) {
   const d = annPathDe(a.pts);
   for (const p of svg.querySelectorAll('path')) p.setAttribute('d', d);
   const vis = svg.querySelector('.ann-stroke');
-  if (vis) { vis.style.stroke = a.color; vis.style.strokeWidth = a.lw + 'px'; }
+  if (vis) {
+    vis.style.stroke = a.color;
+    vis.style.strokeWidth = a.lw + 'px';
+    vis.style.opacity = String(Math.max(0.1, (a.alpha == null ? 100 : a.alpha) / 100));
+  }
   svg.classList.toggle('sel', annSel.has(a.id));
 }
 function annStrokeEl(a) {
@@ -28005,117 +28063,24 @@ function annStrokeEl(a) {
   svg.addEventListener('pointerdown', e => annPega(e, a, svg));
   return svg;
 }
-function annBoxEl(a) {
-  const el = E('div', 'ann ' + (a.kind === 'frame' ? 'ann-frame' : 'ann-note'));
-  el.dataset.ann = a.id;
-  el.style.left = a.x + 'px'; el.style.top = a.y + 'px';
-  el.style.width = a.w + 'px';
-  if (!(a.kind === 'frame' && a.collapsed)) el.style.height = a.h + 'px';
-  el.style.borderColor = a.color;
-  el.style.background = annFundo(a);
-  el.style.opacity = String(Math.max(0.1, a.alpha / 100));
-  if (a.kind === 'frame') {
-    if (a.collapsed) el.classList.add('collapsed');
-    const cap = E('div', 'ann-cap');
-    cap.style.background = a.color;
-    const fold = E('span', 'ann-fold', a.collapsed ? '▸' : '▾');
-    fold.title = 'Collapse / expand this frame';
-    fold.addEventListener('pointerdown', e => e.stopPropagation());
-    fold.addEventListener('click', e => {
-      e.stopPropagation();
-      a.collapsed = !a.collapsed;
-      annRender(); commit();
-    });
-    const ttl = E('span', 'ann-ttl', a.title || 'Frame');
-    ttl.title = 'Double-click to rename';
-    ttl.addEventListener('dblclick', e => { e.stopPropagation(); annEditaTitulo(a, ttl); });
-    cap.append(fold, ttl);
-    el.append(cap, E('div', 'ann-body'));
-  } else {
-    const txt = E('div', 'ann-txt', a.text || '');
-    txt.style.fontSize = a.fs + 'px';
-    txt.contentEditable = 'false';
-    txt.spellcheck = false;
-    txt.title = 'Double-click to edit the text';
-    txt.addEventListener('pointerdown', e => { if (txt.isContentEditable) e.stopPropagation(); });
-    txt.addEventListener('dblclick', e => { e.stopPropagation(); annEditaTexto(a, txt); });
-    el.append(txt);
-  }
-  el.classList.toggle('sel', annSel.has(a.id));
-  el.addEventListener('pointerdown', e => annPega(e, a, el));
-  for (const d of ['nw', 'ne', 'sw', 'se']) {
-    const h = E('span', 'ann-h');
-    h.dataset.d = d;
-    h.title = 'Resize';
-    h.addEventListener('pointerdown', e => { e.stopPropagation(); annRedimensiona(e, a, d); });
-    el.append(h);
-  }
-  return el;
-}
 function annRender() {
-  const layer = annLayer(), pen = annPenLayer();
-  layer.textContent = '';
+  const pen = annPenLayer();
   for (const el of [...pen.children]) el.remove();
-  for (const a of annots) {
-    if (a.kind === 'pen') pen.append(annStrokeEl(a));
-    else layer.append(annBoxEl(a));
-  }
+  for (const a of annots) pen.append(annStrokeEl(a));
   annBarSync();
 }
-/* atualiza só o que mudou (arrastar/redimensionar não reconstrói o DOM) */
 function annUpdate() {
   for (const a of annots) {
     const el = document.querySelector('[data-ann="' + a.id + '"]');
-    if (!el) continue;
-    if (a.kind === 'pen') { annStrokePath(el, a); continue; }
-    el.style.left = a.x + 'px'; el.style.top = a.y + 'px';
-    el.style.width = a.w + 'px';
-    if (!(a.kind === 'frame' && a.collapsed)) el.style.height = a.h + 'px';
-    el.style.borderColor = a.color;
-    el.style.background = annFundo(a);
-    el.style.opacity = String(Math.max(0.1, a.alpha / 100));
-    const cap = el.querySelector('.ann-cap');
-    if (cap) cap.style.background = a.color;
-    const t = el.querySelector('.ann-txt');
-    if (t) t.style.fontSize = a.fs + 'px';
+    if (el) annStrokePath(el, a);
   }
 }
-function annEditaTexto(a, txt) {
-  if (txt.isContentEditable) return;
-  annSel = new Set([a.id]);
-  txt.contentEditable = 'true';
-  txt.focus();
-  const r = document.createRange();
-  r.selectNodeContents(txt); r.collapse(false);
-  const selWin = window.getSelection();
-  selWin.removeAllRanges(); selWin.addRange(r);
-  const fim = () => {
-    txt.contentEditable = 'false';
-    a.text = txt.textContent;
-    annRender(); commit();
-  };
-  txt.addEventListener('blur', fim, { once: true });
-}
-function annEditaTitulo(a, ttl) {
-  const inp = E('input');
-  inp.value = a.title || 'Frame';
-  inp.maxLength = 40;
-  inp.style.cssText = 'flex:1;min-width:0;height:18px;font:12px system-ui;border:1px solid #0b0d12;border-radius:4px;padding:0 4px';
-  ttl.replaceWith(inp);
-  inp.focus(); inp.select();
-  let feito = false;
-  const fim = ok => {
-    if (feito) return;
-    feito = true;
-    if (ok && inp.value.trim()) a.title = inp.value.trim();
-    annRender(); commit();
-  };
-  inp.addEventListener('blur', () => fim(true));
-  inp.addEventListener('keydown', e => {
-    e.stopPropagation();
-    if (e.key === 'Enter') { e.preventDefault(); fim(true); }
-    else if (e.key === 'Escape') fim(false);
-  });
+function annSelVisual() {
+  for (const a of annots) {
+    const el = document.querySelector('[data-ann="' + a.id + '"]');
+    if (el) el.classList.toggle('sel', annSel.has(a.id));
+  }
+  annBarSync();
 }
 function annPega(e, a, el) {
   if (e.button !== 0) return;
@@ -28126,108 +28091,32 @@ function annPega(e, a, el) {
   } else if (e.shiftKey) {
     annSel.delete(a.id);
   }
-  annRender();
+  annSelVisual();
   if (!annSel.has(a.id)) return;
   const ids = [...annSel].filter(id => annById(id));
-  const ini = new Map(ids.map(id => { const A = annById(id); return [id, { x: A.x, y: A.y, pts: A.pts.slice() }]; }));
+  const ini = new Map(ids.map(id => { const A = annById(id); return [id, A.pts.slice()]; }));
   const x0 = e.clientX, y0 = e.clientY;
   try { el.setPointerCapture(e.pointerId); } catch (_) {}
   const move = ev => {
     const dx = Math.round((ev.clientX - x0) / view.zoom), dy = Math.round((ev.clientY - y0) / view.zoom);
-    for (const [id, s0] of ini) {
+    for (const [id, pts0] of ini) {
       const A = annById(id);
       if (!A) continue;
-      A.x = s0.x + dx; A.y = s0.y + dy;
-      if (A.kind === 'pen') for (let i = 0; i < s0.pts.length; i += 2) { A.pts[i] = s0.pts[i] + dx; A.pts[i + 1] = s0.pts[i + 1] + dy; }
+      A.x = A.x;                                  // x/y do traço são só informativos
+      for (let i = 0; i < pts0.length; i += 2) { A.pts[i] = pts0[i] + dx; A.pts[i + 1] = pts0[i + 1] + dy; }
     }
     annUpdate();
   };
   const up = () => {
-    el.removeEventListener('pointermove', move);
-    el.removeEventListener('pointerup', up);
-    el.removeEventListener('pointercancel', up);
+    window.removeEventListener('pointermove', move);
+    window.removeEventListener('pointerup', up);
+    window.removeEventListener('pointercancel', up);
     commit();
   };
-  el.addEventListener('pointermove', move);
-  el.addEventListener('pointerup', up);
-  el.addEventListener('pointercancel', up);
-}
-function annRedimensiona(e, a, d) {
-  e.preventDefault();
-  const alvo = e.currentTarget;
-  const x0 = e.clientX, y0 = e.clientY;
-  const s0 = { x: a.x, y: a.y, w: a.w, h: a.h };
-  try { alvo.setPointerCapture(e.pointerId); } catch (_) {}
-  const move = ev => {
-    const dx = (ev.clientX - x0) / view.zoom, dy = (ev.clientY - y0) / view.zoom;
-    let x = s0.x, y = s0.y, w = s0.w, h = s0.h;
-    if (d === 'nw' || d === 'sw') { x = s0.x + dx; w = s0.w - dx; }
-    if (d === 'ne' || d === 'se') { w = s0.w + dx; }
-    if (d === 'nw' || d === 'ne') { y = s0.y + dy; h = s0.h - dy; }
-    if (d === 'sw' || d === 'se') { h = s0.h + dy; }
-    a.x = Math.round(x); a.y = Math.round(y);
-    a.w = Math.max(90, Math.round(w));
-    a.h = Math.max(44, Math.round(h));
-    annUpdate();
-  };
-  const up = () => {
-    alvo.removeEventListener('pointermove', move);
-    alvo.removeEventListener('pointerup', up);
-    alvo.removeEventListener('pointercancel', up);
-    commit();
-  };
-  alvo.addEventListener('pointermove', move);
-  alvo.addEventListener('pointerup', up);
-  alvo.addEventListener('pointercancel', up);
-}
-function annAdd(kind, at) {
-  const c = at || annCentro();
-  const a = annNovo(kind, c.x - (kind === 'frame' ? 160 : 110), c.y - 46);
-  annSel = new Set([a.id]);
-  annRender(); commit();
-  annBarToggle(true);
-  if (kind === 'note') {
-    const txt = document.querySelector('[data-ann="' + a.id + '"] .ann-txt');
-    if (txt) annEditaTexto(a, txt);
-  }
-  return a;
-}
-function annAddAtCursor(kind) {
-  const c = annAt || annCentro();
-  annAt = null;
-  annAdd(kind, { x: c.x + 40, y: c.y + 30 });
-}
-function annEstilo(patch) {
-  const alvo = [...annSel].map(annById).filter(Boolean);
-  if (patch.color) annCor = patch.color;
-  if (!alvo.length) { annBarSync(); return; }
-  for (const a of alvo) {
-    if (patch.color) a.color = patch.color;
-    if (patch.fs != null && a.kind === 'note') a.fs = patch.fs;
-    if (patch.alpha != null) a.alpha = patch.alpha;
-  }
-  annUpdate(); annBarSync(); commit();
-}
-function annApagaSel() {
-  if (!annSel.size) return;
-  annots = annots.filter(a => !annSel.has(a.id));
-  annSel.clear();
-  annRender(); commit();
-}
-function annDuplicaSel() {
-  if (!annSel.size) return;
-  const novos = [];
-  for (const id of [...annSel]) {
-    const a = annById(id);
-    if (!a) continue;
-    const c = JSON.parse(JSON.stringify(a));
-    c.id = 'an' + (annSeq++);
-    c.x += 24; c.y += 24;
-    annots.push(c);
-    novos.push(c.id);
-  }
-  annSel = new Set(novos);
-  annRender(); commit();
+  /* o gesto mora na window: nada que o editor redesenhe no meio consegue matá-lo */
+  window.addEventListener('pointermove', move);
+  window.addEventListener('pointerup', up);
+  window.addEventListener('pointercancel', up);
 }
 function annSetPen(on) {
   annPenOn = !!on;
@@ -28239,10 +28128,11 @@ function annSetPen(on) {
 }
 function annPenBaixo(e) {
   if (!annPenOn || e.button !== 0) return;
+  if (e.target.closest('[data-ann]')) return;     // clicar num traço existente seleciona/arrasta
   e.preventDefault();
   e.stopPropagation();
   const w = screenToWorld(e.clientX, e.clientY);
-  const a = annNovo('pen', 0, 0, { pts: [Math.round(w.x), Math.round(w.y)], lw: 3 });
+  const a = annNovoTraco(w.x, w.y);
   annSel = new Set([a.id]);
   annRender();
   let last = w;
@@ -28264,16 +28154,81 @@ function annPenBaixo(e) {
   viewEl.addEventListener('pointerup', up);
   viewEl.addEventListener('pointercancel', up);
 }
+/* ---- o nó Note ---- */
+function annNota(at) {
+  const c = at || annCentro();
+  const n = createNode('note', Math.round(c.x - 110), Math.round(c.y - 60));
+  n.params.color = annCor;
+  if (n.ui && n.ui.noteLook) n.ui.noteLook();
+  selected.clear();
+  selected.add(n.id);
+  refreshSelection();
+  markDirty(n.id); requestRender(); commit();
+  annBarToggle(true);
+  setStatus('Note node created — edit the text right on the node.');
+  return n;
+}
+function annNotaEm() {
+  const c = annAt || annCentro();
+  annAt = null;
+  return annNota({ x: c.x + 40, y: c.y + 30 });
+}
+function annEstilo(patch) {
+  if (patch.color) annCor = patch.color;
+  let mudou = false;
+  for (const id of selected) {
+    const n = nodes.get(id);
+    if (!n || n.type !== 'note') continue;
+    if (patch.color) n.params.color = patch.color;
+    if (patch.fs != null) n.params.fs = patch.fs;
+    if (patch.alpha != null) n.params.alpha = patch.alpha;
+    if (n.ui && n.ui.noteLook) n.ui.noteLook();
+    mudou = true;
+  }
+  for (const a of annots) {
+    if (!annSel.has(a.id)) continue;
+    if (patch.color) a.color = patch.color;
+    if (patch.alpha != null) a.alpha = patch.alpha;
+    mudou = true;
+  }
+  if (mudou) { annUpdate(); commit(); }
+  annBarSync();
+}
+function annApagaSel() {
+  if (!annSel.size) return;
+  annots = annots.filter(a => !annSel.has(a.id));
+  annSel.clear();
+  annRender(); commit();
+}
+function annDuplicaSel() {
+  if (!annSel.size) return;
+  const novos = [];
+  for (const id of [...annSel]) {
+    const a = annById(id);
+    if (!a) continue;
+    const c = JSON.parse(JSON.stringify(a));
+    c.id = 'an' + (annSeq++);
+    for (let i = 0; i < c.pts.length; i += 2) { c.pts[i] += 28; c.pts[i + 1] += 28; }
+    annots.push(c);
+    novos.push(c.id);
+  }
+  annSel = new Set(novos);
+  annRender(); commit();
+}
 function annBarSync() {
   const bar = document.getElementById('annBar');
   if (!bar || bar.hidden) return;
-  const sel = [...annSel].map(annById).filter(Boolean);
-  const alvo = sel.length ? sel[sel.length - 1] : null;
-  const cor = alvo ? alvo.color : annCor;
+  let nota = null;
+  for (const id of selected) {
+    const n = nodes.get(id);
+    if (n && n.type === 'note') nota = n;
+  }
+  const tinta = [...annSel].map(annById).filter(Boolean).pop() || null;
+  const cor = nota ? nota.params.color : (tinta ? tinta.color : annCor);
   for (const b of bar.querySelectorAll('.ann-sw')) b.classList.toggle('on', b.dataset.c === cor);
   const fs = document.getElementById('annFs'), op = document.getElementById('annOp');
-  if (fs) fs.value = String(alvo && alvo.kind === 'note' ? alvo.fs : 14);
-  if (op) op.value = String(alvo ? alvo.alpha : 100);
+  if (fs) fs.value = String(nota ? nota.params.fs : 14);
+  if (op) op.value = String(nota ? nota.params.alpha : (tinta && tinta.alpha != null ? tinta.alpha : 100));
 }
 function annBarToggle(on) {
   const bar = document.getElementById('annBar');
@@ -28282,40 +28237,40 @@ function annBarToggle(on) {
   annBarSync();
 }
 function annSerialize() {
-  return annots.map(a => ({
-    id: a.id, kind: a.kind, x: a.x, y: a.y, w: a.w, h: a.h,
-    color: a.color, alpha: a.alpha, fs: a.fs, lw: a.lw,
-    title: a.title, text: a.text, collapsed: !!a.collapsed,
-    pts: a.kind === 'pen' ? a.pts.slice() : [],
-  }));
+  return annots.map(a => ({ id: a.id, kind: 'pen', x: a.x, y: a.y, color: a.color, lw: a.lw, alpha: a.alpha, pts: a.pts.slice() }));
+}
+/* migração: as notas/molduras flutuantes da 3.7.0 viram nós Note */
+function annLegado(d) {
+  const texto = d.kind === 'frame' ? String(d.title || 'Frame') : String(d.text || '');
+  const n = createNode('note', +d.x || 0, +d.y || 0, {
+    params: { text: texto, color: /^#[0-9a-fA-F]{6}$/.test(String(d.color || '')) ? d.color : ANN_CORES[0], fs: Math.min(34, Math.max(10, +d.fs || 14)), alpha: Math.min(100, Math.max(10, +d.alpha || 100)) },
+  });
+  if (n.ui && n.ui.noteLook) n.ui.noteLook();
+  markDirty(n.id);
 }
 function annLoad(list) {
   annots = [];
   annSel = new Set();
   annSeq = 1;
   for (const d of Array.isArray(list) ? list : []) {
-    if (!d || !d.kind) continue;
-    const kind = d.kind === 'pen' ? 'pen' : (d.kind === 'frame' ? 'frame' : 'note');
-    const a = annNovo(kind, +d.x || 0, +d.y || 0, {
-      w: Math.max(90, +d.w || 200), h: Math.max(44, +d.h || 90),
-      color: /^#[0-9a-fA-F]{6}$/.test(String(d.color || '')) ? d.color : ANN_CORES[0],
-      alpha: Math.min(100, Math.max(10, +d.alpha || 100)),
-      fs: Math.min(34, Math.max(10, +d.fs || 14)),
-      lw: Math.min(16, Math.max(1, +d.lw || 3)),
-      title: String(d.title || ''),
-      text: String(d.text || ''),
-      collapsed: !!d.collapsed,
-      pts: Array.isArray(d.pts) ? d.pts.map(Number).filter(n => isFinite(n)) : [],
-    });
-    if (typeof d.id === 'string' && /^an\d+$/.test(d.id)) {
-      a.id = d.id;
-      annSeq = Math.max(annSeq, parseInt(d.id.slice(2), 10) + 1);
+    if (!d) continue;
+    if (d.kind === 'pen') {
+      const a = annNovoTraco(+d.x || 0, +d.y || 0);
+      a.color = /^#[0-9a-fA-F]{6}$/.test(String(d.color || '')) ? d.color : ANN_CORES[0];
+      a.lw = Math.min(16, Math.max(1, +d.lw || 3));
+      a.alpha = Math.min(100, Math.max(10, +d.alpha || 100));
+      a.pts = Array.isArray(d.pts) && d.pts.length >= 4 ? d.pts.map(Number).filter(n => isFinite(n)) : a.pts;
+      if (typeof d.id === 'string' && /^an\d+$/.test(d.id)) {
+        a.id = d.id;
+        annSeq = Math.max(annSeq, parseInt(d.id.slice(2), 10) + 1);
+      }
+      continue;
     }
+    annLegado(d);          // nota/moldura da 3.7.0: virou nó Note
   }
   annRender();
 }
 {
-  const bar = document.getElementById('annBar');
   const btn = document.getElementById('btnAnnot');
   if (btn) btn.addEventListener('click', e => { e.stopPropagation(); annBarToggle(); });
   const fechar = document.getElementById('annClose');
@@ -28326,13 +28281,11 @@ function annLoad(list) {
     });
   }
   const bNota = document.getElementById('annNote');
-  if (bNota) bNota.addEventListener('click', () => annAdd('note'));
-  const bMoldura = document.getElementById('annFrame');
-  if (bMoldura) bMoldura.addEventListener('click', () => annAdd('frame'));
-  const bCaneta = document.getElementById('annPenBtn');
-  if (bCaneta) bCaneta.addEventListener('click', () => annSetPen(!annPenOn));
+  if (bNota) bNota.addEventListener('click', () => annNota());
   const bGrupo = document.getElementById('annWrap');
   if (bGrupo) bGrupo.addEventListener('click', () => groupSelected());
+  const bCaneta = document.getElementById('annPenBtn');
+  if (bCaneta) bCaneta.addEventListener('click', () => annSetPen(!annPenOn));
   const bDup = document.getElementById('annDup');
   if (bDup) bDup.addEventListener('click', annDuplicaSel);
   const bDel = document.getElementById('annDel');
@@ -28343,7 +28296,7 @@ function annLoad(list) {
       const b = E('button', 'ann-sw');
       b.type = 'button';
       b.dataset.c = c;
-      b.title = 'Annotation color ' + c;
+      b.title = 'Note / ink color ' + c;
       b.style.background = c;
       b.addEventListener('click', () => annEstilo({ color: c }));
       sw.append(b);
@@ -28357,18 +28310,17 @@ function annLoad(list) {
   /* a caneta precisa do pointerdown antes do resto (pan/seleção não podem roubar) */
   viewEl.addEventListener('pointerdown', annPenBaixo, { capture: true });
   viewEl.addEventListener('pointerdown', e => {
-    if (e.button !== 0) return;
-    if (!annSel.size) return;
-    if (e.target.closest('.ann, [data-ann]')) return;
+    if (e.button !== 0 || !annSel.size) return;
+    if (e.target.closest('[data-ann]')) return;
     annSel.clear();
-    annRender();
+    annSelVisual();
   });
   document.addEventListener('keydown', e => {
     const alvo = e.target;
     if (alvo && (alvo.isContentEditable || /^(INPUT|SELECT|TEXTAREA)$/.test(alvo.tagName || ''))) return;
     if (e.key === 'Escape') {
       if (annPenOn) { annSetPen(false); e.stopPropagation(); return; }
-      if (annSel.size) { annSel.clear(); annRender(); }
+      if (annSel.size) { annSel.clear(); annSelVisual(); }
       return;
     }
     if (!annSel.size) return;
@@ -28381,8 +28333,7 @@ function annLoad(list) {
     e.preventDefault(); e.stopPropagation();
     for (const a of annots) {
       if (!annSel.has(a.id)) continue;
-      a.x += delta[0]; a.y += delta[1];
-      if (a.kind === 'pen') for (let i = 0; i < a.pts.length; i += 2) { a.pts[i] += delta[0]; a.pts[i + 1] += delta[1]; }
+      for (let i = 0; i < a.pts.length; i += 2) { a.pts[i] += delta[0]; a.pts[i + 1] += delta[1]; }
     }
     annUpdate(); commit();
   }, true);
@@ -28425,8 +28376,8 @@ function showGroupMenu(clientX, clientY) {
   add('Duplicate', 'Ctrl+D', sel.length > 0, duplicateSelected);
   add('Delete nodes', 'Del', sel.length > 0, deleteSelected);
   grpMenu.append(E('div', 'grp-sep'));
-  add('Add note here', 'N', true, () => annAddAtCursor('note'));
-  add('Add frame here', '', true, () => annAddAtCursor('frame'));
+  add('Add note node here', 'N', true, () => annNotaEm());
+  add('Frame selection', 'Ctrl+G', sel.length >= 2, groupSelected);
   add(annPenOn ? 'Pen: on' : 'Pen: draw', 'P', true, () => annSetPen(!annPenOn));
   add('Annotation panel', 'Annotate', true, () => annBarToggle(true));
   annAt = screenToWorld(clientX, clientY);
@@ -28954,8 +28905,7 @@ function galFiltrados() {
   const q = galEstado.q.trim().toLowerCase();
   let itens = Object.entries(NODE_TYPES).filter(([t]) => !addIndisponivel(t));
   if (galEstado.cat) itens = itens.filter(([, d]) => d.cat === galEstado.cat);
-  if (q) itens = itens.filter(([t, d]) => (d.kw || '').toLowerCase().includes(q) ||
-    d.title.toLowerCase().includes(q) || t.toLowerCase().includes(q));
+  if (q) itens = itens.filter(([t, d]) => buscaCasa(q, t, d, null));
   sortTypesByTitle(itens);
   return itens;
 }
@@ -29116,6 +29066,14 @@ if (galEl) galEl.addEventListener('pointerdown', e => { if (e.target === galEl) 
   aplicaAddMenuMode();
 }
 
+/* 3.7.1 — busca tolerante: "layer comp", "color ramp", "mask brush" etc.
+   Cada palavra digitada precisa aparecer no título, nas palavras-chave, no tipo
+   ou no nome da categoria (antes era só um trecho literal do texto). */
+function buscaCasa(q, tipo, def, cat) {
+  const alvo = (def.title + ' ' + (def.kw || '') + ' ' + tipo + ' ' + (cat ? CATS[cat].label : '')).toLowerCase();
+  return String(q).toLowerCase().split(/\s+/).filter(Boolean).every(p => alvo.includes(p));
+}
+
 function renderAddList(q) {
   addList.innerHTML = '';
   q = (q || '').trim().toLowerCase();
@@ -29127,8 +29085,7 @@ function renderAddList(q) {
   for (const cat of cats) {
     const items = Object.entries(NODE_TYPES).filter(([t, d]) =>
       d.cat === cat && !addIndisponivel(t) &&
-      (!q || (d.kw || '').toLowerCase().includes(q) || d.title.toLowerCase().includes(q) ||
-        t.toLowerCase().includes(q) || (!addCat && CATS[cat].label.toLowerCase().includes(q))));
+      (!q || buscaCasa(q, t, d, cat)));
     sortTypesByTitle(items);
     if (!items.length) continue;
     if (!addCat) addList.append(E('div', 'add-group', CATS[cat].label));

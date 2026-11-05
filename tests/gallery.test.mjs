@@ -63,8 +63,10 @@ ok(/if \(res && res\.pooled\) res\.pooled\.busy = false;/.test(html), 'a textura
 ok(/if \(alvo\.isConnected && !galEl\.hidden\)/.test(html), 'só desenha cartão visível e com a galeria aberta');
 
 /* ---------- busca, categorias e seleção ---------- */
-ok(/function galFiltrados\(\)/.test(html) && /d\.kw \|\| ''\)\.toLowerCase\(\)\.includes\(q\)/.test(html),
+ok(/function galFiltrados\(\)/.test(html) && /buscaCasa\(q, t, d, null\)/.test(html),
   'a busca usa as palavras-chave dos nós', 'busca');
+ok(/function buscaCasa\(q, tipo, def, cat\)/.test(html) && /def\.kw \|\| ''/.test(html),
+  'a busca casa título + palavras-chave + tipo + categoria');
 ok(/mk\('All', null\)/.test(html) && /for \(const k of Object\.keys\(CATS\)\) if \(addContar\(k\)\)/.test(html),
   'chips de categoria com a contagem do menu', 'chips');
 ok(/function addIndisponivel\(t\)/.test(html) && /filter\(\(\[t\]\) => !addIndisponivel\(t\)\)/.test(html),
