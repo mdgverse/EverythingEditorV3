@@ -95,6 +95,24 @@ body.mobile #rpPresets{height:150px}
 .rp-preset{transition:box-shadow .12s ease,transform .12s ease}
 .rp-preset:hover{box-shadow:0 0 0 2px var(--accent)}
 .rp-preset:active{transform:translateY(1px);box-shadow:0 0 0 2px var(--accent)}
+/* 3.8.3: o nó Displacement tem 4 seções e ~30 parâmetros dentro de 200px.
+   .plbl tinha 78px fixos com reticências (virava "Pattern siz…") e o file
+   nativo estourava a borda. Nas seções o rótulo vai em cima e o controle
+   embaixo, na largura toda. */
+.ctl-sec-b .prow{flex-direction:column;align-items:stretch;gap:2px;min-height:0;padding:1px 0}
+.ctl-sec-b .plbl{width:auto;flex:none;font-size:10.5px;line-height:1.25;color:var(--text-muted);white-space:normal;overflow:visible;text-overflow:clip;overflow-wrap:break-word}
+.ctl-sec-b .psel{flex:none;width:100%;min-width:0;height:20px;font-size:10.5px;text-overflow:ellipsis}
+.ctl-sec-b .pcolor{flex-direction:row;flex-wrap:wrap;align-items:center;gap:4px}
+.ctl-sec-b .pcolor .plbl{flex:1 1 100%}
+.ctl-sec-b .pcolor input[type=color]{flex:1 1 40px;height:20px}
+.ctl-sec-b .pcolor .hexedit{width:72px;height:20px}
+.ctl-sec-b .pfile{flex-direction:row;flex-wrap:wrap;align-items:center;gap:4px}
+.ctl-sec-b .pfile .plbl{flex:1 1 100%}
+.pfile .pbtn{flex:none;height:20px;padding:0 8px;border-radius:3px;border:1px solid var(--line3);background:var(--btn);color:var(--text-strong);font-size:10.5px;line-height:18px;cursor:pointer}
+.pfile .pbtn:hover{border-color:var(--accent)}
+.pfile .pname{flex:1 1 0;min-width:0;font-size:10.5px;color:var(--text-accent);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+body.mobile .node.in-sheet .ctl-sec-b .plbl{width:auto;flex:none;font-size:13px;color:var(--text)}
+body.mobile .node.in-sheet .ctl-sec-b .prow{gap:4px;padding:2px 0}
 </style>
 <style id="ee-mobile-css">/* =========================================================
    CAMADA MOBILE (Android · Realme Note 70 · 720×1600, 6, 74")
@@ -489,7 +507,7 @@ html, body{overscroll-behavior:none;-webkit-tap-highlight-color:transparent}/* 1
 
 /* Versão do editor — o arquivo VERSION na raiz é a fonte da verdade
    (o build do APK usa o mesmo número no versionName e falha se divergir). */
-const APP_VERSION = '3.8.2';
+const APP_VERSION = '3.8.3';
 /* sem a telinha, a versão aparece no tooltip da marca (e o título da aba segue curto) */
 {
   const marca = document.getElementById('brandBtn');
@@ -26722,16 +26740,32 @@ function makeFont(n, p) {
   return row;
 }
 function makeFile(n, p) {
-  const row = E('div', 'prow');
+  const row = E('div', 'prow pfile');
   const lb = E('span', 'plbl', p.label);
+  // 3.8.3: o <input type=file> nativo desenha "Escolher arquivo / Nenhum arquivo
+  // escolhido" com ~250px de largura fixa e vazava pela borda do nó (200px).
+  // Agora é um botão compacto + o nome do arquivo com reticências.
   const inp = document.createElement('input');
   inp.type = 'file';
   inp.accept = p.accept || 'image/*';
-  inp.style.cssText = 'flex:1;min-width:0;font:inherit;color:inherit';
-  inp.addEventListener('pointerdown', e => { e.stopPropagation(); selectFromControl(n); });
+  inp.hidden = true;
+  const btn = E('button', 'pbtn', 'Escolher…');
+  btn.type = 'button';
+  btn.title = 'Pick a file from the device';
+  const nome = E('span', 'pname', '');
+  const marcaNome = () => {
+    const f = inp.files && inp.files[0];
+    if (f) nome.textContent = f.name;
+    else nome.textContent = (typeof n.params[p.key] === 'string' && n.params[p.key].slice(0, 5) === 'data:') ? 'textura carregada' : 'nenhum arquivo';
+    nome.title = nome.textContent;
+  };
+  marcaNome();
+  btn.addEventListener('pointerdown', e => { e.stopPropagation(); selectFromControl(n); });
+  btn.addEventListener('click', e => { e.stopPropagation(); inp.click(); });
   inp.addEventListener('change', () => {
     const f = inp.files && inp.files[0];
     if (!f) return;
+    marcaNome();
     const rd = new FileReader();
     rd.onload = () => {
       n.params[p.key] = rd.result;
@@ -26746,7 +26780,7 @@ function makeFile(n, p) {
     };
     rd.readAsDataURL(f);
   });
-  row.append(lb, inp);
+  row.append(lb, btn, nome, inp);
   if (n.type === 'arrayMachine' && /^glyphFile[0-3]$/.test(p.key)) {
     const bAst = E('button', 'btn', 'Assets');
     bAst.type = 'button';
@@ -26808,7 +26842,7 @@ function makeLock(n, p) {
   return row;
 }
 function makeColor(n, p) {
-  const row = E('div', 'prow');
+  const row = E('div', 'prow pcolor');   // 3.8.3: swatch + hex lado a lado dentro das seções
   const lb = E('span', 'plbl', p.label);
   const inp = document.createElement('input');
   inp.type = 'color';
