@@ -109,6 +109,41 @@ body.mobile #rpPresets{height:150px}
 .pfile .pbtn:hover{border-color:var(--accent)}
 .pfile .pname{flex:1 1 0;min-width:0;font-size:10.5px;color:var(--text-accent);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .stk-bar .psel, .pview-out .psel{width:auto}
+.lyr-edit{flex:none;width:18px;height:17px;padding:0;border:1px solid transparent;border-radius:3px;background:transparent;color:var(--text-muted);font-size:11px;line-height:15px;cursor:pointer;touch-action:manipulation}
+.lyr-edit:hover{color:var(--text-strong);border-color:var(--line3);background:var(--hover)}
+body.mobile .lyr-edit{width:28px;height:26px;font-size:14px;line-height:24px}
+/* ===== Hot Node (3.9.0): menu rápido no cursor ===== */
+.hot-menu{position:absolute;z-index:64;width:304px;max-width:calc(100% - 16px);box-sizing:border-box;display:flex;flex-direction:column;gap:6px;padding:8px;border-radius:10px;background:var(--panel2);border:1px solid var(--outline);box-shadow:0 18px 44px rgba(0,0,0,.62)}
+.hot-menu[hidden]{display:none!important}
+.hot-top{display:flex;align-items:center;gap:6px}
+.hot-logo{flex:1;min-width:0;font:600 10.5px/1.2 ui-sans-serif,system-ui,sans-serif;letter-spacing:.07em;text-transform:uppercase;color:var(--text-strong);opacity:.8;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.hot-key{flex:none;height:21px;padding:0 8px;border-radius:6px;border:1px solid var(--line3);background:var(--btn);color:var(--text);font-size:10.5px;cursor:pointer;touch-action:manipulation}
+.hot-key:hover{border-color:var(--accent);color:var(--text-strong)}
+.hot-in{width:100%;box-sizing:border-box;height:32px;border-radius:7px;border:1px solid var(--line);background:var(--field2);color:var(--text-strong);padding:0 10px;font-size:13px;outline:none}
+.hot-in:focus{border-color:var(--accent)}
+.hot-favs{display:flex;flex-wrap:wrap;gap:4px}
+.hot-chips{display:flex;flex-wrap:wrap;gap:4px;align-items:center}
+.hot-lab{font-size:9.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--text-dim)}
+.hot-chip{max-width:100%;height:22px;padding:0 9px;border-radius:11px;border:1px solid var(--line3);background:var(--item);color:var(--text);font-size:10.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer;touch-action:manipulation}
+.hot-chip:hover,.hot-chip.on{border-color:var(--accent);color:var(--text-strong)}
+.hot-list{max-height:302px;overflow-y:auto;overscroll-behavior:contain;display:flex;flex-direction:column;gap:1px;margin-top:1px}
+.hot-grp{font-size:9.5px;letter-spacing:.07em;text-transform:uppercase;color:var(--text-dim);margin:6px 6px 2px}
+.hot-item{display:flex;align-items:center;gap:6px;width:100%;box-sizing:border-box;padding:5px 7px;border-radius:5px;color:var(--text);font-size:12px;cursor:pointer;text-align:left;touch-action:manipulation}
+.hot-item:hover{background:var(--hover)}
+.hot-item.hi{background:var(--accent);color:var(--on-accent)}
+.hot-nm{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.hot-cat{flex:none;font-size:9.5px;opacity:.66}
+.hot-star{flex:none;width:20px;height:20px;padding:0;border:0;border-radius:4px;background:transparent;color:inherit;font-size:12px;line-height:1;cursor:pointer;touch-action:manipulation}
+.hot-star:hover{background:rgba(255,255,255,.16)}
+.hot-empty{color:var(--text-dim);font-size:11.5px;padding:8px 6px}
+.hot-hint{font-size:10.5px;color:var(--text-accent);padding:1px 6px 3px}
+body.mobile .hot-menu{position:fixed!important;left:8px!important;right:8px!important;top:auto!important;bottom:68px!important;width:auto!important;max-height:62vh;z-index:70;padding:10px;border-radius:14px}
+body.mobile .hot-in{height:42px;font-size:15px}
+body.mobile .hot-item{padding:11px 9px;font-size:14px;min-height:44px}
+body.mobile .hot-chip{height:32px;font-size:12px}
+body.mobile .hot-key{height:30px;font-size:12px}
+body.mobile .hot-star{width:34px;height:34px;font-size:16px}
+body.mobile .hot-list{max-height:calc(62vh - 150px)}
 </style>
 <style id="ee-mobile-css">/* =========================================================
    CAMADA MOBILE (Android · Realme Note 70 · 720×1600, 6, 74")
@@ -264,7 +299,7 @@ html, body{overscroll-behavior:none;-webkit-tap-highlight-color:transparent}/* 1
         <div id="nodes"></div>
         <svg id="zipLayer"></svg>
       </div>
-      <div class="hint">[ / ]: move the selected keys · Ctrl+D: duplicate keys · Middle mouse / Space + drag: pan · Alt + drag across wires: zip tie · Wheel: zoom · Drag on empty space: select · Shift+A: add · Ctrl+X: cut · Ctrl+C: copy · Ctrl+V: paste · Ctrl+D: duplicate · Del: delete · Ctrl+Z: undo · Home: frame all · Timeline: I: key · K: play · ←→: frame · ↑↓: previous/next key</div>
+      <div class="hint">[ / ]: move the selected keys · Ctrl+D: duplicate keys · Middle mouse / Space + drag: pan · Alt + drag across wires: zip tie · Wheel: zoom · Drag on empty space: select · Shift+A: add · Shift+B: hot node · Ctrl+X: cut · Ctrl+C: copy · Ctrl+V: paste · Ctrl+D: duplicate · Del: delete · Ctrl+Z: undo · Home: frame all · Timeline: I: key · K: play · ←→: frame · ↑↓: previous/next key</div>
       <div id="sckOverlay" hidden aria-hidden="true">
       <div class="sck-h"><span class="sck-dot"></span>Screencast keys</div>
       <div class="sck-live parado" id="sckLive">waiting for input</div>
@@ -503,7 +538,7 @@ html, body{overscroll-behavior:none;-webkit-tap-highlight-color:transparent}/* 1
 
 /* Versão do editor — o arquivo VERSION na raiz é a fonte da verdade
    (o build do APK usa o mesmo número no versionName e falha se divergir). */
-const APP_VERSION = '3.8.4';
+const APP_VERSION = '3.9.0';
 /* sem a telinha, a versão aparece no tooltip da marca (e o título da aba segue curto) */
 {
   const marca = document.getElementById('brandBtn');
@@ -24451,6 +24486,15 @@ function editaNomeEm(el, valor, aoSalvar) {
     else if (e.key === 'Escape') fim(false);
   });
 }
+/* 3.9.0: cada camada tem id próprio e nome custom; o rótulo do socket e da
+   lista vêm do NOME gravado na camada (que viaja com ela no moveLayer), nunca
+   do índice. Camada sem nome mantém "Layer N", como antes. */
+function layerRotulo(n, i) {
+  const l = layerList(n)[i];
+  const nome = l && l.name ? String(l.name).trim() : '';
+  return nome ? ((i + 1) + ' · ' + nome) : ('Layer ' + (i + 1));
+}
+
 function layerList(n) {
   if (!Array.isArray(n.params.layers)) n.params.layers = [];
   let minNeeded = n.params.layers.length === 0 ? LAYER_INITIAL_COUNT : n.params.layers.length;
@@ -24475,7 +24519,7 @@ function nodeInputs(n) {
   if (n.type === 'layers') {
     const cnt = layerList(n).length;
     const out = new Array(cnt);
-    for (let i = 0; i < cnt; i++) out[i] = 'Layer' + ' ' + (i + 1);
+    for (let i = 0; i < cnt; i++) out[i] = layerRotulo(n, i);
     return out;
   }
   return def.inputs;
@@ -24490,7 +24534,7 @@ function syncLayerSockets(n) {
   if (existing.length === want) {
     existing.forEach((row, i) => {
       const rl = row.querySelector('.rl');
-      if (rl) rl.textContent = 'Layer' + ' ' + (i + 1);
+      if (rl) rl.textContent = layerRotulo(n, i);
     });
     return;
   }
@@ -24502,7 +24546,7 @@ function syncLayerSockets(n) {
     s.dataset.idx = i;
     s.style.background = SOCKET_IMAGE;
     const r = E('div', 'row in');
-    r.append(s, E('span', 'rl', 'Layer' + ' ' + (i + 1)));
+    r.append(s, E('span', 'rl', layerRotulo(n, i)));
     body.insertBefore(r, anchor);
   }
   if (n.el.isConnected) { try { drawLinks(); } catch (_) {} }
@@ -25145,13 +25189,16 @@ function layerRowEl(n, i, render, dnd) {
 
   const baseTitle = P.name || (sn ? (NODE_TYPES[sn.type] ? (NODE_TYPES[sn.type].title) : sn.type) : '(empty)');
   const name = E('span', 'lyr-name', `${i + 1}. ${baseTitle}`);
-  name.title = 'Click to select · Double-click to rename · Alt+click toggles Clipping Mask · Right-click opens menu';
+  name.title = P.name ? ('Renomeada: ' + P.name + ' · double-click or ✎ to rename') : 'Click to select · Double-click or ✎ to rename · Alt+click toggles Clipping Mask · Right-click opens menu';
+  // 3.9.0: um único caminho de renomear (duplo clique e botão ✎), gravando na
+  // camada por id — o nome acompanha a camada ao reordenar, no undo e no save.
+  const renomeia = () => editaNomeEm(name, P.name || '', v => {
+    if (v != null) P.name = String(v).slice(0, 40).trim();
+    render(); commit();
+  });
   name.addEventListener('dblclick', e => {
     e.stopPropagation();
-    editaNomeEm(name, P.name || '', v => {
-      if (v != null) P.name = v;
-      render(); commit();
-    });
+    renomeia();
   });
   name.addEventListener('click', e => {
     if (e.altKey && i > 0) { e.stopPropagation(); toggleClippingMask(n, i, render); return; }
@@ -25175,8 +25222,14 @@ function layerRowEl(n, i, render, dnd) {
     openLayerContextMenu(n, i, r.left, r.bottom + 2, render);
   }, false);
 
+  const editBtn = E('button', 'lyr-edit', '✎');
+  editBtn.type = 'button';
+  editBtn.title = 'Rename this layer';
+  editBtn.addEventListener('click', e => { e.stopPropagation(); renomeia(); });
+
   head.append(
     name,
+    editBtn,
     clipBtn,
     btn('▲', 'Bring forward (up in the stack)', () => moveLayer(n, i, i + 1, render), i === total - 1),
     btn('▼', 'Send backward (down in the stack)', () => moveLayer(n, i, i - 1, render), i === 0),
@@ -29008,6 +29061,291 @@ function addNodeAt(type, x, y) {
 }
 
 addSearch.addEventListener('input', () => renderAddList(addSearch.value));
+
+/* ===== HOT NODE (3.9.0) =====
+   Menu rápido que nasce no cursor do mouse, inspirado no add-on Hot Node do
+   Blender: busca fuzzy em todos os nós, favoritos (☆/★) e recentes fixos,
+   inserção exatamente no ponto do cursor e auto-ligação ao que está em volta
+   (fio que terminou de ser arrastado, nó selecionado ou o próprio fio sob o
+   cursor). Atalho configurável: Shift+B (padrão), Ctrl+Space, Alt+A ou Tab.
+   No APK não existe teclado: toque longo no canvas abre o mesmo menu.      */
+const HOT_TECLAS = ['shift+b', 'ctrl+space', 'alt+a', 'tab'];
+const HOT_PADRAO = 'shift+b';
+let hotEl = null, hotIn = null, hotListaEl = null, hotFavsEl = null, hotKeyEl = null;
+let hotAberto = false;
+let hotPos = { x: 120, y: 120 };
+let hotCursor = null;
+let hotItens = [], hotSel = 0;
+
+function hotRotuloTecla(k) {
+  return k === 'ctrl+space' ? 'Ctrl+Space' : k === 'alt+a' ? 'Alt+A' : k === 'tab' ? 'Tab' : 'Shift+B';
+}
+function hotPref(chave, padrao) {
+  try { const v = localStorage.getItem('node-image-editor:hotnode:' + chave); return v == null ? padrao : JSON.parse(v); } catch (e) { return padrao; }
+}
+function hotGuarda(chave, valor) {
+  try { localStorage.setItem('node-image-editor:hotnode:' + chave, JSON.stringify(valor)); } catch (e) {}
+}
+function hotTecla() {
+  const k = hotPref('key', HOT_PADRAO);
+  return HOT_TECLAS.indexOf(k) >= 0 ? k : HOT_PADRAO;
+}
+function hotCasa(e, k) {
+  if (e.repeat) return false;
+  if (k === 'ctrl+space') return !!(e.ctrlKey && !e.altKey && !e.metaKey && (e.code === 'Space' || e.key === ' '));
+  if (k === 'alt+a') return !!(e.altKey && !e.ctrlKey && !e.metaKey && e.key.toLowerCase() === 'a');
+  if (k === 'tab') return !!(e.key === 'Tab' && !e.shiftKey && !e.ctrlKey && !e.altKey && !e.metaKey);
+  return !!(e.shiftKey && !e.ctrlKey && !e.altKey && !e.metaKey && e.key.toLowerCase() === 'b');
+}
+function hotFavoritos() {
+  const l = hotPref('fav', []);
+  return Array.isArray(l) ? l.filter(t => NODE_TYPES[t]) : [];
+}
+function hotRecentes() {
+  const l = hotPref('rec', []);
+  return Array.isArray(l) ? l.filter(t => NODE_TYPES[t]) : [];
+}
+function hotMarcaFavorito(tipo) {
+  const l = hotFavoritos();
+  const i = l.indexOf(tipo);
+  if (i >= 0) l.splice(i, 1); else l.unshift(tipo);
+  hotGuarda('fav', l.slice(0, 12));
+}
+function hotMarcaRecente(tipo) {
+  const l = hotRecentes().filter(t => t !== tipo);
+  l.unshift(tipo);
+  hotGuarda('rec', l.slice(0, 6));
+}
+function hotNorm(txt) {
+  return String(txt || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+}
+/* pontuação fuzzy: começo do título > sequência de letras em ordem > trecho */
+function hotPonto(q, tipo, def, cat) {
+  const titulo = hotNorm(def.title);
+  if (titulo.indexOf(q) === 0) return 1000 - titulo.length;
+  let i = 0, saltos = 0, primeiro = -1;
+  for (let j = 0; j < titulo.length && i < q.length; j++) {
+    if (titulo[j] === q[i]) { if (primeiro < 0) primeiro = j; i++; }
+    else if (i > 0) saltos++;
+  }
+  if (i === q.length) return 600 - saltos * 4 - primeiro * 6 - titulo.length;
+  const alvo = hotNorm(titulo + ' ' + (def.kw || '') + ' ' + tipo + ' ' + (cat && CATS[cat] ? CATS[cat].label : ''));
+  const pos = alvo.indexOf(q);
+  return pos < 0 ? -1 : 300 - pos;
+}
+function hotResultados(consulta) {
+  const partes = hotNorm(consulta).split(/\s+/).filter(Boolean);
+  const lista = [];
+  for (const tipo in NODE_TYPES) {
+    const def = NODE_TYPES[tipo];
+    if (addIndisponivel(tipo)) continue;
+    let total = 0, serve = true;
+    for (const parte of partes) {
+      const p = hotPonto(parte, tipo, def, def.cat);
+      if (p < 0) { serve = false; break; }
+      total += p;
+    }
+    if (serve) lista.push({ tipo, def, cat: def.cat, ponto: total });
+  }
+  lista.sort((a, b) => b.ponto - a.ponto || a.def.title.localeCompare(b.def.title));
+  return lista;
+}
+
+function hotMonta() {
+  const pai = addMenu.parentElement || viewEl;
+  hotEl = E('div', 'hot-menu'); hotEl.id = 'hotNode'; hotEl.hidden = true;
+  const topo = E('div', 'hot-top');
+  topo.append(E('span', 'hot-logo', 'Hot Node'));
+  hotKeyEl = E('button', 'hot-key', hotRotuloTecla(hotTecla())); hotKeyEl.type = 'button';
+  hotKeyEl.title = 'Shortcut to open the Hot Node menu — click to change';
+  hotKeyEl.addEventListener('click', e => {
+    e.stopPropagation();
+    const prox = HOT_TECLAS[(HOT_TECLAS.indexOf(hotTecla()) + 1) % HOT_TECLAS.length];
+    hotGuarda('key', prox);
+    hotKeyEl.textContent = hotRotuloTecla(prox);
+    setStatus('Hot Node shortcut: ' + hotRotuloTecla(prox));
+  });
+  topo.append(hotKeyEl);
+  hotIn = E('input', 'hot-in'); hotIn.type = 'search'; hotIn.placeholder = 'Search node… (fuzzy)';
+  hotIn.spellcheck = false; hotIn.autocomplete = 'off';
+  hotFavsEl = E('div', 'hot-favs');
+  hotListaEl = E('div', 'hot-list');
+  hotEl.append(topo, hotIn, hotFavsEl, hotListaEl);
+  hotEl.addEventListener('pointerdown', e => e.stopPropagation());
+  hotIn.addEventListener('input', () => hotRender());
+  hotIn.addEventListener('keydown', e => {
+    e.stopPropagation();
+    if (e.key === 'ArrowDown') { e.preventDefault(); hotDestaca(hotSel + 1); }
+    else if (e.key === 'ArrowUp') { e.preventDefault(); hotDestaca(hotSel - 1); }
+    else if (e.key === 'Enter') { e.preventDefault(); const it = hotItens[hotSel]; if (it) hotInserir(it.tipo); }
+    else if (e.key === 'Escape') { e.preventDefault(); hotFechar(true); }
+    else if (e.key === 'Tab') { e.preventDefault(); }   // Tab dentro do menu não sai do campo
+  });
+  pai.append(hotEl);
+}
+
+function hotPosiciona() {
+  if (!hotEl || document.body.classList.contains('mobile')) return;   // no APK é folha fixa (CSS)
+  const r = viewEl.getBoundingClientRect();
+  const w = hotEl.offsetWidth || 304, h = hotEl.offsetHeight || 320;
+  hotEl.style.left = Math.round(clamp(hotPos.x - r.left, 8, Math.max(8, r.width - w - 8))) + 'px';
+  hotEl.style.top = Math.round(clamp(hotPos.y - r.top, 8, Math.max(8, r.height - h - 8))) + 'px';
+}
+
+function hotChip(tipo, rotulo) {
+  const b = E('button', 'hot-chip', rotulo || (NODE_TYPES[tipo] ? NODE_TYPES[tipo].title : tipo));
+  b.type = 'button';
+  b.dataset.tipo = tipo;
+  b.addEventListener('click', e => { e.stopPropagation(); hotInserir(tipo); });
+  return b;
+}
+
+function hotRender() {
+  if (!hotEl) return;
+  const q = hotIn.value.trim();
+  hotItens = hotResultados(q);
+  hotSel = 0;
+  hotFavsEl.textContent = '';
+  hotListaEl.textContent = '';
+  const pl = pendingLink;
+  if (pl) hotListaEl.append(E('div', 'hot-hint', pl.insertTo != null ? 'Goes in the middle of the wire'
+    : pl.outId != null ? 'Will connect to the dragged output' : 'Will connect to the dragged input'));
+  if (!q) {
+    const favs = hotFavoritos();
+    if (favs.length) {
+      const linha = E('div', 'hot-chips');
+      linha.append(E('span', 'hot-lab', '★'));
+      for (const t of favs) linha.append(hotChip(t));
+      hotFavsEl.append(linha);
+    }
+    const recs = hotRecentes().filter(t => favs.indexOf(t) < 0);
+    if (recs.length) {
+      const linha = E('div', 'hot-chips');
+      linha.append(E('span', 'hot-lab', 'Recent'));
+      for (const t of recs) linha.append(hotChip(t));
+      hotFavsEl.append(linha);
+    }
+  }
+  let catAtual = null;
+  for (const it of hotItens.slice(0, 80)) {
+    if (!q && it.cat !== catAtual) {
+      catAtual = it.cat;
+      hotListaEl.append(E('div', 'hot-grp', CATS[it.cat] ? CATS[it.cat].label : it.cat));
+    }
+    const linha = E('div', 'hot-item');
+    linha.dataset.tipo = it.tipo;
+    linha.append(E('span', 'hot-nm', it.def.title));
+    if (it.cat) linha.append(E('span', 'hot-cat', CATS[it.cat] ? CATS[it.cat].label : it.cat));
+    const estrela = E('button', 'hot-star', hotFavoritos().indexOf(it.tipo) >= 0 ? '★' : '☆');
+    estrela.type = 'button';
+    estrela.title = hotFavoritos().indexOf(it.tipo) >= 0 ? 'Remove from favorites' : 'Add to favorites';
+    estrela.addEventListener('click', e => { e.stopPropagation(); hotMarcaFavorito(it.tipo); hotRender(); });
+    linha.append(estrela);
+    linha.addEventListener('click', () => hotInserir(it.tipo));
+    hotListaEl.append(linha);
+  }
+  if (!hotItens.length) hotListaEl.append(E('div', 'hot-empty', 'No node matches "' + q + '".'));
+  hotDestaca(0);
+}
+
+function hotDestaca(i) {
+  const itens = [...hotListaEl.querySelectorAll('.hot-item')];
+  if (!itens.length) { hotSel = 0; return; }
+  hotSel = Math.max(0, Math.min(itens.length - 1, i));
+  itens.forEach((el, idx) => el.classList.toggle('hi', idx === hotSel));
+  const alvo = itens[hotSel];
+  if (alvo && alvo.scrollIntoView) { try { alvo.scrollIntoView({ block: 'nearest' }); } catch (e) {} }
+}
+
+/* fio sob o cursor: usa o mesmo caminho do arraste (insertTo/restore) */
+function hotFioNoPonto(x, y) {
+  const el = document.elementFromPoint(x, y);
+  const hit = el && el.closest ? el.closest('.linkhit') : null;
+  const l = hit && hit._link;
+  if (!l || links.indexOf(l) < 0) return null;
+  const pend = { outId: l.from, outIdx: l.out || 0, insertTo: l.to, insertIdx: l.input,
+    restore: { from: l.from, to: l.to, input: l.input, out: l.out || 0 } };
+  links.splice(links.indexOf(l), 1);
+  drawLinks();
+  return pend;
+}
+
+function hotAbrir(x, y) {
+  if (!hotEl) hotMonta();
+  if (hotAberto) { hotFechar(true); return; }
+  hotPos = { x, y };
+  if (!pendingLink) {
+    const pend = hotFioNoPonto(x, y);
+    if (pend) pendingLink = pend;
+  }
+  hotAberto = true;
+  hotEl.hidden = false;
+  hotIn.value = '';
+  hotRender();
+  hotPosiciona();
+  if (!document.body.classList.contains('mobile')) { try { hotIn.focus({ preventScroll: true }); } catch (e) {} }
+}
+
+/* fecha só a interface (o pendingLink fica para o addNodeAt consumir) */
+function hotFechaUI() {
+  hotAberto = false;
+  if (hotEl) hotEl.hidden = true;
+  try { if (hotIn) hotIn.blur(); } catch (e) {}
+}
+
+/* fecha de verdade: com cancelar=true devolve o fio que foi retirado */
+function hotFechar(cancelar) {
+  hotFechaUI();
+  const pl = pendingLink;
+  pendingLink = null;
+  if (cancelar && pl && pl.restore && !linkTo(pl.restore.to, pl.restore.input)) {
+    connect(pl.restore.from, pl.restore.to, pl.restore.input, pl.restore.out || 0);
+    drawLinks(); commit(); requestRender();
+  }
+}
+
+function hotInserir(tipo) {
+  if (!NODE_TYPES[tipo]) return;
+  const pl = pendingLink;
+  const soUm = (!pl && selected.size === 1) ? [...selected][0] : null;
+  const w = screenToWorld(hotPos.x, hotPos.y);
+  hotFechaUI();
+  const n = addNodeAt(tipo, w.x - 100, w.y - 14);   // consome o pendingLink (auto-ligação)
+  if (!n) return;
+  let ligou = false;
+  if (soUm != null && soUm !== n.id && nodes.has(soUm)) {
+    const def = NODE_TYPES[n.type];
+    if (def.inputs.length) {
+      const ordem = nodeInputs(n).map((_, i) => i).sort((a, b) => (b === def.preferIn) - (a === def.preferIn));
+      const livre = ordem.find(i => !linkTo(n.id, i));
+      if (livre != null) { connect(soUm, n.id, livre, 0); drawLinks(); commit(); requestRender(); ligou = true; }
+    }
+  }
+  hotMarcaRecente(tipo);
+  setStatus('Hot Node: ' + NODE_TYPES[tipo].title + (ligou ? ' ligado ao nó selecionado' : (pl ? ' ligado ao fio' : '')));
+}
+
+/* posição do cursor para abrir no lugar certo (só leitura, sem layout) */
+viewEl.addEventListener('pointermove', e => {
+  if (hotAberto) return;
+  hotCursor = { x: e.clientX, y: e.clientY };
+}, { passive: true });
+
+document.addEventListener('keydown', e => {
+  if (hotAberto) {
+    if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); hotFechar(true); }
+    return;
+  }
+  const alvo = e.target;
+  if (alvo && alvo.closest && alvo.closest('input,textarea,select,[contenteditable="true"]')) return;
+  if (!hotCasa(e, hotTecla())) return;
+  if (document.body.classList.contains('mobile')) return;      // APK: o menu abre por toque longo
+  e.preventDefault(); e.stopPropagation();
+  const r = viewEl.getBoundingClientRect();
+  const p = hotCursor || { x: r.left + r.width / 2, y: r.top + 80 };
+  hotAbrir(p.x, p.y);
+}, true);
+/* ==== HOT NODE (END) ==== */
 addSearch.addEventListener('keydown', e => {
   const items = [...addList.querySelectorAll('.add-item')];
   let idx = items.findIndex(b => b.classList.contains('hi'));
@@ -35771,7 +36109,7 @@ function longPress(id) {
   vPan = null;
   viewEl.classList.remove('panning');
   if (navigator.vibrate) navigator.vibrate(18);
-  openAddMenu(tap.x, tap.y);
+  hotAbrir(tap.x, tap.y);          // 3.9.0: toque longo = Hot Node (o + do rodapé abre o menu de categorias)
 }
 
 viewEl.addEventListener('pointerdown', e => {
