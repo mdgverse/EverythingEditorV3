@@ -210,5 +210,21 @@ console.log('menu radial de categorias');
   ok(addMenu.hidden === true, 'Esc/fechar esconde o menu');
 }
 
+/* ---------- radial é o único modo (3.9.1: galeria removida) ---------- */
+{
+  const src = fs.readFileSync(new URL('../index.html', import.meta.url), 'utf8');
+  for (const simbolo of ['ADD_MENU_MODE', 'ADD_MENU_KEY', 'openAddGallery', 'galEl', 'galFecha',
+    'galMonta', 'galAplica', 'GAL_SAMPLE', 'addViewSel', "$gal(", 'ee-gallery-css', 'id="addGal"']) {
+    ok(src.indexOf(simbolo) < 0, 'a galeria saiu por completo: ' + simbolo);
+  }
+  ok(!/Node picker/.test(src), 'a opção "Node picker" saiu das preferências');
+  ok(/\.gal\{/.test(src) === false, 'nenhum CSS órfão de galeria');
+  ok(/function openAddMenu\(clientX, clientY, pending = null\) \{\s*const w = screenToWorld\(clientX, clientY\);\s*addPos = \{ x: w\.x - 100, y: w\.y - 14 \};\s*pendingLink = pending;\s*addClique = \{ x: clientX, y: clientY \};\s*addMenu\.hidden = false;/.test(src),
+    'abrir o menu vai direto para o radial, sem desvio');
+  ok(/abrirCategorias\(\);/.test(src), 'o radial (círculo de categorias) continua sendo aberto');
+  ok(/let addView = 'wheel';/.test(src), 'a única visão é a roda');
+  ok(/const CATS = \{/.test(src) && /add-wheet|add-wheel|addWheel/.test(src), 'as categorias e o círculo seguem no lugar');
+}
+
 const tudo = resumo();
 process.exit(tudo ? 0 : 1);

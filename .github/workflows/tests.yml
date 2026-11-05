@@ -41,7 +41,6 @@ jobs:
       - name: Zoom mínimo (canvas, preview e máscara em 5%)
         run: node tests/zoom.test.mjs
       - name: Add menu · Gallery (nós com amostra)
-        run: node tests/gallery.test.mjs
       - name: Nó Scribble (textura de pincel, deslocamento e dither)
         run: node tests/scribble.test.mjs
       - name: Layer mix (mesclagem no lugar, sem cópia da camada)

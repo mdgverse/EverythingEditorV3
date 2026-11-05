@@ -13,17 +13,17 @@ function extrai(ini, fim) {
 
 console.log('screencast keys · overlay de entradas');
 
-/* ---------- 1. o interruptor mora no menu da marca, abaixo do Node picker ---------- */
+/* ---------- 1. o interruptor mora no menu da marca, depois da curva ---------- */
 {
   const menu = extrai('<div class="brand-menu" id="brandMenu"', '<div id="projTabs"');
-  const iP = menu.indexOf('id="addViewSel"');
+  ok(menu.indexOf('id="addViewSel"') < 0, 'o seletor Node picker (galeria) saiu das preferências');
+  ok(menu.indexOf('Node picker') < 0, 'e o título também saiu');
   const iT = menu.indexOf('id="sckToggle"');
-  ok(iP > 0 && iT > iP, 'o interruptor vem depois do Node picker', iP + '/' + iT);
-  ok(iT - iP < 600, 'é a seção logo abaixo do Node picker', iT - iP);
-  const h1 = menu.indexOf('Node picker</div>'), h2 = menu.indexOf('Screencast keys</div>');
-  ok(h1 > 0 && h2 > h1, 'o título Screencast keys vem depois do título Node picker', h1 + '/' + h2);
-  const entre = menu.slice(iP, iT);
-  ok((entre.match(/bm-h/g) || []).length === 1, 'nenhuma outra seção se mete entre as duas', entre.length);
+  ok(iT > 0, 'o interruptor continua no menu da marca');
+  const antes = menu.slice(0, iT);
+  const titulos = [...antes.matchAll(/bm-h">([^<]+)</g)].map(m => m[1]);
+  ok(titulos.join(' | ') === 'Theme | Node / Noodle Curve | Screencast keys',
+    'as seções do menu ficam Theme, curva e screencast', titulos.join(' | '));
   ok(/<input type="checkbox" id="sckToggle" role="switch"/.test(menu), 'é um switch de verdade (checkbox + role=switch)');
   ok(/id="sckState">Off</.test(menu), 'começa desligado, com o estado escrito ao lado');
 }
