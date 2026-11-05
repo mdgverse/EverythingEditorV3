@@ -90,6 +90,11 @@
 .ctl-sec-h:hover{opacity:1}
 .ctl-sec.fold .ctl-sec-b{display:none}
 .ctl-sec-b{display:grid;gap:4px;padding-top:3px}
+#rpPresets{height:186px}
+body.mobile #rpPresets{height:150px}
+.rp-preset{transition:box-shadow .12s ease,transform .12s ease}
+.rp-preset:hover{box-shadow:0 0 0 2px var(--accent)}
+.rp-preset:active{transform:translateY(1px);box-shadow:0 0 0 2px var(--accent)}
 </style>
 <style id="ee-mobile-css">/* =========================================================
    CAMADA MOBILE (Android · Realme Note 70 · 720×1600, 6, 74")
@@ -484,7 +489,7 @@ html, body{overscroll-behavior:none;-webkit-tap-highlight-color:transparent}/* 1
 
 /* Versão do editor — o arquivo VERSION na raiz é a fonte da verdade
    (o build do APK usa o mesmo número no versionName e falha se divergir). */
-const APP_VERSION = '3.8.1';
+const APP_VERSION = '3.8.2';
 /* sem a telinha, a versão aparece no tooltip da marca (e o título da aba segue curto) */
 {
   const marca = document.getElementById('brandBtn');
@@ -18080,9 +18085,11 @@ function rampaEditorMonta() {
   rpPresetGrupo.style.cssText = 'opacity:.65;font-size:11px;margin-top:5px';
   const rpPresetBox = E('div');
   rpPresetBox.id = 'rpPresets';
-  rpPresetBox.style.cssText = 'overflow-y:auto;max-height:190px;border:1px solid rgba(255,255,255,.14);border-radius:6px;padding:6px;margin-top:4px';
+  /* 3.8.2: a caixa vivia espremida no flex da coluna (.mdlg-side) — max-height não impede
+     o filho de encolher. flex:none + altura no CSS resolvem, e o mobile tem a sua. */
+  rpPresetBox.style.cssText = 'flex:0 0 auto;min-height:120px;overflow-y:auto;overflow-x:hidden;scrollbar-gutter:stable;border:1px solid rgba(255,255,255,.14);border-radius:6px;padding:6px;margin-top:4px';
   const rpPresetGrid = E('div');
-  rpPresetGrid.style.cssText = 'display:grid;grid-template-columns:repeat(4,1fr);gap:5px';
+  rpPresetGrid.style.cssText = 'display:grid;grid-template-columns:repeat(3,1fr);grid-auto-rows:34px;gap:6px;align-content:start';
   rpPresetBox.append(rpPresetGrid);
   // 2.9.89: grid shows only the active category; the buttons on top switch category
   const rpMostraCat = () => {
@@ -18093,7 +18100,8 @@ function rampaEditorMonta() {
       const b = document.createElement('button');
       b.type = 'button';
       b.title = P.n;
-      b.style.cssText = 'height:26px;border-radius:4px;border:1px solid rgba(255,255,255,.25);padding:0;cursor:pointer;background:linear-gradient(90deg,' + P.s.map(([p, c]) => c + ' ' + Math.round(p * 100) + '%').join(',') + ')';
+      b.className = 'rp-preset';
+      b.style.cssText = 'height:100%;min-height:34px;border-radius:6px;border:1px solid rgba(255,255,255,.25);padding:0;cursor:pointer;touch-action:manipulation;background:linear-gradient(90deg,' + P.s.map(([p, c]) => c + ' ' + Math.round(p * 100) + '%').join(',') + ')';
       b.addEventListener('click', () => rampaAplicaPreset(P));
       rpPresetGrid.append(b);
     }
@@ -18177,7 +18185,7 @@ function rampaEditorMonta() {
   custRow.append(custNome, custSave);
   const custBox = E('div');
   custBox.id = 'rpCust';
-  custBox.style.cssText = 'display:flex;flex-wrap:wrap;gap:4px;margin-top:3px;max-height:104px;overflow-y:auto';
+  custBox.style.cssText = 'flex:0 0 auto;display:flex;flex-wrap:wrap;gap:4px;margin-top:3px;max-height:104px;min-height:44px;overflow-y:auto;scrollbar-gutter:stable';
   side.append(custTitulo, custRow, custBox);
   rampaPresetsUI();
 
