@@ -150,26 +150,23 @@ console.log('Displacement v6 · mapas, vetor, borda e ruído');
   ok(!/if \(!gl\.getProgramParameter\(p, gl\.LINK_STATUS\)\) throw/.test(html.replace('throw new Error(name', 'LIGACAO')) || true, 'erro de link não escapa do for');
 }
 
-/* -------------------------------------- 10. parâmetros legíveis (3.8.3) */
+/* ----------------------------- 10. parâmetros legíveis em todo nó (3.8.4) */
 {
-  /* o nó tem 200px e 4 seções: rótulo de 78px com reticências cortava
-     "Pattern siz…", "Texture positio…" e o file nativo vazava pela borda. */
-  ok(html.includes('.ctl-sec-b .prow{flex-direction:column'), 'nas seções o rótulo fica em cima e o controle embaixo');
-  ok(/\.ctl-sec-b \.plbl\{width:auto;flex:none;[^}]*white-space:normal/.test(html), 'o rótulo da seção não é cortado em 78px');
-  ok(!/\.ctl-sec-b \.plbl\{[^}]*text-overflow:ellipsis/.test(html), 'rótulo da seção não usa reticências');
-  ok(/\.ctl-sec-b \.psel\{flex:none;width:100%/.test(html), 'o select ocupa a largura toda (o texto do preset cabe)');
-  ok(/\.ctl-sec-b \.pfile\{flex-direction:row;flex-wrap:wrap/.test(html), 'no arquivo, botão e nome dividem a linha e quebram se faltar espaço');
-  ok(/const btn = E\('button', 'pbtn', 'Escolher…'\)/.test(html), 'o botão de arquivo tem rótulo curto');
-  ok(/inp\.hidden = true;/.test(html), 'o input de arquivo nativo fica escondido (era ele que estourava a borda)');
-  ok(/const nome = E\('span', 'pname', ''\)/.test(html), 'o nome do arquivo tem linha própria com reticências');
-  ok(/row\.append\(lb, btn, nome, inp\)/.test(html), 'a linha é rótulo + botão + nome + input escondido');
-  ok(/btn\.addEventListener\('click', e => \{ e\.stopPropagation\(\); inp\.click\(\); \}\)/.test(html), 'o botão abre o seletor do sistema (funciona no APK)');
-  ok(/nome\.textContent = f\.name/.test(html), 'o nome mostrado vem do arquivo escolhido');
-  ok(/textura carregada/.test(html), 'com textura já carregada a linha diz isso');
-  ok(/prow pcolor/.test(html), 'swatch e hex da cor ficam na mesma linha da seção');
-  ok(/body\.mobile \.node\.in-sheet \.ctl-sec-b \.plbl\{width:auto/.test(html), 'no APK a folha usa o mesmo rótulo sem corte');
-  const util = 200 - 16 - 2;   // nó 200px - padding (8+8) - bordas
-  ok(util === 182, 'o controle da seção tem 182px de largura (o select inteiro cabe)', util);
+  /* o nó tem 216px e ~30 parâmetros: rótulo de 78px com reticências cortava
+     "Pattern siz…", "Texture positio…", "Mask (where…)" e o file nativo
+     vazava pela borda. O layout legível vale para todos os nós. */
+  ok(/\.prow\{display:flex;flex-direction:column;align-items:stretch/.test(html), 'o rótulo fica em cima e o controle embaixo, na largura toda');
+  ok(/\.plbl\{width:auto;flex:none;font-size:10\.5px;line-height:1\.25;color:var\(--text-muted\);white-space:normal/.test(html), 'o rótulo usa largura automática e quebra em vez de virar reticências');
+  ok(!/\.plbl\{width:78px/.test(html), 'a coluna fixa de 78px com ellipsis saiu');
+  ok(/\.psel\{flex:none;width:100%/.test(html), 'o select ocupa a largura toda (cabe "Clamp (stretch the edge)")');
+  ok(/\.prow\.pcolor, \.prow\.pfile\{flex-direction:row;flex-wrap:wrap/.test(html), 'cor e arquivo dividem a linha e quebram quando falta espaço');
+  ok(/\.node\{position:absolute;width:216px/.test(html), 'o nó ganhou 16px de largura (216)');
+  ok(/body\.mobile \.node\{width:216px\}/.test(html), 'no APK a largura é a mesma');
+  ok(!/\.ctl-sec-b \.prow/.test(html), 'sem CSS duplicado só para as seções');
+  ok(/\.node\.in-sheet \.plbl\{width:auto/.test(html), 'na folha do APK o rótulo também é automático');
+  ok(/\.ctl-sec-b\{display:grid;gap:4px/.test(html), 'as seções mantêm o espaçamento próprio');
+  const util = 216 - 16 - 2;   // nó 216px - padding (8+8) - bordas
+  ok(util === 198, 'o controle tem 198px de largura (o select inteiro cabe)', util);
 }
 
 process.exit(resumo() ? 0 : 1);
