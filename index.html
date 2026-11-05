@@ -26,9 +26,7 @@
 .pview{margin:2px 0 6px;position:relative}.pview-tabs{display:flex;flex-wrap:wrap;gap:3px;margin:0 0 4px}.pview-tab{flex:1 1 20px;min-width:20px;height:18px;font-size:10px;line-height:16px;padding:0 2px;border-radius:3px;background:var(--btn);border:1px solid var(--line3);color:var(--text);cursor:pointer;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.pview-tab.vazio{opacity:.45}.pview-tab.on{background:var(--accent);border-color:var(--accent);color:var(--on-accent);font-weight:700;opacity:1}.pview-tab.solo{box-shadow:inset 0 0 0 1px var(--sel);border-color:var(--sel)}.pview-cv{display:block;width:100%;border-radius:6px;border:1px solid var(--outline);cursor:grab;touch-action:none;background:repeating-conic-gradient(#2a2f38 0% 25%,#232830 0% 50%) 0 0/16px 16px}.pview-cv.drag{cursor:grabbing}.pview-hint{font-size:10px;line-height:1.3;color:var(--text-dim);margin:3px 0 0}.pview-tab.add,.pview-tab.del{flex:0 0 20px;font-weight:700;font-size:12px;line-height:16px}.pview-tab.add{color:var(--accent)}.pview-tab.del{color:var(--text-muted)}.pview-out{display:flex;align-items:center;gap:4px;margin:4px 0 0}.pview-out .psel{flex:1;min-width:0;height:20px}.gpins{margin:2px 0 6px}.gpins-t{font-size:10px;line-height:1.3;color:var(--text-dim);margin:0 0 4px}.gpins-cv{display:block;width:100%;border-radius:6px;border:1px solid var(--outline);cursor:crosshair;touch-action:none;background:#111}/* ---------- Pintor de máscara ---------- */
 .mask-ctl{display:flex;flex-direction:column;gap:4px}.mdlg{position:fixed;inset:0;z-index:50;display:flex;background:var(--dock);outline:none}.mdlg[hidden]{display:none}.mdlg-side{width:260px;flex:none;background:var(--panel);border-right:1px solid var(--outline);padding:12px;display:flex;flex-direction:column;gap:10px;color:var(--text);font-size:12px;overflow:auto}.mdlg-title{font-weight:600;font-size:14px;color:#fff}.mdlg-row{display:flex;gap:6px;flex-wrap:wrap}.mdlg-side .btn{padding:5px 9px}.mtool{background:var(--line);border:0;color:var(--text);padding:5px 9px;border-radius:4px;cursor:pointer;font-size:12px}.mtool.active{background:var(--accent);color:var(--on-accent)}.mlab{display:flex;justify-content:space-between;margin-bottom:3px}.mdlg-side input[type=range]{width:100%;margin:0}.mchk{display:flex;align-items:center;gap:6px}.mdlg-help{font-size:11px;color:var(--text-dim);line-height:1.5}.mdlg-spacer{flex:1}.mdlg-stage{flex:1;position:relative;overflow:hidden;background:#0e0e0e;cursor:crosshair;touch-action:none;min-width:0;outline:none}#mWrap{position:absolute;left:0;top:0;transform-origin:0 0}#mWrap canvas, #mWrap img{position:absolute;left:0;top:0;display:block}#mCursor{position:absolute;left:0;top:0;border:1px solid #fff;border-radius:50%;box-shadow:0 0 0 1px rgba(0,0,0,.6);pointer-events:none;transform:translate(-50%,-50%);display:none}#wpCanvas{position:absolute;inset:0;width:100%;height:100%;display:block;touch-action:none}.mpick{display:flex;align-items:center;gap:8px}.mpick-swatch{width:34px;height:34px;flex:none;border:1px solid rgba(255,255,255,.45);border-radius:5px;background:transparent}.mpick-info{font-size:11px;color:var(--text-muted);word-break:break-all}/* ---------- Preview ---------- */
 .preview{display:flex;flex-direction:column;background:var(--panel3);border-left:1px solid var(--outline);min-width:0;min-height:0}.phead{height:28px;display:flex;align-items:center;padding:0 10px;background:var(--btn);border-bottom:1px solid var(--outline);font-weight:600;color:var(--text)}.pbody{position:relative;flex:1;min-height:0;overflow:hidden}#gl{position:absolute;inset:0;width:100%;height:100%;display:block;cursor:grab}#gl:active{cursor:grabbing}#pmsg{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:var(--text-dim);text-align:center;padding:24px;pointer-events:none;font-size:13px}.pfoot{height:28px;display:flex;align-items:center;gap:8px;padding:0 8px;background:var(--btn);border-top:1px solid var(--outline);font-size:11px;color:var(--text-muted);min-width:0}#pinfo{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}/* ---- diálogo de exportação ---- */
-.xdlg-back{position:fixed;inset:0;background:rgba(0,0,0,.55);display:flex;align-items:center;justify-content:center;z-index:9000;padding:16px;box-sizing:border-box}.xdlg{background:var(--panel2);color:var(--text-strong);border:1px solid var(--line2);border-radius:8px;width:min(380px,100%);box-sizing:border-box;padding:16px;box-shadow:0 10px 40px rgba(0,0,0,.5);font:13px system-ui,sans-serif}.xdlg h3{margin:0 0 10px;font-size:15px;font-weight:600}.xdlg label{display:block;margin:10px 0 4px;color:var(--text-muted)}.xdlg input, .xdlg select{width:100%;box-sizing:border-box;padding:8px;background:var(--field2);color:var(--text-strong);border:1px solid var(--line3);border-radius:5px;font-size:14px}.xdlg .xrow{display:flex;gap:6px;align-items:center}.xdlg .xrow input{flex:1;min-width:0}.xdlg .xext{color:var(--text-dim);white-space:nowrap}.xdlg .xinfo{margin-top:8px;color:var(--text);font-size:12px}.xdlg .xnote{margin-top:6px;color:#8f8f8f;font-size:11px;line-height:1.35}.xdlg .xbtns{display:flex;justify-content:flex-end;gap:8px;margin-top:16px}.xdlg button{padding:8px 14px;border-radius:5px;border:1px solid var(--line3);background:var(--line);color:var(--text-strong);cursor:pointer;font-size:13px}.xdlg button.primary{background:var(--brand2);border-color:var(--brand2);color:#000;font-weight:600}/* ---- layers e alças ---- */
-.lyr-hint{font-size:11px;color:var(--text-muted);margin:4px 0 6px;line-height:1.35}.lyr-row{border:1px solid var(--line2);border-radius:5px;padding:4px 6px;margin-bottom:4px;background:var(--panel)}.lyr-row.sel{border-color:var(--brand2)}.lyr-row.off .lyr-name{opacity:.45;text-decoration:line-through}.lyr-head{display:flex;align-items:center;gap:4px}.lyr-name{flex:1;min-width:0;cursor:pointer;font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.lyr-body{margin-top:6px;display:grid;gap:4px}.lyr-field{display:grid;grid-template-columns:74px 1fr 46px;align-items:center;gap:6px;font-size:11px;color:var(--text)}.lyr-field:has(select){grid-template-columns:74px 1fr}.lyr-field select{width:100%}.lyr-field output{text-align:right;color:var(--text)}.lyr-body input[type=range]{width:100%}/* slider fields: label and value on the 1st line; the slider takes the full width on the 2nd */
-.lyr-field:not(:has(select)){grid-template-columns:minmax(0,1fr) auto auto;row-gap:2px}.lyr-field:not(:has(select)) > span:first-child{grid-column:1;grid-row:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.lyr-field:not(:has(select)) > output{grid-column:2;grid-row:1;min-width:40px}.lyr-field:not(:has(select)) > .lyr-steps{grid-column:3;grid-row:1}.lyr-field:not(:has(select)) > input[type=range]{grid-column:1 / -1;grid-row:2;min-width:0}.lyr-steps{display:flex;flex-direction:column;gap:2px}.lyr-step{appearance:none;-webkit-appearance:none;background:var(--btn);color:var(--text);border:1px solid var(--line3);border-radius:4px;width:22px;height:14px;font-size:8px;line-height:1;padding:0;cursor:pointer;touch-action:manipulation}.lyr-step:active{border-color:var(--brand2)}.node.in-sheet .lyr-step{width:30px;height:19px;font-size:11px}.tblk{margin:2px 0 4px}.tblk-row{margin-bottom:4px}.tblk-name{display:block;font-size:11px;color:var(--text-muted,#8a8f98);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:1px}.tblk-out{font-size:11px;min-width:38px;text-align:right}.txt-tools{display:flex;gap:4px;flex-wrap:wrap;margin:2px 0 4px}.txt-sock{opacity:0;pointer-events:none}.txt-resize{position:absolute;right:0;bottom:0;width:28px;height:28px;cursor:nwse-resize;touch-action:none;z-index:3;background:linear-gradient(135deg,transparent 55%,rgba(255,255,255,.28) 55%,rgba(255,255,255,.28) 70%,transparent 70%,transparent 82%,rgba(255,255,255,.28) 82%)}.node.in-sheet .txt-resize{display:none}.tblk-row{border-top:1px solid var(--line2,#333);padding-top:3px}.tblk-metric{display:flex;align-items:center;gap:5px;margin-top:2px}.tblk-mlab{width:82px;flex:none;font-size:10px;color:var(--text-muted,#8a8f98);line-height:1.15}.lyr-tools{display:flex;align-items:center;justify-content:space-between;gap:4px;flex-wrap:wrap;margin:2px 0 5px}.lyr-tools-grp{display:flex;align-items:center;gap:4px;flex-wrap:wrap}.lyr-count{font-size:10.5px;color:var(--text-muted);padding:0 3px;user-select:none}.lyr-rows{max-height:360px;overflow-y:auto;overscroll-behavior:contain;padding-right:2px}.lyr-row{transition:margin-left .12s ease,border-color .12s ease}.lyr-row.clipped{margin-left:18px;border-left:2px solid var(--brand2);background:var(--panel)}.lyr-row.clip-base .lyr-name{text-decoration:underline;text-underline-offset:2px}.lyr-row.drag-src{opacity:.42}.lyr-row.drop-above{box-shadow:0 -2px 0 0 var(--brand2)}.lyr-row.drop-below{box-shadow:0 2px 0 0 var(--brand2)}.lyr-grip{width:8px;height:14px;flex:none;cursor:grab;opacity:.55;touch-action:none;background-image:radial-gradient(circle,currentColor 1px,transparent 1.15px);background-size:4px 4px;background-position:center}.lyr-grip:hover{opacity:1}.lyr-clip-ind{display:inline-block;position:relative;width:9px;height:10px;flex:none;color:var(--brand2);margin-right:2px;cursor:pointer}.lyr-clip-ind::before{content:"";position:absolute;left:2px;top:0;width:5px;height:6px;border-left:1.5px solid currentColor;border-top:1.5px solid currentColor;box-sizing:border-box}.lyr-clip-ind::after{content:"";position:absolute;left:-0.5px;bottom:0;border-left:3.2px solid transparent;border-right:3.2px solid transparent;border-top:4px solid currentColor}.stk-btn.clip-on{background:var(--brand2);border-color:var(--brand2);color:#141414;font-weight:700}.lyr-ctx-menu{position:fixed;z-index:10050;min-width:196px;background:var(--panel);border:1px solid var(--line3);border-radius:7px;padding:4px;box-shadow:0 10px 28px rgba(0,0,0,.55);display:flex;flex-direction:column;gap:2px}.lyr-ctx-item{appearance:none;-webkit-appearance:none;background:transparent;border:0;border-radius:4px;color:var(--text-strong);text-align:left;padding:6px 10px;font-size:12px;cursor:pointer;display:flex;align-items:center;justify-content:space-between;gap:8px}.lyr-ctx-item:hover:not(:disabled){background:var(--line)}.lyr-ctx-item:disabled{opacity:.38;cursor:default}.lyr-ctx-sep{height:1px;background:var(--line2);margin:2px 4px}.xf-ov{position:absolute;left:0;top:0;right:0;bottom:0;pointer-events:none;z-index:5}.xf-frame{position:absolute;border:1.5px solid var(--brand);box-shadow:0 0 0 1px rgba(0,0,0,.45);box-sizing:border-box;pointer-events:auto;cursor:move;touch-action:none}.xf-h{position:absolute;width:14px;height:14px;background:#fff;border:1.5px solid var(--brand2);border-radius:3px;box-sizing:border-box;pointer-events:auto;touch-action:none}.xf-c{transform:translate(-50%,-50%)}.xf-c[data-corner=nw], .xf-c[data-corner=se]{cursor:nwse-resize}.xf-c[data-corner=ne], .xf-c[data-corner=sw]{cursor:nesw-resize}.xf-rot{left:50%;top:-30px;width:14px;height:14px;border-radius:50%;transform:translate(-50%,-50%);cursor:grab}.xf-lock{position:absolute;right:8px;top:8px;pointer-events:auto;font-size:11px;padding:5px 10px;border-radius:20px;border:1px solid var(--line3);background:rgba(18,18,18,.78);color:var(--text);cursor:pointer;touch-action:manipulation;z-index:6}.xf-lock.on{background:var(--brand2);border-color:var(--brand2);color:#141414;font-weight:600}
+.xdlg-back{position:fixed;inset:0;background:rgba(0,0,0,.55);display:flex;align-items:center;justify-content:center;z-index:9000;padding:16px;box-sizing:border-box}.xdlg{background:var(--panel2);color:var(--text-strong);border:1px solid var(--line2);border-radius:8px;width:min(380px,100%);box-sizing:border-box;padding:16px;box-shadow:0 10px 40px rgba(0,0,0,.5);font:13px system-ui,sans-serif}.xdlg h3{margin:0 0 10px;font-size:15px;font-weight:600}.xdlg label{display:block;margin:10px 0 4px;color:var(--text-muted)}.xdlg input, .xdlg select{width:100%;box-sizing:border-box;padding:8px;background:var(--field2);color:var(--text-strong);border:1px solid var(--line3);border-radius:5px;font-size:14px}.xdlg .xrow{display:flex;gap:6px;align-items:center}.xdlg .xrow input{flex:1;min-width:0}.xdlg .xext{color:var(--text-dim);white-space:nowrap}.xdlg .xinfo{margin-top:8px;color:var(--text);font-size:12px}.xdlg .xnote{margin-top:6px;color:#8f8f8f;font-size:11px;line-height:1.35}.xdlg .xbtns{display:flex;justify-content:flex-end;gap:8px;margin-top:16px}.xdlg button{padding:8px 14px;border-radius:5px;border:1px solid var(--line3);background:var(--line);color:var(--text-strong);cursor:pointer;font-size:13px}.xdlg button.primary{background:var(--brand2);border-color:var(--brand2);color:#000;font-weight:600}.tblk{margin:2px 0 4px}.tblk-row{margin-bottom:4px}.tblk-name{display:block;font-size:11px;color:var(--text-muted,#8a8f98);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:1px}.tblk-out{font-size:11px;min-width:38px;text-align:right}.txt-tools{display:flex;gap:4px;flex-wrap:wrap;margin:2px 0 4px}.txt-sock{opacity:0;pointer-events:none}.txt-resize{position:absolute;right:0;bottom:0;width:28px;height:28px;cursor:nwse-resize;touch-action:none;z-index:3;background:linear-gradient(135deg,transparent 55%,rgba(255,255,255,.28) 55%,rgba(255,255,255,.28) 70%,transparent 70%,transparent 82%,rgba(255,255,255,.28) 82%)}.node.in-sheet .txt-resize{display:none}.tblk-row{border-top:1px solid var(--line2,#333);padding-top:3px}.tblk-metric{display:flex;align-items:center;gap:5px;margin-top:2px}.tblk-mlab{width:82px;flex:none;font-size:10px;color:var(--text-muted,#8a8f98);line-height:1.15}.xf-ov{position:absolute;left:0;top:0;right:0;bottom:0;pointer-events:none;z-index:5}.xf-frame{position:absolute;border:1.5px solid var(--brand);box-shadow:0 0 0 1px rgba(0,0,0,.45);box-sizing:border-box;pointer-events:auto;cursor:move;touch-action:none}.xf-h{position:absolute;width:14px;height:14px;background:#fff;border:1.5px solid var(--brand2);border-radius:3px;box-sizing:border-box;pointer-events:auto;touch-action:none}.xf-c{transform:translate(-50%,-50%)}.xf-c[data-corner=nw], .xf-c[data-corner=se]{cursor:nwse-resize}.xf-c[data-corner=ne], .xf-c[data-corner=sw]{cursor:nesw-resize}.xf-rot{left:50%;top:-30px;width:14px;height:14px;border-radius:50%;transform:translate(-50%,-50%);cursor:grab}.xf-lock{position:absolute;right:8px;top:8px;pointer-events:auto;font-size:11px;padding:5px 10px;border-radius:20px;border:1px solid var(--line3);background:rgba(18,18,18,.78);color:var(--text);cursor:pointer;touch-action:manipulation;z-index:6}.xf-lock.on{background:var(--brand2);border-color:var(--brand2);color:#141414;font-weight:600}
 @media (pointer:coarse){.xf-h{width:22px;height:22px}.xf-rot{top:-40px}}.xf-line{position:absolute;left:50%;top:-30px;width:1px;height:30px;background:var(--brand);transform:translateX(-50%);pointer-events:none}/* ---- start screen ---- */
 .ss{position:fixed;inset:0;z-index:9000;background:var(--ss-bg);overflow:auto;display:flex;justify-content:center;padding:18px 14px 40px;box-sizing:border-box;color:var(--text-strong);font:14px/1.35 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}.ss[hidden]{display:none}.ss-card{width:min(980px,100%)}.ss-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px}.ss-logo{font-size:18px;font-weight:700;color:var(--brand)}.ss button{font:inherit;cursor:pointer}.ss-x{background:var(--btn);color:var(--text);border:1px solid var(--line);border-radius:8px;width:38px;height:38px;font-size:20px}.ss h4{margin:20px 0 8px;font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--text-muted);font-weight:600}.ss-actions{display:flex;flex-wrap:wrap;gap:8px}.ss-btn{background:var(--btn);color:var(--text-strong);border:1px solid var(--line);border-radius:8px;padding:9px 14px}.ss-btn.primary{background:var(--brand2);border-color:var(--brand2);color:#000;font-weight:600}.ss-btn[hidden]{display:none}.ss-tabs{display:flex;gap:6px;margin-bottom:10px;flex-wrap:wrap}.ss-tabs button{background:var(--btn);color:var(--text);border:1px solid var(--line);border-radius:999px;padding:6px 14px}.ss-tabs button.on{background:var(--brand);color:#000;border-color:var(--brand);font-weight:600}.ss-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:10px}.ss-grid[hidden]{display:none}.ss-t{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:10px;text-align:left;color:inherit;display:flex;flex-direction:column;gap:6px;min-height:150px;align-items:stretch}.ss-t:hover, .ss-rc:hover{border-color:var(--brand)}.ss-box{height:72px;display:flex;align-items:flex-end;justify-content:center}.ss-ratio{background:#fff;border-radius:3px;box-shadow:0 0 0 1px #666}.ss-tn{font-weight:600;font-size:13px}.ss-td{font-size:12px;color:var(--text-muted)}.ss-note{font-size:11px;color:#e0b070}.ss-custom{display:flex;flex-wrap:wrap;gap:8px;align-items:flex-end}.ss-custom[hidden]{display:none}.ss-custom label{display:flex;flex-direction:column;gap:4px;font-size:12px;color:var(--text-muted)}.ss-custom input{background:var(--card);color:var(--text-strong);border:1px solid var(--line);border-radius:6px;padding:7px;width:120px}.ss-recent{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:10px}.ss-rc{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:8px;display:flex;flex-direction:column;gap:6px;cursor:pointer}.ss-rth{height:110px;background:var(--edge);border-radius:6px;display:flex;align-items:center;justify-content:center;overflow:hidden;color:var(--line3);font-size:28px}.ss-rth img{max-width:100%;max-height:100%}.ss-rn{font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.ss-rd{font-size:11px;color:#8d8d96}.ss-rdel{align-self:flex-start;background:none;color:#e58a8a;border:1px solid #5a3a3a;border-radius:6px;padding:4px 8px;font-size:12px}.ss-rdel.armed{background:#7a2a2a;color:#fff}.ss-rbtns{display:flex;gap:6px;flex-wrap:wrap}.ss-rren{align-self:flex-start;background:none;color:var(--brand);border:1px solid #5a4a2a;border-radius:6px;padding:4px 8px;font-size:12px}.ss-rin{font:inherit;font-weight:600;width:100%;box-sizing:border-box;background:var(--edge);color:var(--text-strong);border:1px solid var(--brand);border-radius:6px;padding:3px 6px;outline:none}.ss-projbar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:2px 0 10px}.ss-btn[disabled]{opacity:.45;cursor:default}.ss-selinfo{font-size:12px;color:var(--text-muted)}.ss-folders{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:10px;margin-bottom:12px}.ss-folders:empty{display:none;margin:0}.ss-folder{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:10px;display:flex;flex-direction:column;gap:6px;cursor:pointer}.ss-folder:hover{border-color:var(--brand)}.ss-fic{line-height:1;color:var(--text-strong);display:flex;align-items:center}.folder-ico-wrap{display:inline-flex;align-items:center;flex:none}.folder-ico{width:1.2em;height:1.2em;display:block;flex:none}.folder-ico path{fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}button .folder-ico-wrap{margin-right:6px}.ss-fic .folder-ico{width:30px;height:30px}.ss-fn{font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.ss-fd{font-size:12px;color:var(--text-muted)}.ss-fbar{grid-column:1/-1;display:flex;flex-wrap:wrap;gap:8px;align-items:center;background:var(--card);border:1px solid var(--line);border-radius:10px;padding:8px}.ss-rc{position:relative}.ss-rc.sel{border-color:var(--brand);box-shadow:0 0 0 1px var(--brand) inset}.ss-check{position:absolute;top:6px;right:6px;width:24px;height:24px;border-radius:50%;border:1px solid var(--line);background:var(--edge);color:var(--edge);display:flex;align-items:center;justify-content:center;font-weight:700;z-index:1}.ss-rc.sel .ss-check{background:var(--brand)}.ss-movemenu{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin:0 0 10px}.ss-movemenu:empty{display:none;margin:0}.ss-projbar{position:sticky;top:6px;z-index:6;background:var(--ss-bg);padding:6px 0}.ss-empty{color:#8d8d96;margin:4px 0}.ss-hint{font-size:12px;color:#8d8d96;margin-top:14px}.ss-bk{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}/* export: CMYK note */
 .xcmyk-note{font-size:12px;color:#e0b070;margin:6px 0 0}/* clone source (handle on the preview) */
@@ -80,38 +78,17 @@
 .sck-l.sai{animation:sckOut .4s ease-in forwards}
 @keyframes sckIn{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
 @keyframes sckOut{to{opacity:0;transform:translateY(-4px)}}
-@media (prefers-reduced-motion: reduce){.sck-l{animation:none}.sck-l.sai{animation:none;opacity:0}}
-/* 3.7.1: anotações = nó Note (texto) + caneta livre no grafo */
-#annPen{position:absolute;left:0;top:0;width:1px;height:1px;overflow:visible;pointer-events:none}
-.ann-pen{position:absolute;left:0;top:0;overflow:visible;pointer-events:none}
-.ann-stroke{fill:none;stroke-linecap:round;stroke-linejoin:round}
-.ann-pen.sel .ann-stroke{filter:drop-shadow(0 0 3px var(--accent))}
-.ann-penhit{fill:none;stroke:transparent;pointer-events:stroke;cursor:move}
-#nodeView.ann-draw{cursor:crosshair}
-.ann-bar{position:fixed;z-index:9350;left:8px;top:84px;width:250px;box-sizing:border-box;padding:9px;border-radius:10px;background:#1d1f25;color:#eef1f6;border:1px solid rgba(255,255,255,.12);box-shadow:0 14px 34px rgba(0,0,0,.5);display:flex;flex-direction:column;gap:7px}
-.ann-bar[hidden]{display:none}
-.ann-bar-h{display:flex;align-items:center;justify-content:space-between;font-size:11px;letter-spacing:.05em;text-transform:uppercase;opacity:.7}
-.ann-bar-x{width:22px;height:22px;line-height:20px;text-align:center;border-radius:5px;cursor:pointer;font-size:15px;opacity:.8}
-.ann-bar-x:hover{background:rgba(255,255,255,.12);opacity:1}
-.ann-row{display:flex;flex-wrap:wrap;gap:4px}
-.ann-fld{display:flex;align-items:center;gap:6px;font-size:11px;color:#cfd3dc}
-.ann-fld input{flex:1;min-width:0}
-.ann-sw{width:22px;height:22px;border-radius:5px;border:2px solid transparent;cursor:pointer;padding:0}
-.ann-sw.on{border-color:#fff}
-.lyr-group{display:flex;flex-direction:column;gap:3px;margin:1px 0}
-.lyr-group-head{display:flex;align-items:center;gap:4px;padding:2px 4px;border-radius:4px;background:var(--panel2);border:1px solid var(--line3)}
-.lyr-gname{flex:1;min-width:0;font-size:11px;font-weight:600;color:var(--text-strong);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;cursor:text}
-.lyr-gfold{width:20px;padding:0}
-.note-node{border-color:#ffd640;min-width:220px}
-.note-node .nbody{padding:6px 8px 6px}
-.note-node .nhead{background:#6b5a12!important;color:#ffe9a3!important}
-.note-wrap{display:flex;flex-direction:column;gap:4px}
-.note-txt{width:100%;box-sizing:border-box;min-height:74px;resize:vertical;background:transparent;color:#fff;border:1px solid rgba(255,255,255,.18);border-radius:5px;padding:5px 6px;font:13px/1.35 ui-sans-serif,system-ui,sans-serif;outline:none}
-.note-txt:focus{border-color:var(--accent)}
-.note-row{display:flex;align-items:center;gap:5px;flex-wrap:wrap}
-.note-sw{display:flex;gap:3px}
-.note-fld{display:flex;align-items:center;gap:3px;font-size:9.5px;color:var(--text-muted)}
-.note-fld input{width:52px}
+@media (prefers-reduced-motion: reduce){.sck-l{animation:none}.sck-l.sai{animation:none;opacity:0}
+.lyr-hint{font-size:11px;color:var(--text-muted);margin:4px 0 6px;line-height:1.35}
+.lyr-steps{display:flex;flex-direction:column;gap:2px}
+.lyr-step{appearance:none;-webkit-appearance:none;background:var(--btn);color:var(--text);border:1px solid var(--line3);border-radius:4px;width:22px;height:14px;font-size:8px;line-height:1;padding:0;cursor:pointer;touch-action:manipulation}
+.lyr-step:active{border-color:var(--brand2)}
+.node.in-sheet .lyr-step{width:30px;height:19px;font-size:11px}
+.ctl-sec{margin:7px 0 3px;border-top:1px solid var(--line2);padding-top:5px}
+.ctl-sec-h{display:block;width:100%;text-align:left;background:transparent;border:0;color:var(--text-strong);font:600 10.5px/1.5 ui-sans-serif,system-ui,sans-serif;letter-spacing:.045em;text-transform:uppercase;opacity:.82;cursor:pointer;padding:2px 0;touch-action:manipulation}
+.ctl-sec-h:hover{opacity:1}
+.ctl-sec.fold .ctl-sec-b{display:none}
+.ctl-sec-b{display:grid;gap:4px;padding-top:3px}
 </style>
 <style id="ee-mobile-css">/* =========================================================
    CAMADA MOBILE (Android · Realme Note 70 · 720×1600, 6, 74")
@@ -231,7 +208,6 @@ html, body{overscroll-behavior:none;-webkit-tap-highlight-color:transparent}/* 1
     <button class="tbtn" id="btnRedo" title="Redo (Ctrl+Shift+Z)">Redo</button>
     <button class="tbtn" id="btnFrame" title="Frame all (Home)">Frame</button>
     <button class="tbtn" id="btnCollapse" title="Collapse or expand all nodes">Collapse nodes</button>
-    <button class="tbtn" id="btnAnnot" title="Annotate the graph: notes, frames and pen (N)">Annotate</button>
     <span class="sep"></span>
     <button class="tbtn" id="btnSave" title="Save graph to file (Ctrl+S)">Save graph</button>
     <button class="tbtn" id="btnLoad" title="Load graph from file">Load graph</button>
@@ -258,21 +234,6 @@ html, body{overscroll-behavior:none;-webkit-tap-highlight-color:transparent}/* 1
 </div>
 
   <div id="projTabs" class="proj-tabs" style="display:none"></div>
-<div class="ann-bar" id="annBar" hidden>
-  <div class="ann-bar-h"><span>Annotate</span><span class="ann-bar-x" id="annClose" role="button" tabindex="0" title="Close the annotation tools (Esc)">×</span></div>
-  <div class="ann-row">
-    <button class="stk-btn" id="annNote" type="button" title="New Note node in the middle of the view">+ Note node</button>
-    <button class="stk-btn" id="annWrap" type="button" title="Frame the selected nodes (Ctrl+G)">Frame selection</button>
-    <button class="stk-btn" id="annPenBtn" type="button" title="Freehand pen: draw directly on the graph (P)">Pen</button>
-  </div>
-  <div class="ann-row">
-    <button class="stk-btn" id="annDup" type="button" title="Duplicate the selected ink stroke">Duplicate ink</button>
-    <button class="stk-btn" id="annDel" type="button" title="Delete the selected ink stroke (Del)">Delete ink</button>
-  </div>
-  <div class="ann-row" id="annSwatches"></div>
-  <label class="ann-fld"><span>Note size</span><input type="range" id="annFs" min="10" max="34" step="1" value="14"></label>
-  <label class="ann-fld"><span>Note opacity</span><input type="range" id="annOp" min="10" max="100" step="1" value="100"></label>
-</div>
 
 
 
@@ -522,7 +483,7 @@ html, body{overscroll-behavior:none;-webkit-tap-highlight-color:transparent}/* 1
 
 /* Versão do editor — o arquivo VERSION na raiz é a fonte da verdade
    (o build do APK usa o mesmo número no versionName e falha se divergir). */
-const APP_VERSION = '3.7.1';
+const APP_VERSION = '3.8.0';
 /* sem a telinha, a versão aparece no tooltip da marca (e o título da aba segue curto) */
 {
   const marca = document.getElementById('brandBtn');
@@ -958,6 +919,8 @@ const KERNELS = [['soften', 'Smooth'], ['sharpen', 'Sharpness'], ['laplace', 'La
 
 const NUM   = (key, label, min, max, def, step = 1) => ({ type: 'num', key, label, min, max, def, step });
 const ENUM  = (key, label, options, def) => ({ type: 'enum', key, label, options, def });
+// 3.8.0: seção recolhível dentro do nó (Input maps / Vector control / Advanced …)
+const SEC   = (key, label, tip) => ({ type: 'sec', key, label, tip });
 const INFO  = (key, label) => ({ type: 'info', key, label });
 const COL   = (key, label, def) => ({ type: 'color', key, label, def });
 const TXT   = (key, label, def) => ({ type: 'text', key, label, def });
@@ -3094,21 +3057,42 @@ const NODE_TYPES = {
   },
   displacement: {
     title: 'Displacement', cat: 'transform', inputs: ['Image', 'Texture'],
-    kw: 'displacement offset texture linked map input distort voronoi cells sphere bubble lens mask mask shadow shading blend rotation ratio wave',
+    kw: 'displacement displace offset texture linked map input distort voronoi cells sphere bubble lens mask shadow shading blend rotation ratio wave heightmap height map normal map vector rgb vector displacement midlevel neutral gray 50% strength x y link sliders angle directional radial spherical tiling wrap clamp mirror bilinear bicubic interpolation perlin simplex noise procedural layer comp photoshop after effects ae distortion',
     params: [
+      SEC('secMap', 'Input maps', 'Onde o deslocamento nasce: textura ligada no 2º socket, padrão procedural, luminância da imagem ou textura enviada.'),
       ENUM('map', 'Texture', [['linked', 'Linked texture (input 2)'], ['noise', 'Noise'], ['luma', 'Image luminance'], ['stripes', 'Stripes'], ['waves', 'Waves'], ['bricks', 'Bricks'], ['dots', 'Dots'], ['rings', 'Rings'], ['voronoi', 'Cells (Voronoi)'], ['sphere', 'Sphere (bulge)'], ['upload', 'Uploaded texture']], 'linked'),
       FILE('textureDataUrl', 'Upload texture (image)'),
-      ENUM('textureFit', 'Fit mode', [['tile', 'Tile (repeat)'], ['repeat', 'Repeat (mirrored)'], ['stretch', 'Stretch']], 'tile'),
+      ENUM('dispType', 'Displacement type', [['height', 'Heightmap (grayscale)'], ['normal', 'Normal map (R/G tilt)'], ['vector', 'Vector displacement (R/G = X/Y)']], 'height'),
       ENUM('textureChannel', 'Texture channel', [['luma', 'Luminance'], ['red', 'Red'], ['green', 'Green'], ['blue', 'Blue'], ['alpha', 'Alpha'], ['rgbXY', 'Vector R/G (XY)']], 'luma'),
+      ENUM('textureFit', 'Sampling (UV)', [['tile', 'Tile (repeat)'], ['repeat', 'Repeat (mirrored)'], ['stretch', 'Stretch']], 'tile'),
       ENUM('textureInvert', 'Invert texture', [['no', 'No'], ['yes', 'Yes']], 'no'),
       NUM('textureScale', 'Texture scale', 10, 400, 100),
-      NUM('scale', 'Noise size', 4, 260, 72),
-      NUM('amount', 'Amount', 0, 120, 20),
-      NUM('mix', 'Mix with original', 0, 100, 100),
+      NUM('scale', 'Pattern size', 4, 260, 72),
       NUM('texPosX', 'Texture position X', -100, 100, 0), NUM('texPosY', 'Texture position Y', -100, 100, 0),
       NUM('texRot', 'Texture rotation', -180, 180, 0),
       NUM('texAsp', 'Texture aspect (fixes oval)', 25, 400, 100),
       ENUM('waveShape', 'Wave shape', [['sine', 'Sine'], ['triangle', 'Triangle'], ['saw', 'Sawtooth']], 'sine'),
+
+      SEC('secVector', 'Vector control', 'Cinza 50% é o neutro: branco empurra para um lado, preto para o outro. X e Y separados, como nos sliders do mobChain.'),
+      NUM('midlevel', 'Midlevel (neutral)', 0, 100, 50),
+      NUM('strengthX', 'Strength X', 0, 200, 100),
+      NUM('strengthY', 'Strength Y', 0, 200, 100),
+      ENUM('linkXY', 'Link sliders (X/Y)', [['yes', 'Yes — keep the ratio'], ['no', 'No — independent']], 'yes'),
+      NUM('amount', 'Amount', 0, 120, 20),
+      NUM('mix', 'Mix with original', 0, 100, 100),
+      ENUM('dirMode', 'Direction', [['gradient', 'Gradient (from the map)'], ['angle', 'Directional (angle)'], ['radial', 'Radial (out from centre)'], ['spherical', 'Spherical (bulge)']], 'gradient'),
+      NUM('angle', 'Direction angle', 0, 360, 0),
+
+      SEC('secShader', 'Advanced shader options', 'Amostragem nas bordas, interpolação do resultado e ruído procedural somado ao mapa.'),
+      ENUM('edge', 'Edge sampling', [['clamp', 'Clamp (stretch the edge)'], ['wrap', 'Wrap (tile)'], ['mirror', 'Mirror']], 'clamp'),
+      ENUM('interp', 'Interpolation', [['bilinear', 'Bilinear (fast)'], ['bicubic', 'Bicubic (smooth)']], 'bilinear'),
+      ENUM('noiseType', 'Procedural noise', [['none', 'None'], ['perlin', 'Perlin (fBm)'], ['simplex', 'Simplex'], ['voronoi', 'Voronoi (cells)']], 'none'),
+      NUM('noiseScale', 'Noise scale', 4, 400, 72),
+      NUM('noiseOct', 'Noise octaves', 1, 6, 3),
+      NUM('noiseSeed', 'Noise seed', 0, 99, 7),
+      NUM('noiseMix', 'Noise influence', 0, 100, 100),
+
+      SEC('secMask', 'Mask & shading', 'Onde o efeito aplica e como a luz acompanha o deslocamento.'),
       ENUM('maskMode', 'Mask (where it applies)', [['none', 'None (everywhere)'], ['noise', 'Noise'], ['radial', 'Radial gradient'], ['luma', 'Image luminance']], 'none'),
       NUM('maskLow', 'Mask · lower threshold', 0, 100, 0), NUM('maskHigh', 'Mask · upper threshold', 0, 100, 100),
       ENUM('maskInvert', 'Mask · invert', [['no', 'No'], ['yes', 'Yes']], 'no'),
@@ -4059,11 +4043,6 @@ const NODE_TYPES = {
     title: 'Cut out object (subject + background)', cat: 'matte', inputs: ['Image'], outs: ['Object', 'Background'],
     params: [NUM('threshold', 'Sensitivity', 0, 100, 50)],
   },
-  note: {
-    title: 'Note (annotation)', cat: 'compose', annot: true, inputs: [], outs: [],
-    kw: 'note nota annotation annotate annotator comment comentario text texto sticky postit post-it label etiqueta documentation documentacao recado frame moldura',
-    params: [{ type: 'note', key: 'text', label: 'Note', def: 'Write your note here…' }],
-  },
   effectStack: {
     title: 'Effect stack', cat: 'compose', inputs: ['Image'],
     params: [{ type: 'stack', key: 'stack', label: 'Effects', def: [] }],
@@ -4071,12 +4050,6 @@ const NODE_TYPES = {
   maskBlend: {
     title: 'Mask (brush)', cat: 'mask', inputs: ['Original', 'Effect', 'Mask'], preferIn: 1, multi: [1],
     params: [{ type: 'paint', key: 'maskId', label: 'Mask', def: 0 }, ENUM('invert', 'Invert', [['no', 'No'], ['yes', 'Yes']], 'no')],
-  },
-  layers: {
-    title: 'Layers (Layer Comp)', cat: 'compose',
-    kw: 'layer comp layercomp layers camadas pilha stack compositor compositing composite photoshop after effects aftereffects grupo group folder agrupar blend opacity opacity mascara mask matte clipping clip',
-    inputs: ['Layer 1', 'Layer 2', 'Layer 3', 'Layer 4', 'Layer 5', 'Layer 6'],
-    params: [{ type: 'layers', key: 'layers', label: 'Layers', def: [] }],
   },
   text: {
     title: 'Text', cat: 'compose', inputs: ['Image'],
@@ -7408,7 +7381,17 @@ void main(){
   vec3 bg = mix(vec3(0.13), vec3(0.17), chk);
   outColor = vec4(mix(bg, c.rgb, c.a), 1.0);
 }`,
-  /* ---- Displacement with texture (v5): noise, luminance, patterns or uploaded texture; tile / repeat / stretch modes ---- */
+  /* ---- Displacement v6 (3.8.0) ----
+     Reverse-engineered dos dois workflows de displacement do Photoshop:
+       · mobChain (Doron Studio)      · DisplaceCraft (CharleyPangus)
+     O que veio dos vídeos:
+       - cinza 50% é o NEUTRO (branco empurra para um lado, preto para o outro)  → uMid
+       - força X e Y separadas, com "link" que trava a proporção                → uStrX/uStrY
+       - tile / stretch / mirror na amostragem                                  → uFit/uEdge
+       - o deslocamento acompanha o GRADIENTE do mapa, não um eixo fixo         → uDirMode 0
+     O que é engenharia do spec (os vídeos só usam mapa cinza):
+       normal map, vetor R/G, ângulo/radial/esférica, bilinear/bicúbica e
+       Perlin/Simplex/Voronoi procedurais. */
   dispMap: `${FX4_COMMON}
 uniform int uMode;
 ${BLEND_GLSL}
@@ -7417,6 +7400,10 @@ uniform vec2 uTile, uTexOff, uMaskC;
 uniform float uDMode, uPat, uFit, uChan, uInv, uAmt, uNScale, uImgOn;
 uniform float uMixF, uTexRot, uTexAsp, uWave, uMaskMode, uMaskLo, uMaskHi, uMaskInv, uMaskScale, uMaskR, uShade;
 uniform vec3 uShHi, uShLo;
+/* 3.8.0 — controles novos */
+uniform float uMid, uStrX, uStrY, uAng, uNoiseMix;
+uniform float uPNoiseScale, uPNoiseOct, uPNoiseSeed;
+uniform float uDispType, uDirMode, uEdge, uInterp, uNoiseType;
 // texture transform (position, rotation, aspect), in the canvas pixel space
 vec2 xform(vec2 p){
   vec2 q = p - uRes*0.5 - uTexOff;
@@ -7491,6 +7478,98 @@ float chanOf(vec4 s){
   else v = s.a;
   return uInv > 0.5 ? 1.0 - v : v;
 }
+/* ---- 3.8.0: borda + interpolação do RESULTADO (a imagem deslocada, não o mapa) ----
+   clamp = estica a borda · wrap = repete (tile) · mirror = espelha.
+   Sem isso o deslocamento forte puxa a borda e aparece um risco de tear. */
+vec2 edgePix(vec2 c){
+  if (uEdge < 0.5) return clamp(c, vec2(0.0), uRes - 1.0);
+  if (uEdge < 1.5) return mod(c, uRes);
+  vec2 m = mod(c, 2.0 * uRes);
+  return mix(m, 2.0 * uRes - m, step(uRes, m));
+}
+vec4 srcAt(vec2 c){ return fcS(uSrc, edgePix(c)); }
+// bilinear (4 taps): tira o serrilhado do deslocamento alto
+vec4 srcBilin(vec2 c){
+  vec2 f = floor(c), t = c - f;
+  vec4 a = srcAt(f), b = srcAt(f + vec2(1.0, 0.0));
+  vec4 d = srcAt(f + vec2(0.0, 1.0)), e = srcAt(f + vec2(1.0, 1.0));
+  return mix(mix(a, b, t.x), mix(d, e, t.x), t.y);
+}
+// peso Catmull-Rom (soma 1.0 nos quatro taps)
+float crWeight(float t, int i){
+  if (i == 0) return -0.5*t*t*t + t*t - 0.5*t;
+  if (i == 1) return  1.5*t*t*t - 2.5*t*t + 1.0;
+  if (i == 2) return -1.5*t*t*t + 2.0*t*t + 0.5*t;
+  return 0.5*t*t*t - 0.5*t*t;
+}
+// bicúbica Catmull-Rom (16 taps): superfície lisa, sem blocos no deslocamento alto
+vec4 srcBicub(vec2 c){
+  vec2 f = floor(c - 0.5), t = c - 0.5 - f;
+  vec4 acc = vec4(0.0);
+  for (int j = 0; j < 4; j++) {
+    float wy = crWeight(t.y, j);
+    for (int i = 0; i < 4; i++) {
+      acc += srcAt(f + vec2(float(i) - 1.0, float(j) - 1.0)) * crWeight(t.x, i) * wy;
+    }
+  }
+  return clamp(acc, 0.0, 1.0);
+}
+vec4 sampleSrc(vec2 c){ return uInterp < 0.5 ? srcBilin(c) : srcBicub(c); }
+/* ---- 3.8.0: ruído procedural que desloca por conta própria ---- */
+float h21(vec2 p){ return fract(sin(dot(p, vec2(127.1, 311.7)) + uPNoiseSeed * 13.7) * 43758.5453123); }
+vec2 h22(vec2 p){ float a = h21(p) * 6.2831853; return vec2(cos(a), sin(a)); }
+float perlin(vec2 p){
+  vec2 i = floor(p), f = fract(p);
+  vec2 u = f*f*(3.0 - 2.0*f);
+  float a = dot(h22(i), f);
+  float b = dot(h22(i + vec2(1.0, 0.0)), f - vec2(1.0, 0.0));
+  float c = dot(h22(i + vec2(0.0, 1.0)), f - vec2(0.0, 1.0));
+  float d = dot(h22(i + vec2(1.0, 1.0)), f - vec2(1.0, 1.0));
+  return mix(mix(a, b, u.x), mix(c, d, u.x), u.y);
+}
+float perlinFbm(vec2 p){
+  float soma = 0.0, amp = 0.5, tot = 0.0;
+  for (int k = 0; k < 6; k++) {
+    if (float(k) >= uPNoiseOct) break;
+    soma += amp * perlin(p); tot += amp;
+    p *= 2.03; amp *= 0.5;
+  }
+  return clamp(soma / max(tot, 0.0001) * 1.6 + 0.5, 0.0, 1.0);
+}
+float simplex(vec2 p){
+  const float F2 = 0.3660254038, G2 = 0.2113248654;
+  vec2 s = floor(p + (p.x + p.y) * F2);
+  vec2 x = p - s + (s.x + s.y) * G2;
+  vec2 i = x.x > x.y ? vec2(1.0, 0.0) : vec2(0.0, 1.0);
+  vec2 x1 = x - i + G2, x2 = x - 1.0 + 2.0 * G2;
+  float n = 0.0;
+  float t0 = 0.5 - dot(x, x);
+  if (t0 > 0.0) { t0 *= t0; n += t0 * t0 * dot(h22(s), x); }
+  float t1 = 0.5 - dot(x1, x1);
+  if (t1 > 0.0) { t1 *= t1; n += t1 * t1 * dot(h22(s + i), x1); }
+  float t2 = 0.5 - dot(x2, x2);
+  if (t2 > 0.0) { t2 *= t2; n += t2 * t2 * dot(h22(s + vec2(1.0)), x2); }
+  return clamp(n * 0.5 + 0.5, 0.0, 1.0);
+}
+float procNoise(vec2 c){
+  vec2 p = c / max(4.0, uPNoiseScale) + uPNoiseSeed * 7.13;
+  if (uNoiseType < 1.5) return perlinFbm(p);
+  if (uNoiseType < 2.5) return simplex(p);
+  return clamp(1.0 - voronoi(p) * 0.45, 0.0, 1.0);
+}
+/* altura (0..1) que alimenta o deslocamento */
+float heightAt(vec2 p){
+  if (uDMode < 0.5 && uImgOn < 0.5) {
+    float cx = floor(p.x / uNScale), cy = floor(p.y / uNScale);
+    return hash(cx, cy);
+  }
+  if (uDMode < 1.5) return dot(srcAt(p).rgb, LUMA);
+  return chanOf(mapSample(p));
+}
+float noiseAt(vec2 c){
+  if (uNoiseType < 0.5) return heightAt(c);
+  return mix(heightAt(c), procNoise(c), uNoiseMix);
+}
 // mask strength (0..1): 1 = applies to everything
 float maskStrength(vec2 c){
   if (uMaskMode < 0.5) return 1.0;
@@ -7503,35 +7582,50 @@ float maskStrength(vec2 c){
 }
 void main(){
   vec2 c = canvasPix();
-  vec4 src = fcS(uSrc, c);
+  vec4 src = srcAt(c);
   vec2 off = vec2(0.0);
-  if (uDMode < 0.5) {
-    float cx = floor(c.x/uNScale), cy = floor(c.y/uNScale);
-    off = vec2(hash(cx, cy) - 0.5, hash(cx + 91.0, cy - 37.0) - 0.5);
-  } else if (uDMode < 1.5) {
-    off = vec2(dot(src.rgb, LUMA) - 0.5, (src.r - src.b)*0.5);
-  } else if (uDMode < 2.5) {
-    if (uChan > 4.5) {
-      vec4 s = mapSample(c);
-      vec2 v = s.rg - 0.5;
-      if (uInv > 0.5) v = -v;
-      off = v;
-    } else {
-      float l = chanOf(mapSample(c + vec2(-1.0, 0.0)));
-      float r = chanOf(mapSample(c + vec2(1.0, 0.0)));
-      float u = chanOf(mapSample(c + vec2(0.0, -1.0)));
-      float d = chanOf(mapSample(c + vec2(0.0, 1.0)));
-      off = vec2(r - l, d - u);
-    }
-  } else {
+  if (uDispType > 1.5) {
+    // VETOR: R e G são o deslocamento; o midlevel é o ponto neutro
+    vec4 s = mapSample(c);
+    off = (s.rg - uMid) * 2.0;
+    if (uInv > 0.5) off = -off;
+  } else if (uDMode > 2.5) {
     // sphere (bubble): samples closer to the centre, stronger in the middle
     // centre on the mid pixel ((W-1)/2): no 1 px asymmetry on the axes
     vec2 q = (c - ((uRes - 1.0)*0.5 + uTexOff)) / (min(uRes.x, uRes.y)*0.5);
     off = -q * max(0.0, 1.0 - dot(q, q)) * 0.5;
+    off *= uMid * 2.0;
+  } else if (uDispType > 0.5) {
+    // NORMAL MAP: R/G centrados em 0.5; o midlevel é o limiar de inclinação
+    vec2 t = (mapSample(c).rg - 0.5) * 2.0;
+    if (uInv > 0.5) t = -t;
+    float m = length(t);
+    if (m > 0.0001) off = (t / m) * (m - uMid) * 2.0;
+  } else if (uDMode < 0.5 && uImgOn < 0.5 && uNoiseType < 0.5 && uDirMode < 0.5) {
+    // células de ruído: cada célula empurra numa direção própria (o modo Noise de sempre)
+    float cx = floor(c.x/uNScale), cy = floor(c.y/uNScale);
+    off = vec2(hash(cx, cy) - uMid, hash(cx + 91.0, cy - 37.0) - uMid) * 2.0;
+  } else if (uDirMode < 0.5) {
+    // GRADIENTE (padrão): a direção sai do próprio mapa — como o Displace do Photoshop
+    float l = noiseAt(c + vec2(-1.0, 0.0)), r = noiseAt(c + vec2(1.0, 0.0));
+    float u2 = noiseAt(c + vec2(0.0, -1.0)), d2 = noiseAt(c + vec2(0.0, 1.0));
+    off = vec2(r - l, d2 - u2);
+  } else {
+    // DIREÇÃO fixa (ângulo), RADIAL ou ESFÉRICA
+    float k = noiseAt(c) - uMid;
+    vec2 dirv = vec2(cos(uAng), sin(uAng));
+    if (uDirMode > 1.5 && uDirMode < 2.5) {
+      dirv = normalize(c - (uRes - 1.0)*0.5 + vec2(0.0001));
+    } else if (uDirMode > 2.5) {
+      vec2 q = (c - (uRes - 1.0)*0.5) / (min(uRes.x, uRes.y)*0.5);
+      dirv = normalize(q + vec2(0.0001)) * max(0.0, 1.0 - dot(q, q));
+    }
+    off = dirv * k * 2.0;
   }
+  off *= vec2(uStrX, uStrY);
   off *= maskStrength(c);
   vec2 d = off * (uAmt*2.2);
-  vec4 dis = fcS(uSrc, c + d);
+  vec4 dis = sampleSrc(c + d);
   vec3 col = dis.rgb;
   if (uShade > 0.0) {
     // shading: light from the top-left corner, along the displacement direction
@@ -8086,16 +8180,37 @@ void main(){
 }`;
 
 const PROGS = {};
+const SHADER_FALHOU = [];
+/* 3.8.0 — um shader problemático não pode derrubar o app inteiro (era tela branca):
+   o programa que falha cai num passe direto (mostra a imagem que chegou) e o nome
+   fica em SHADER_FALHOU para o status avisar. */
 for (const name in SHADERS) {
-  const vs = compileShader(gl.VERTEX_SHADER, VS);
-  const fs = compileShader(gl.FRAGMENT_SHADER, FS_HEADER + SHADERS[name]);
-  const p = gl.createProgram();
-  gl.bindAttribLocation(p, 0, 'aPos');
-  gl.attachShader(p, vs); gl.attachShader(p, fs);
-  gl.linkProgram(p);
-  if (!gl.getProgramParameter(p, gl.LINK_STATUS)) throw new Error(name + ': ' + gl.getProgramInfoLog(p));
-  PROGS[name] = { p, loc: {} };
-}
+  try {
+    const vs = compileShader(gl.VERTEX_SHADER, VS);
+    const fs = compileShader(gl.FRAGMENT_SHADER, FS_HEADER + SHADERS[name]);
+    const p = gl.createProgram();
+    gl.bindAttribLocation(p, 0, 'aPos');
+    gl.attachShader(p, vs); gl.attachShader(p, fs);
+    gl.linkProgram(p);
+    if (!gl.getProgramParameter(p, gl.LINK_STATUS)) throw new Error(name + ': ' + gl.getProgramInfoLog(p));
+    PROGS[name] = { p, loc: {} };
+  } catch (err) {
+    SHADER_FALHOU.push(name);
+    console.error('[shader] ' + name + ' falhou:', err);
+    if (!PROGS.__passthrough) {
+      try {
+        const vs = compileShader(gl.VERTEX_SHADER, VS);
+        const fs = compileShader(gl.FRAGMENT_SHADER, FS_HEADER + 'uniform sampler2D uSrc;\nuniform vec2 uRes;\nvoid main(){ outColor = texture(uSrc, vUv); }');
+        const p = gl.createProgram();
+        gl.bindAttribLocation(p, 0, 'aPos');
+        gl.attachShader(p, vs); gl.attachShader(p, fs);
+        gl.linkProgram(p);
+        PROGS.__passthrough = { p, loc: {} };
+      } catch (_) {}
+    }
+    PROGS[name] = PROGS.__passthrough || { p: null, loc: {} };
+  }}
+if (SHADER_FALHOU.length) console.error('shaders com problema: ' + SHADER_FALHOU.join(', '));
 
 // Quad unitário (2 triângulos), usado por todos os passes
 const quadBuf = gl.createBuffer();
@@ -8130,6 +8245,7 @@ const INT_UNIFORMS = new Set(['uMode', 'uKind', 'uWindDir', 'uTaps', 'uType', 'u
   'uCount', 'uBlend', 'uNmRoute', 'uNmPad']);
 function draw(progName, target, texMap, uni) {
   const P = PROGS[progName];
+  if (!P || !P.p) return;                     // 3.8.0: shader que falhou no boot não desenha nada (nem cospe erro de GL)
   gl.useProgram(P.p);
   if (target) {
     gl.bindFramebuffer(gl.FRAMEBUFFER, target.fbo);
@@ -22351,8 +22467,7 @@ const PERSP_MAX = 12;                     // 3.2.0: teto de sockets (como o nó 
 function perspQtd(n) {
   const q = Math.round(Number(n && n.params && n.params.sockets) || 1);
   let qtd = Math.max(1, Math.min(PERSP_MAX, isFinite(q) ? q : 1));
-  /* projeto antigo com fio num socket que não existe: o socket volta a
-     existir (mesma ideia do layerList do nó Layers) */
+  /* projeto antigo com fio num socket que não existe: o socket volta a existir */
   if (typeof links !== 'undefined' && Array.isArray(links) && n && n.id != null) {
     for (const l of links) {
       if (l.to !== n.id) continue;
@@ -23253,6 +23368,15 @@ const RUN = {
       return [((v >> 16) & 255) / 255, ((v >> 8) & 255) / 255, (v & 255) / 255];
     };
     const maskId = { none: 0, noise: 1, radial: 2, luma: 3 }[p.maskMode] ?? 0;
+    /* 3.8.0 — tipos, direção, borda, interpolação e ruído procedural.
+       Projeto antigo (3.7.1) sem essas chaves cai no comportamento de sempre:
+       heightmap + gradiente + clamp + bilinear. */
+    const dispId = { height: 0, normal: 1, vector: 2 }[p.dispType] ?? (p.textureChannel === 'rgbXY' ? 2 : 0);
+    const dirId = { gradient: 0, angle: 1, radial: 2, spherical: 3 }[p.dirMode] ?? 0;
+    const edgeId = { clamp: 0, wrap: 1, mirror: 2 }[p.edge] ?? 0;
+    const noiseId = { none: 0, perlin: 1, simplex: 2, voronoi: 3 }[p.noiseType] ?? 0;
+    const strX = Math.max(0, Number(p.strengthX ?? 100)) / 100;
+    const strY = p.linkXY === 'no' ? Math.max(0, Number(p.strengthY ?? 100)) / 100 : strX;
     const mLo = pct(p.maskLow, 0);
     const mHi = Math.max(pct(p.maskHigh, 100), mLo + 0.001);
     const e = acquire(W, H);
@@ -23270,6 +23394,16 @@ const RUN = {
       uMaskR: Math.max(W, H) * Math.max(0.02, pct(p.maskRadius, 40)),
       uShade: pct(p.shade, 0), uShHi: hex3(p.shadeHi || '#ffffff'), uShLo: hex3(p.shadeLo || '#000000'),
       uMode: blModoId(p.shadeMode || 'normal'),
+      // 3.8.0: neutro, força X/Y, direção, borda, interpolação e ruído
+      uMid: Math.min(1, Math.max(0, Number(p.midlevel == null ? 50 : p.midlevel) / 100)),
+      uStrX: strX, uStrY: strY,
+      uAng: Number(p.angle ?? 0) * Math.PI / 180,
+      uEdge: edgeId, uInterp: p.interp === 'bicubic' ? 1 : 0,
+      uDispType: dispId, uDirMode: dirId, uNoiseType: noiseId,
+      uNoiseMix: pct(p.noiseMix, 100),
+      uPNoiseScale: Math.max(4, Number(p.noiseScale ?? 72)),
+      uPNoiseOct: Math.min(6, Math.max(1, Math.round(Number(p.noiseOct ?? 3)))),
+      uPNoiseSeed: Math.max(0, Number(p.noiseSeed ?? 7)),
     });
     return mkRes(e);
   },
@@ -23438,7 +23572,6 @@ const RUN = {
     return inter ? cur : ptRes(cur);
   },
 
-  layers: (n, ins) => runLayers(n, ins),
   text: (n, [a]) => drawTextNode(n, a),
   cloneStamp: (n, [a]) => {
     if (!a) return null;
@@ -23586,14 +23719,6 @@ function connect(fromId, toId, input, out = 0) {
   }
   links.push(out ? { from: fromId, to: toId, input, out } : { from: fromId, to: toId, input });
   const toNode = nodes.get(toId);
-  if (toNode && toNode.type === 'layers') {
-    const list = layerList(toNode);
-    if (input >= list.length) {
-      while (list.length <= input) list.push(defaultLayer());
-      syncClippingHierarchy(list);
-      syncLayerSockets(toNode);
-    }
-  }
   if (toNode && toNode.type === 'perspectiveWarp' && input >= perspQtd(toNode) && perspQtd(toNode) < PERSP_MAX) {
     toNode.params.sockets = String(Math.min(PERSP_MAX, input + 1));   // 3.2.0: fio novo abre socket novo
     syncPerspSockets(toNode);
@@ -23605,7 +23730,6 @@ function connect(fromId, toId, input, out = 0) {
   }
   markDirty(toId);
   markDirty(fromId);
-  if (nodes.get(toId) && nodes.get(toId).ui.layers) nodes.get(toId).ui.layers();
   refreshMaskHints();
   audAposMudarLinks(fromId, toId);
   return true;
@@ -23614,7 +23738,6 @@ function connect(fromId, toId, input, out = 0) {
 function removeLink(l) {
   links.splice(links.indexOf(l), 1);
   markDirty(l.to);
-  if (nodes.get(l.to) && nodes.get(l.to).ui.layers) nodes.get(l.to).ui.layers();
   refreshMaskHints();
   audAposMudarLinks(l.from, l.to);
 }
@@ -24127,152 +24250,6 @@ function setPanelClosed(on, save = true) {
   if (save) { try { localStorage.setItem('node-image-editor:pv-closed', on ? '1' : '0'); } catch (_) {} requestRender(); }
 }
 
-/* ---------- Unlimited dynamic layers (layers node) + non-destructive Clipping Mask system ---------- */
-var LAYER_INITIAL_COUNT = 6;
-var _lyrUidCounter = 1;
-var _lyrCtxEl = null;
-
-function genLayerId() {
-  return 'lyr_' + Date.now().toString(36) + '_' + (_lyrUidCounter++).toString(36);
-}
-
-function defaultLayer(patch) {
-  return Object.assign({
-    id: genLayerId(),
-    name: '',
-    enabled: true,
-    opacity: 100,
-    blend: 'normal',
-    x: 50,
-    y: 50,
-    scale: 100,
-    sy: null,
-    lock: false,
-    rotation: 0,
-    isClippingMask: false,
-    clippedToId: null,
-    grp: null,          // 3.7.0: id do grupo (Layer Comp) a que a camada pertence
-    maskLayer: null,    // 3.7.0: id de outra camada usada como máscara (alpha matte)
-    maskMode: 'alpha',
-    maskInv: false,
-  }, patch || {});
-}
-
-// Mantém a árvore de dependências de máscara de corte 100% consistente após qualquer mutação:
-// each layer with isClippingMask === true adopts the alpha limit of the base layer immediately below it in the stack.
-function syncClippingHierarchy(list) {
-  if (!Array.isArray(list)) return [];
-  let activeBaseId = null;
-  for (let i = 0; i < list.length; i++) {
-    let L = list[i];
-    if (!L || typeof L !== 'object') { L = list[i] = defaultLayer(); }
-    if (!L.id) L.id = genLayerId();
-    if (L.enabled === undefined) L.enabled = true;
-    if (L.opacity === undefined) L.opacity = 100;
-    if (!L.blend) L.blend = 'normal';
-    if (L.x === undefined) L.x = 50;
-    if (L.y === undefined) L.y = 50;
-    if (L.scale === undefined) L.scale = 100;
-    if (L.rotation === undefined) L.rotation = 0;
-    if (L.grp === undefined) L.grp = null;
-    if (L.maskLayer === undefined) L.maskLayer = null;
-    if (L.maskMode === undefined) L.maskMode = 'alpha';
-    L.maskInv = !!L.maskInv;
-    L.isClippingMask = !!L.isClippingMask;
-    if (i === 0 || !activeBaseId) {
-      L.isClippingMask = false;
-      L.clippedToId = null;
-      activeBaseId = L.id;
-    } else if (L.isClippingMask) {
-      L.clippedToId = activeBaseId;
-    } else {
-      L.clippedToId = null;
-      activeBaseId = L.id;
-    }
-  }
-  return list;
-}
-
-/* 3.7.0 — grupos de camadas (Layer Comp): um cabeçalho por grupo, com
-   recolher e olho geral. Cada camada guarda o id do grupo em P.grp. */
-function layerGroups(n) {
-  if (!n || !n.params) return [];
-  if (!Array.isArray(n.params.groups)) n.params.groups = [];
-  const vivos = new Set(layerList(n).map(L => L.grp).filter(Boolean));
-  n.params.groups = n.params.groups.filter(g => g && g.id && vivos.has(g.id));
-  return n.params.groups;
-}
-function layerGroupDe(n, P) {
-  if (!P || !P.grp) return null;
-  const gs = Array.isArray(n.params.groups) ? n.params.groups : [];
-  return gs.find(g => g.id === P.grp) || null;   // sem tocar em layerList: roda dentro do render
-}
-/* a camada aparece? (olho dela + olho do grupo) */
-function layerLigada(n, P) {
-  if (!P || !P.enabled) return false;
-  const g = layerGroupDe(n, P);
-  return !g || g.enabled !== false;
-}
-function novoGrupoDeCamadas(n, nome) {
-  const g = { id: 'lg' + Date.now().toString(36) + Math.floor(Math.random() * 1000), name: nome || 'Group', enabled: true, collapsed: false };
-  layerGroups(n).push(g);
-  return g;
-}
-function agruparComAcima(n, idx, render) {
-  const list = layerList(n);
-  const acima = list[idx + 1];
-  if (!acima) return;
-  const g = acima.grp ? layerGroups(n).find(x => x.id === acima.grp) : null;
-  const id = (g && g.id) || list[idx].grp || novoGrupoDeCamadas(n, 'Group ' + (layerGroups(n).length + 1)).id;
-  list[idx].grp = id;
-  acima.grp = id;
-  markDirty(n.id); render(); requestRender(); commit();
-}
-/* máscara por camada: multiplica o alpha da camada pelo alpha/luma de outra */
-function layerMascara(n, P, list, ins, t, OW, OH) {
-  if (!P || !P.maskLayer || !t) return t;
-  const mi = list.findIndex(L => L.id === P.maskLayer);
-  const M = mi >= 0 ? ins[mi] : null;
-  if (!M) return t;
-  const out = acquire(OW, OH);
-  draw('layerMask', out, { uA: t.tex, uB: M.tex }, { uLuma: P.maskMode === 'luma' ? 1 : 0, uInvert: P.maskInv ? 1 : 0 });
-  t.busy = false;
-  return out;
-}
-/* nome editável no lugar (camada e grupo) */
-function editaNomeEm(el, valor, aoSalvar) {
-  const inp = E('input');
-  inp.value = valor || '';
-  inp.maxLength = 40;
-  inp.style.cssText = 'flex:1;min-width:0;height:18px;font:11px system-ui;border:1px solid var(--accent);border-radius:3px;padding:0 4px;background:var(--panel3);color:var(--text-strong)';
-  el.replaceWith(inp);
-  inp.focus(); inp.select();
-  let feito = false;
-  const fim = ok => {
-    if (feito) return;
-    feito = true;
-    aoSalvar(ok ? inp.value.trim() : null);
-  };
-  inp.addEventListener('blur', () => fim(true));
-  inp.addEventListener('keydown', e => {
-    e.stopPropagation();
-    if (e.key === 'Enter') { e.preventDefault(); fim(true); }
-    else if (e.key === 'Escape') fim(false);
-  });
-}
-function layerList(n) {
-  if (!Array.isArray(n.params.layers)) n.params.layers = [];
-  let minNeeded = n.params.layers.length === 0 ? LAYER_INITIAL_COUNT : n.params.layers.length;
-  if (typeof links !== 'undefined' && Array.isArray(links)) {
-    for (const l of links) {
-      if (l.to === n.id && l.input + 1 > minNeeded) minNeeded = l.input + 1;
-    }
-  }
-  minNeeded = Math.max(1, minNeeded);
-  while (n.params.layers.length < minNeeded) n.params.layers.push(defaultLayer());
-  return syncClippingHierarchy(n.params.layers);
-}
-
 function nodeInputs(n) {
   const def = NODE_TYPES[n.type];
   if (n.type === 'perspectiveWarp') {
@@ -24281,44 +24258,11 @@ function nodeInputs(n) {
     for (let i = 0; i < cnt; i++) out[i] = 'S' + (i + 1);
     return out;
   }
-  if (n.type === 'layers') {
-    const cnt = layerList(n).length;
-    const out = new Array(cnt);
-    for (let i = 0; i < cnt; i++) out[i] = 'Layer' + ' ' + (i + 1);
-    return out;
-  }
   return def.inputs;
 }
 
-function syncLayerSockets(n) {
-  if (!n || n.type !== 'layers' || !n.el) return;
-  const body = n.el.querySelector(':scope > .nbody');
-  if (!body) return;
-  const want = layerList(n).length;
-  const existing = Array.from(body.querySelectorAll(':scope > .row.in'));
-  if (existing.length === want) {
-    existing.forEach((row, i) => {
-      const rl = row.querySelector('.rl');
-      if (rl) rl.textContent = 'Layer' + ' ' + (i + 1);
-    });
-    return;
-  }
-  const anchor = existing.length ? existing[existing.length - 1].nextSibling : body.firstChild;
-  existing.forEach(r => r.remove());
-  for (let i = 0; i < want; i++) {
-    const s = E('span', 'socket in');
-    s.dataset.io = 'in';
-    s.dataset.idx = i;
-    s.style.background = SOCKET_IMAGE;
-    const r = E('div', 'row in');
-    r.append(s, E('span', 'rl', 'Layer' + ' ' + (i + 1)));
-    body.insertBefore(r, anchor);
-  }
-  if (n.el.isConnected) { try { drawLinks(); } catch (_) {} }
-}
-
-/* 3.2.0 — sockets dinâmicos do Perspective Warp, no espírito do nó Layers
-   (position): adicionar/remover refaz as entradas do nó na hora. */
+/* 3.2.0 — sockets dinâmicos do Perspective Warp: adicionar/remover refaz as
+   entradas do nó na hora. */
 function syncPerspSockets(n) {
   if (!n || n.type !== 'perspectiveWarp' || !n.el) return;
   const body = n.el.querySelector(':scope > .nbody');
@@ -24384,763 +24328,9 @@ function perspDelSocket(n, idx) {
 
 function hexRgb01(h) { const v = fx5Hex(h); return [v.r / 255, v.g / 255, v.b / 255]; }
 
-// Non-destructive Canvas 2D engine with globalCompositeOperation = 'destination-in':
-// clips an upper layer (or group of layers) exactly by the alpha channel of the lower base layer.
-function composeLayerClipCanvas2D(baseCanvas, topCanvas, opts) {
-  const o = opts || {};
-  const W = baseCanvas.width, H = baseCanvas.height;
-  const out = document.createElement('canvas');
-  out.width = W; out.height = H;
-  const ctx = out.getContext('2d');
-  ctx.drawImage(baseCanvas, 0, 0);
-  // Prepares the top layer masked by the base alpha via 'destination-in'
-  const clipped = document.createElement('canvas');
-  clipped.width = W; clipped.height = H;
-  const cctx = clipped.getContext('2d');
-  cctx.globalAlpha = o.opacity != null ? Math.max(0, Math.min(1, Number(o.opacity))) : 1;
-  cctx.drawImage(topCanvas, 0, 0, W, H);
-  cctx.globalAlpha = 1;
-  cctx.globalCompositeOperation = 'destination-in';
-  cctx.drawImage(baseCanvas, 0, 0, W, H);
-  // Composes the clipped content preserving exactly the alpha outline of the base layer
-  ctx.globalCompositeOperation = o.blend && o.blend !== 'normal' ? o.blend : 'source-over';
-  ctx.drawImage(clipped, 0, 0);
-  ctx.globalCompositeOperation = 'destination-in';
-  ctx.drawImage(baseCanvas, 0, 0);
-  ctx.globalCompositeOperation = 'source-over';
-  return out;
-}
 
-function renderLayerStackCanvas2D(layerCanvases, layerConfigs, width, height) {
-  const configs = syncClippingHierarchy((layerConfigs || []).map(c => Object.assign({}, c)));
-  const W = Math.max(1, width || (layerCanvases[0] && layerCanvases[0].width) || 1);
-  const H = Math.max(1, height || (layerCanvases[0] && layerCanvases[0].height) || 1);
-  const out = document.createElement('canvas');
-  out.width = W; out.height = H;
-  const octx = out.getContext('2d');
-  let i = 0;
-  while (i < configs.length) {
-    const P = configs[i], src = layerCanvases[i];
-    let nextIdx = i + 1;
-    while (nextIdx < configs.length && configs[nextIdx].isClippingMask) nextIdx++;
-    if (src && P && P.enabled !== false && Number(P.opacity ?? 100) > 0) {
-      let grp = document.createElement('canvas');
-      grp.width = W; grp.height = H;
-      const gctx = grp.getContext('2d');
-      gctx.globalAlpha = Math.max(0, Math.min(1, Number(P.opacity ?? 100) / 100));
-      gctx.drawImage(src, 0, 0, W, H);
-      for (let j = i + 1; j < nextIdx; j++) {
-        const C = configs[j], cSrc = layerCanvases[j];
-        if (!cSrc || !C || C.enabled === false || Number(C.opacity ?? 100) <= 0) continue;
-        grp = composeLayerClipCanvas2D(grp, cSrc, {
-          opacity: Number(C.opacity ?? 100) / 100,
-          blend: C.blend || 'source-over',
-        });
-      }
-      octx.globalCompositeOperation = P.blend && P.blend !== 'normal' ? P.blend : 'source-over';
-      octx.drawImage(grp, 0, 0);
-      octx.globalCompositeOperation = 'source-over';
-    }
-    i = nextIdx;
-  }
-  return out;
-}
+// Transform handles over the preview: they edit the node's transform (tf)
 
-// Real-time WebGL2 GPU engine (60 FPS + full-resolution export):
-// supports N unlimited dynamic layers and non-destructive Clipping Mask stacks.
-function evalLayerToTarget(L, P, W, H, Wf, Hf, OW, OH, fk) {
-  const th = -Number(P.rotation || 0) * Math.PI / 180;
-  const kx = ((L.fw || L.w) * W) / (Math.max(1, L.w) * Wf);
-  const ky = ((L.fh || L.h) * H) / (Math.max(1, L.h) * Hf);
-  const t = acquire(OW, OH);
-  draw('layerXform', t, { uL: L.tex }, {
-    uOut: [OW, OH], uLs: [L.w, L.h],
-    uC: [Number(P.x) / 100 * OW, (1 - Number(P.y) / 100) * OH],
-    uRot: [Math.cos(th), Math.sin(th)],
-    uScale: [Math.max(0.001, Number(P.scale) / 100) * fk * kx,
-             Math.max(0.001, Number(P.sy == null ? P.scale : P.sy) / 100) * fk * ky],
-    uOp: Number(P.opacity) / 100,
-  });
-  return t;
-}
-
-function runLayers(n, ins) {
-  const list = layerList(n);
-  const total = list.length;
-  const base = ins.find(r => r);
-  if (!base) return null;
-  const W = base.w, H = base.h;
-  const Wf = base.fw || W, Hf = base.fh || H;
-  const fk = FX_FAST && Math.max(W, H) > FX_FAST_MAX ? FX_FAST_MAX / Math.max(W, H) : 1;
-  const OW = Math.max(1, Math.round(W * fk)), OH = Math.max(1, Math.round(H * fk));
-  let accum = null;
-  try {
-    let i = 0;
-    while (i < total) {
-      const L = ins[i], P = list[i];
-      // Localiza todas as layers consecutivas acima recortadas por esta base (i+1 .. nextIdx-1)
-      let nextIdx = i + 1;
-      while (nextIdx < total && list[nextIdx] && list[nextIdx].isClippingMask) nextIdx++;
-      if (!L || !P || !layerLigada(n, P) || Number(P.opacity) <= 0) {
-        i = nextIdx;
-        continue;
-      }
-      let grp = layerMascara(n, P, list, ins, evalLayerToTarget(L, P, W, H, Wf, Hf, OW, OH, fk), OW, OH);
-      // Applies in sequence all the layers in clipping mask over the alpha of grp
-      for (let j = i + 1; j < nextIdx; j++) {
-        const CL = ins[j], CP = list[j];
-        if (!CL || !CP || !layerLigada(n, CP) || Number(CP.opacity) <= 0) continue;
-        const ct = layerMascara(n, CP, list, ins, evalLayerToTarget(CL, CP, W, H, Wf, Hf, OW, OH, fk), OW, OH);
-        const grpNext = acquire(OW, OH);
-        draw('layerClip', grpNext, { uA: grp.tex, uB: ct.tex }, {
-          uMode: Math.max(0, BLEND.findIndex(m => m[0] === CP.blend)),
-          uFac: 1,
-        });
-        ct.busy = false;
-        grp.busy = false;
-        grp = grpNext;
-      }
-      if (!accum) {
-        accum = grp;
-      } else {
-        const nextAccum = acquire(OW, OH);
-        draw('layerOver', nextAccum, { uA: accum.tex, uB: grp.tex }, {
-          uMode: Math.max(0, BLEND.findIndex(m => m[0] === P.blend)),
-          uFac: 1,
-        });
-        grp.busy = false;
-        accum.busy = false;
-        accum = nextAccum;
-      }
-      i = nextIdx;
-    }
-  } catch (err) { if (accum) accum.busy = false; throw err; }
-  return accum ? mkRes(accum) : null;
-}
-
-function closeLayerContextMenu() {
-  if (_lyrCtxEl) { _lyrCtxEl.remove(); _lyrCtxEl = null; }
-}
-document.addEventListener('pointerdown', e => {
-  if (_lyrCtxEl && !e.target.closest('.lyr-ctx-menu')) closeLayerContextMenu();
-});
-document.addEventListener('keydown', e => { if (e.key === 'Escape') closeLayerContextMenu(); });
-window.addEventListener('ee:lang', () => {
-  closeLayerContextMenu();
-  if (typeof nodes !== 'undefined') {
-    for (const n of nodes.values()) if (n.type === 'layers' && n.ui && n.ui.layers) n.ui.layers();
-  }
-});
-
-function addLayer(n, insertAt, render) {
-  const list = layerList(n);
-  const idx = insertAt == null ? list.length : Math.max(0, Math.min(list.length, insertAt));
-  list.splice(idx, 0, defaultLayer());
-  for (const l of links) {
-    if (l.to === n.id && l.input >= idx) l.input += 1;
-  }
-  syncClippingHierarchy(list);
-  n.ui.layerSel = idx;
-  syncLayerSockets(n);
-  markDirty(n.id);
-  if (render) render(); else if (n.ui && n.ui.layers) n.ui.layers();
-  if (n.el && n.el.isConnected) drawLinks();
-  requestRender();
-  commit();
-  return idx;
-}
-
-function duplicateLayer(n, idx, render) {
-  const list = layerList(n);
-  if (idx < 0 || idx >= list.length) return -1;
-  const srcP = list[idx];
-  const copy = defaultLayer({
-    name: srcP.name ? srcP.name + ' (copy)' : '',
-    enabled: srcP.enabled,
-    opacity: srcP.opacity,
-    blend: srcP.blend,
-    x: srcP.x,
-    y: srcP.y,
-    scale: srcP.scale,
-    sy: srcP.sy,
-    lock: srcP.lock,
-    rotation: srcP.rotation,
-    isClippingMask: srcP.isClippingMask,
-  });
-  const dstIdx = idx + 1;
-  list.splice(dstIdx, 0, copy);
-  const origLink = linkTo(n.id, idx);
-  for (const l of links) {
-    if (l.to === n.id && l.input >= dstIdx) l.input += 1;
-  }
-  syncClippingHierarchy(list);
-  syncLayerSockets(n);
-  if (origLink) connect(origLink.from, n.id, dstIdx, origLink.out || 0);
-  n.ui.layerSel = dstIdx;
-  markDirty(n.id);
-  if (render) render(); else if (n.ui && n.ui.layers) n.ui.layers();
-  if (n.el && n.el.isConnected) drawLinks();
-  requestRender();
-  commit();
-  return dstIdx;
-}
-
-function removeLayer(n, idx, render) {
-  const list = layerList(n);
-  if (list.length <= 1 || idx < 0 || idx >= list.length) return false;
-  for (const l of [...links]) {
-    if (l.to !== n.id) continue;
-    if (l.input === idx) removeLink(l);
-    else if (l.input > idx) l.input -= 1;
-  }
-  list.splice(idx, 1);
-  syncClippingHierarchy(list);
-  if (n.ui.layerSel === idx) n.ui.layerSel = Math.min(idx, list.length - 1);
-  else if (n.ui.layerSel != null && n.ui.layerSel > idx) n.ui.layerSel -= 1;
-  syncLayerSockets(n);
-  markDirty(n.id);
-  if (render) render(); else if (n.ui && n.ui.layers) n.ui.layers();
-  if (n.el && n.el.isConnected) drawLinks();
-  requestRender();
-  commit();
-  return true;
-}
-
-function moveLayer(n, fromIdx, toIdx, render) {
-  const list = layerList(n);
-  if (fromIdx < 0 || fromIdx >= list.length) return false;
-  toIdx = Math.max(0, Math.min(list.length - 1, toIdx));
-  if (fromIdx === toIdx) return false;
-  const order = list.map((_, idx) => idx);
-  const [picked] = order.splice(fromIdx, 1);
-  order.splice(toIdx, 0, picked);
-  const newOfOld = new Map();
-  order.forEach((oldIdx, newIdx) => newOfOld.set(oldIdx, newIdx));
-  n.params.layers = order.map(oldIdx => list[oldIdx]);
-  syncClippingHierarchy(n.params.layers);
-  for (const l of links) {
-    if (l.to === n.id && newOfOld.has(l.input)) l.input = newOfOld.get(l.input);
-  }
-  if (n.ui.layerSel != null && newOfOld.has(n.ui.layerSel)) n.ui.layerSel = newOfOld.get(n.ui.layerSel);
-  syncLayerSockets(n);
-  markDirty(n.id);
-  if (render) render(); else if (n.ui && n.ui.layers) n.ui.layers();
-  if (n.el && n.el.isConnected) drawLinks();
-  requestRender();
-  commit();
-  return true;
-}
-
-function swapLayers(n, i, j, render) {
-  return moveLayer(n, i, j, render);
-}
-
-function createClippingMask(n, idx, render) {
-  const list = layerList(n);
-  if (idx <= 0 || idx >= list.length) return false;
-  list[idx].isClippingMask = true;
-  syncClippingHierarchy(list);
-  markDirty(n.id);
-  if (render) render(); else if (n.ui && n.ui.layers) n.ui.layers();
-  requestRender();
-  commit();
-  return true;
-}
-
-function releaseClippingMask(n, idx, render) {
-  const list = layerList(n);
-  if (idx < 0 || idx >= list.length) return false;
-  list[idx].isClippingMask = false;
-  syncClippingHierarchy(list);
-  markDirty(n.id);
-  if (render) render(); else if (n.ui && n.ui.layers) n.ui.layers();
-  requestRender();
-  commit();
-  return true;
-}
-
-function toggleClippingMask(n, idx, render) {
-  const list = layerList(n);
-  if (idx <= 0 || idx >= list.length) return false;
-  return list[idx].isClippingMask ? releaseClippingMask(n, idx, render) : createClippingMask(n, idx, render);
-}
-
-function openLayerContextMenu(n, idx, clientX, clientY, render) {
-  closeLayerContextMenu();
-  const list = layerList(n);
-  const P = list[idx];
-  if (!P) return;
-  const menu = E('div', 'lyr-ctx-menu');
-  const addItem = (label, fn, disabled) => {
-    const b = E('button', 'lyr-ctx-item', label);
-    b.type = 'button';
-    b.disabled = !!disabled;
-    b.addEventListener('click', e => {
-      e.stopPropagation();
-      closeLayerContextMenu();
-      fn();
-    });
-    menu.append(b);
-  };
-  const addSep = () => menu.append(E('div', 'lyr-ctx-sep'));
-
-  if (P.isClippingMask) {
-    addItem('Release Clipping Mask', () => releaseClippingMask(n, idx, render), false);
-  } else {
-    addItem('Create Clipping Mask', () => createClippingMask(n, idx, render), idx === 0);
-  }
-  addSep();
-  addItem('Add Layer Above', () => addLayer(n, idx + 1, render), false);
-  addItem('Duplicate Layer', () => duplicateLayer(n, idx, render), false);
-  addSep();
-  addItem('Group with the layer above', () => agruparComAcima(n, idx, render), idx >= list.length - 1);
-  addItem('Remove from group', () => {
-    P.grp = null; markDirty(n.id); render(); requestRender(); commit();
-  }, !P.grp);
-  addSep();
-  addItem('Bring to Front', () => moveLayer(n, idx, list.length - 1, render), idx === list.length - 1);
-  addItem('Send to Back', () => moveLayer(n, idx, 0, render), idx === 0);
-  addItem(P.enabled ? 'Hide Layer' : 'Show layer', () => {
-    P.enabled = !P.enabled; markDirty(n.id); render(); requestRender(); commit();
-  }, false);
-  addSep();
-  addItem('Delete Layer', () => removeLayer(n, idx, render), list.length <= 1);
-
-  document.body.append(menu);
-  const mw = menu.offsetWidth || 200, mh = menu.offsetHeight || 220;
-  const x = Math.max(8, Math.min(window.innerWidth - mw - 8, clientX));
-  const y = Math.max(8, Math.min(window.innerHeight - mh - 8, clientY));
-  menu.style.left = x + 'px';
-  menu.style.top = y + 'px';
-  _lyrCtxEl = menu;
-}
-
-function makeLayersControl(n) {
-  layerList(n);
-  const wrap = E('div', 'lyr');
-  wrap.append(E('div', 'lyr-hint', 'Top of list = front of canvas. Drag to reorder or right-click for Clipping Mask.'));
-  const LYR_TAMANHOS = [0, 310, 440];
-  const LYR_ROTULOS = ['Panel size: normal', 'Panel size: wide', 'Panel size: extra wide'];
-  const lyrTools = E('div', 'lyr-tools');
-  const leftGrp = E('div', 'lyr-tools-grp');
-  const addBtn = E('button', 'stk-btn', '+ Add Layer');
-  addBtn.type = 'button';
-  addBtn.title = 'Add new layer to top of stack';
-  const countSpan = E('span', 'lyr-count', '');
-  const sizeBtn = E('button', 'stk-btn', '');
-  sizeBtn.type = 'button';
-  const aplicaTam = () => {
-    const w = Number(n.params.lyrW) || 0;
-    const idx = Math.max(0, LYR_TAMANHOS.indexOf(w));
-    if (n.el) n.el.style.width = w ? w + 'px' : '';
-    sizeBtn.textContent = (LYR_ROTULOS[idx]);
-    if (n.el && n.el.isConnected) requestAnimationFrame(() => { try { drawLinks(); } catch (_) {} });
-  };
-  sizeBtn.addEventListener('click', e => {
-    e.stopPropagation();
-    const idx = (Math.max(0, LYR_TAMANHOS.indexOf(Number(n.params.lyrW) || 0)) + 1) % LYR_TAMANHOS.length;
-    n.params.lyrW = LYR_TAMANHOS[idx];
-    aplicaTam(); commit();
-  });
-  leftGrp.append(addBtn, countSpan);
-  lyrTools.append(leftGrp, sizeBtn);
-  wrap.append(lyrTools);
-  n.ui.lyrSize = aplicaTam;
-  aplicaTam();
-
-  const rows = E('div', 'lyr-rows');
-  rows.addEventListener('wheel', e => {
-    if (rows.scrollHeight > rows.clientHeight) e.stopPropagation();
-  }, { passive: true });
-  wrap.append(rows);
-  wrap.addEventListener('pointerdown', e => { e.stopPropagation(); selectFromControl(n); });
-
-  let dragFrom = null;
-  const render = () => {
-    const list = layerList(n);
-    syncLayerSockets(n);
-    const total = list.length;
-    countSpan.textContent = (total === 1 ? '1 layer' : `${total} layers`);
-    addBtn.textContent = '+ Add Layer';
-    rows.innerHTML = '';
-    // Visual order from top to bottom = Z-index of the top (total-1) down to the base (0)
-    // 3.7.0: camadas do mesmo grupo ficam sob um cabeçalho recolhível
-    let grupoAtual = null;
-    const grupos = layerGroups(n);
-    const lista = layerList(n);
-    for (let i = total - 1; i >= 0; i--) {
-      const P = lista[i];
-      const g = P.grp ? grupos.find(x => x.id === P.grp) : null;
-      const idg = g ? g.id : null;
-      if (idg !== grupoAtual) {
-        if (g) rows.append(layerGroupEl(n, g, render));
-        grupoAtual = idg;
-      }
-      if (g && g.collapsed) continue;
-      rows.append(layerRowEl(n, i, render, {
-        getDragFrom: () => dragFrom,
-        setDragFrom: v => { dragFrom = v; },
-      }));
-    }
-  };
-  addBtn.addEventListener('click', e => {
-    e.stopPropagation();
-    addLayer(n, layerList(n).length, render);
-  });
-  n.ui.layers = render;
-  render();
-  return wrap;
-}
-
-function layerGroupEl(n, g, render) {
-  const el = E('div', 'lyr-group');
-  const head = E('div', 'lyr-group-head');
-  const fold = E('button', 'stk-btn lyr-gfold', g.collapsed ? '▸' : '▾');
-  fold.type = 'button';
-  fold.title = 'Fold / unfold this group';
-  fold.addEventListener('click', e => {
-    e.stopPropagation();
-    g.collapsed = !g.collapsed;
-    render(); commit();
-  });
-  const olho = document.createElement('input');
-  olho.type = 'checkbox';
-  olho.checked = g.enabled !== false;
-  olho.title = 'Show / hide the whole group';
-  olho.addEventListener('change', () => {
-    g.enabled = olho.checked;
-    markDirty(n.id); render(); requestRender(); commit();
-  });
-  const nome = E('span', 'lyr-gname', g.name || 'Group');
-  nome.title = 'Double-click to rename this group';
-  nome.addEventListener('dblclick', e => {
-    e.stopPropagation();
-    editaNomeEm(nome, g.name || '', v => {
-      if (v) g.name = v;
-      render(); commit();
-    });
-  });
-  const solta = E('button', 'stk-btn', 'Ungroup');
-  solta.type = 'button';
-  solta.title = 'Ungroup every layer of this group';
-  solta.addEventListener('click', e => {
-    e.stopPropagation();
-    for (const L of layerList(n)) if (L.grp === g.id) L.grp = null;
-    const gs = layerGroups(n), k = gs.indexOf(g);
-    if (k >= 0) gs.splice(k, 1);
-    markDirty(n.id); render(); requestRender(); commit();
-  });
-  head.append(fold, olho, nome, solta);
-  el.append(head);
-  return el;
-}
-
-function layerRowEl(n, i, render, dnd) {
-  const list = layerList(n);
-  const total = list.length;
-  const P = list[i];
-  const src = linkTo(n.id, i);
-  const sn = src ? nodes.get(src.from) : null;
-  const sel = n.ui.layerSel === i;
-  const hasClippedAbove = i + 1 < total && !!list[i + 1].isClippingMask && !P.isClippingMask;
-  const cls = 'lyr-row'
-    + (P.enabled ? '' : ' off')
-    + (sel ? ' sel' : '')
-    + (P.isClippingMask ? ' clipped' : '')
-    + (hasClippedAbove ? ' clip-base' : '');
-  const row = E('div', cls);
-  row.dataset.layerIdx = String(i);
-  row.dataset.layerId = P.id;
-
-  const head = E('div', 'lyr-head');
-  head.draggable = true;
-
-  // HTML5 Drag & Drop for direct reordering of N layers
-  head.addEventListener('dragstart', e => {
-    if (e.target && e.target.closest && e.target.closest('input,select,button,.lyr-grip')) { e.preventDefault(); return; }
-    dnd.setDragFrom(i);
-    row.classList.add('drag-src');
-    if (e.dataTransfer) { e.dataTransfer.effectAllowed = 'move'; try { e.dataTransfer.setData('text/plain', String(i)); } catch (_) {} }
-  });
-  head.addEventListener('dragend', () => {
-    dnd.setDragFrom(null);
-    row.classList.remove('drag-src', 'drop-above', 'drop-below');
-  });
-  row.addEventListener('dragover', e => {
-    let from = dnd.getDragFrom();
-    if (from == null && e.dataTransfer) { const v = parseInt(e.dataTransfer.getData('text/plain'), 10); if (!isNaN(v)) from = v; }
-    if (from == null || from === i) return;
-    e.preventDefault();
-    const r = row.getBoundingClientRect();
-    const upper = e.clientY < r.top + r.height / 2;
-    row.classList.toggle('drop-above', upper);
-    row.classList.toggle('drop-below', !upper);
-  });
-  row.addEventListener('dragleave', () => { row.classList.remove('drop-above', 'drop-below'); });
-  row.addEventListener('drop', e => {
-    e.preventDefault();
-    row.classList.remove('drop-above', 'drop-below');
-    let from = dnd.getDragFrom();
-    if (from == null && e.dataTransfer) { const v = parseInt(e.dataTransfer.getData('text/plain'), 10); if (!isNaN(v)) from = v; }
-    dnd.setDragFrom(null);
-    if (from == null || from === i) return;
-    const r = row.getBoundingClientRect();
-    const upper = e.clientY < r.top + r.height / 2;
-    let targetIdx = upper ? i + 1 : i;
-    if (from < targetIdx) targetIdx -= 1;
-    if (targetIdx === from) targetIdx = i;
-    moveLayer(n, from, targetIdx, render);
-  });
-
-  // Right-click context menu (Create / Release clipping mask, duplicate, sort, remove)
-  row.addEventListener('contextmenu', e => {
-    e.preventDefault();
-    e.stopPropagation();
-    openLayerContextMenu(n, i, e.clientX, e.clientY, render);
-  });
-
-  const grip = E('span', 'lyr-grip');
-  grip.title = 'Drag to reorder layer';
-  // Direct reordering by pointer / touch (desktop + Android APK) via the .lyr-grip handle
-  grip.addEventListener('pointerdown', e => {
-    e.stopPropagation(); e.preventDefault();
-    grip.setPointerCapture(e.pointerId);
-    row.classList.add('drag-src');
-    let lastOver = null;
-    const onMove = ev => {
-      const el = document.elementFromPoint(ev.clientX, ev.clientY);
-      const overRow = el && el.closest && el.closest('.lyr-row');
-      if (lastOver && lastOver !== overRow) lastOver.classList.remove('drop-above', 'drop-below');
-      if (overRow && overRow !== row && overRow.parentElement === row.parentElement) {
-        const rr = overRow.getBoundingClientRect();
-        const up = ev.clientY < rr.top + rr.height / 2;
-        overRow.classList.toggle('drop-above', up);
-        overRow.classList.toggle('drop-below', !up);
-        lastOver = overRow;
-      }
-    };
-    const onUp = ev => {
-      grip.removeEventListener('pointermove', onMove);
-      grip.removeEventListener('pointerup', onUp);
-      grip.removeEventListener('pointercancel', onUp);
-      row.classList.remove('drag-src');
-      if (lastOver) {
-        const overIdx = Number(lastOver.dataset.layerIdx);
-        const rr = lastOver.getBoundingClientRect();
-        const up = ev.clientY < rr.top + rr.height / 2;
-        lastOver.classList.remove('drop-above', 'drop-below');
-        let targetIdx = up ? overIdx + 1 : overIdx;
-        if (i < targetIdx) targetIdx -= 1;
-        if (targetIdx === i) targetIdx = overIdx;
-        moveLayer(n, i, targetIdx, render);
-      }
-    };
-    grip.addEventListener('pointermove', onMove);
-    grip.addEventListener('pointerup', onUp);
-    grip.addEventListener('pointercancel', onUp);
-  });
-
-  const cb = document.createElement('input');
-  cb.type = 'checkbox'; cb.checked = !!P.enabled; cb.title = 'Show layer';
-  cb.addEventListener('change', () => { P.enabled = cb.checked; markDirty(n.id); render(); requestRender(); commit(); });
-
-  head.append(grip, cb);
-  if (P.isClippingMask) {
-    const ind = E('span', 'lyr-clip-ind');
-    ind.title = 'Clipping Mask active — click to release';
-    ind.addEventListener('click', e => { e.stopPropagation(); releaseClippingMask(n, i, render); });
-    head.append(ind);
-  }
-
-  const baseTitle = P.name || (sn ? (NODE_TYPES[sn.type] ? (NODE_TYPES[sn.type].title) : sn.type) : '(empty)');
-  const name = E('span', 'lyr-name', `${i + 1}. ${baseTitle}`);
-  name.title = 'Click to select · Double-click to rename · Alt+click toggles Clipping Mask · Right-click opens menu';
-  name.addEventListener('dblclick', e => {
-    e.stopPropagation();
-    editaNomeEm(name, P.name || '', v => {
-      if (v != null) P.name = v;
-      render(); commit();
-    });
-  });
-  name.addEventListener('click', e => {
-    if (e.altKey && i > 0) { e.stopPropagation(); toggleClippingMask(n, i, render); return; }
-    n.ui.layerSel = sel ? null : i;
-    render();
-    requestRender();
-  });
-
-  const btn = (txt, title2, fn, dis, extraCls) => {
-    const b = E('button', 'stk-btn' + (extraCls ? ' ' + extraCls : ''), txt);
-    b.type = 'button';
-    b.title = title2;
-    b.disabled = !!dis;
-    b.addEventListener('click', e => { e.stopPropagation(); fn(e); });
-    return b;
-  };
-  const clipBtn = btn('Clip', P.isClippingMask ? 'Release Clipping Mask' : 'Create Clipping Mask',
-    () => toggleClippingMask(n, i, render), i === 0, P.isClippingMask ? 'clip-on' : '');
-  const menuBtn = btn('•••', 'Layer Options', e => {
-    const r = e.currentTarget.getBoundingClientRect();
-    openLayerContextMenu(n, i, r.left, r.bottom + 2, render);
-  }, false);
-
-  head.append(
-    name,
-    clipBtn,
-    btn('▲', 'Bring forward (up in the stack)', () => moveLayer(n, i, i + 1, render), i === total - 1),
-    btn('▼', 'Send backward (down in the stack)', () => moveLayer(n, i, i - 1, render), i === 0),
-    menuBtn
-  );
-  row.append(head);
-  if (sel) row.append(layerBodyEl(n, i, render));
-  return row;
-}
-
-function layerBodyEl(n, i, render) {
-  const list = layerList(n);
-  const P = list[i];
-  if (P.sy == null) P.sy = P.scale;
-  let sincSy = null;
-  const body = E('div', 'lyr-body');
-  const chg = () => { markDirty(n.id); requestRender(); };
-  const field = (text, input, out) => {
-    const l = E('label', 'lyr-field');
-    l.append(E('span', '', text), input);
-    if (out) l.append(out);
-    return l;
-  };
-  const sel = document.createElement('select');
-  sel.className = 'psel';
-  for (const [k, lbl] of BLEND) { const o = document.createElement('option'); o.value = k; o.textContent = lbl; sel.append(o); }
-  sel.value = P.blend;
-  sel.addEventListener('change', () => { P.blend = sel.value; markDirty(n.id); requestRender(); commit(); });
-  const range = (key, text, min, max, step, unit) => {
-    const r = document.createElement('input');
-    r.type = 'range'; r.min = min; r.max = max; r.step = step; r.value = P[key];
-    const out = E('output', '', `${Number(P[key]).toFixed(step < 1 ? 1 : 0)}${unit}`);
-    const aplica = () => {
-      P[key] = Math.min(max, Math.max(min, Number(r.value)));
-      if (key === 'scale') { P.sy = P.scale; if (sincSy) sincSy(); }
-      out.textContent = `${Number(P[key]).toFixed(step < 1 ? 1 : 0)}${unit}`;
-      chg();
-    };
-    r.addEventListener('input', aplica);
-    r.addEventListener('change', () => commit());
-    const steps = E('span', 'lyr-steps');
-    const passo = (dir, titulo) => {
-      const b = E('button', 'lyr-step', dir > 0 ? '▲' : '▼');
-      b.type = 'button'; b.title = titulo;
-      b.addEventListener('click', e => {
-        e.stopPropagation();
-        const v = Math.round((Number(P[key]) + dir * step) / step) * step;
-        r.value = Math.min(max, Math.max(min, v));
-        aplica(); commit();
-      });
-      return b;
-    };
-    steps.append(passo(1, 'Increase'), passo(-1, 'Decrease'));
-    const l = E('label', 'lyr-field');
-    l.append(E('span', '', text), r, steps, out);
-    return l;
-  };
-  body.append(
-    field('Blend', sel),
-    range('opacity', 'Opacity', 0, 100, 1, '%'),
-    range('x', 'Location X', 0, 100, 0.5, '%'),
-    range('y', 'Location Y', 0, 100, 0.5, '%'),
-    range('scale', 'Scale', 5, 400, 1, '%'),
-    range('sy', 'Vertical scale', 5, 400, 1, '%'),
-    range('rotation', 'Rotation', -180, 180, 1, '°'));
-  sincSy = () => {
-    const inp = body.querySelectorAll('input[type=range]')[4];
-    const out = body.querySelectorAll('output')[4];
-    if (inp) inp.value = P.sy;
-    if (out) out.textContent = `${Number(P.sy).toFixed(0)}%`;
-  };
-  /* 3.7.0: máscara opcional por camada (alpha matte de outra camada) */
-  const mascara = document.createElement('select');
-  mascara.className = 'psel';
-  const semMascara = document.createElement('option');
-  semMascara.value = '';
-  semMascara.textContent = 'None';
-  mascara.append(semMascara);
-  list.forEach((O, j) => {
-    if (j === i) return;
-    const o = document.createElement('option');
-    o.value = O.id;
-    o.textContent = (j + 1) + '. ' + (O.name || 'Layer ' + (j + 1));
-    mascara.append(o);
-  });
-  mascara.value = P.maskLayer || '';
-  mascara.addEventListener('change', () => {
-    P.maskLayer = mascara.value || null;
-    markDirty(n.id); render(); requestRender(); commit();
-  });
-  body.append(field('Mask (matte)', mascara));
-  if (P.maskLayer) {
-    const canal = document.createElement('select');
-    canal.className = 'psel';
-    for (const [v, t] of [['alpha', 'Alpha'], ['luma', 'Luminance']]) {
-      const o = document.createElement('option');
-      o.value = v; o.textContent = t;
-      canal.append(o);
-    }
-    canal.value = P.maskMode === 'luma' ? 'luma' : 'alpha';
-    canal.addEventListener('change', () => { P.maskMode = canal.value; markDirty(n.id); requestRender(); commit(); });
-    const inv = document.createElement('input');
-    inv.type = 'checkbox';
-    inv.checked = !!P.maskInv;
-    inv.addEventListener('change', () => { P.maskInv = inv.checked; markDirty(n.id); requestRender(); commit(); });
-    const invL = E('label', 'lyr-field');
-    invL.append(E('span', '', 'Invert mask'), inv);
-    body.append(field('Mask channel', canal), invL);
-  }
-
-  const lockL = E('label', 'lyr-field');
-  const lockC = document.createElement('input');
-  lockC.type = 'checkbox'; lockC.checked = !!P.lock;
-  lockC.title = 'Keep aspect ratio when dragging the corners';
-  lockC.addEventListener('change', () => { P.lock = lockC.checked; commit(); });
-  lockL.append(E('span', '', 'Keep aspect ratio'), lockC);
-  body.append(lockL);
-
-  if (i > 0) {
-    const clipL = E('label', 'lyr-field');
-    const clipC = document.createElement('input');
-    clipC.type = 'checkbox'; clipC.checked = !!P.isClippingMask;
-    clipC.addEventListener('change', () => {
-      if (clipC.checked) createClippingMask(n, i, render);
-      else releaseClippingMask(n, i, render);
-    });
-    clipL.append(E('span', '', 'Clipping Mask'), clipC);
-    body.append(clipL);
-  }
-
-  const actions = E('div', 'lyr-tools-grp');
-  const reset = E('button', 'stk-btn', 'Center');
-  reset.type = 'button';
-  reset.title = 'Center the layer';
-  reset.addEventListener('click', () => { P.x = 50; P.y = 50; markDirty(n.id); render(); requestRender(); commit(); });
-  actions.append(reset);
-  if (i > 0) {
-    const cb2 = E('button', 'stk-btn', (P.isClippingMask ? 'Release Clipping Mask' : 'Create Clipping Mask'));
-    cb2.type = 'button';
-    cb2.addEventListener('click', () => toggleClippingMask(n, i, render));
-    actions.append(cb2);
-  }
-  if (list.length > 1) {
-    const del = E('button', 'stk-btn', 'Delete Layer');
-    del.type = 'button';
-    del.addEventListener('click', () => removeLayer(n, i, render));
-    actions.append(del);
-  }
-  body.append(actions);
-  return body;
-}
-
-// Transform handles over the preview: on Layers they edit the chosen
-// layer; on any other node in preview, the node's transform (tf)
-var xfOv = null, xfFrame = null, xfDrag = null, xfLockBtn = null, xfGuideV = null, xfGuideH = null; // var: the boot calls drawPreview before this line
 function xfTfSet(n, ch, v) {          // handles write to tf (and to animVal of the channels without keys)
   if (!n.tf) n.tf = tlNewTf();
   n.tf[ch] = v;
@@ -25173,10 +24363,6 @@ function ensureXfOv() {
     if (pn2) { pn2.xfLock = !pn2.xfLock; xfLockBtn.classList.toggle('on', !!pn2.xfLock); }
   });
   xfOv.append(xfFrame, xfLockBtn);
-  xfGuideV = E('div', 'xf-guide'); xfGuideH = E('div', 'xf-guide');
-  xfGuideV.style.cssText = 'position:absolute;top:0;bottom:0;width:1px;background:#ff3d8b;pointer-events:none;display:none;z-index:4';
-  xfGuideH.style.cssText = 'position:absolute;left:0;right:0;height:1px;background:#ff3d8b;pointer-events:none;display:none;z-index:4';
-  xfOv.append(xfGuideV, xfGuideH);
   xfFrame.addEventListener('dblclick', () => {
     const g = xfFrame._geo;
     if (!g || g.mode !== 'node') return;
@@ -25192,76 +24378,9 @@ function ensureXfOv() {
   xfFrame.addEventListener('pointercancel', onXfUp);
   return xfOv;
 }
-/* Visible box of a layer's source: bounding box of the pixels with alpha > 0,
-   in the source's own pixels. Cached per result object (read back only when the
-   source is evaluated again). Fully transparent source -> the whole image. */
-const layerBoxCache = new WeakMap();
-function layerVisibleBox(lr) {
-  const full = { x: 0, y: 0, w: lr.w, h: lr.h };
-  if (!lr || !lr.w || !lr.h) return full;
-  const c = layerBoxCache.get(lr);
-  if (c) return c;
-  let box = full;
-  try {
-    const d = readResult(lr).getContext('2d').getImageData(0, 0, lr.w, lr.h).data;
-    const u = new Uint32Array(d.buffer);          // little-endian: alpha is the top byte
-    let x0 = lr.w, y0 = lr.h, x1 = -1, y1 = -1;
-    for (let y = 0; y < lr.h; y++) {
-      const row = y * lr.w;
-      for (let x = 0; x < lr.w; x++) {
-        if ((u[row + x] >>> 24) !== 0) {
-          if (x < x0) x0 = x;
-          if (x > x1) x1 = x;
-          if (y < y0) y0 = y;
-          y1 = y;
-        }
-      }
-    }
-    if (x1 >= 0) box = { x: x0, y: y0, w: x1 - x0 + 1, h: y1 - y0 + 1 };
-  } catch (_) { box = full; }
-  layerBoxCache.set(lr, box);
-  return box;
-}
-/* screen offset (rotated) from the layer centre to the centre of its visible box */
-function layerCenterOffset(g, scale, scaleY) {
-  const sx = g.offX0 * (Number(scale) / 100) * g.s, sy = g.offY0 * ((Number(scaleY == null ? scale : scaleY)) / 100) * g.s;
-  const th = (Number(g.rot) || 0) * Math.PI / 180, c = Math.cos(th), sn = Math.sin(th);
-  return { x: sx * c - sy * sn, y: sx * sn + sy * c };
-}
-/* smart guides for a layer being moved: snaps the visible box centre/edges to the canvas
-   centre and edges (unrotated layers only); shows the guide lines while dragging */
-function layerSnap(P, g) {
-  if (xfGuideV) xfGuideV.style.display = 'none';
-  if (xfGuideH) xfGuideH.style.display = 'none';
-  if (Math.abs(g.rot || 0) > 0.01) return;
-  const T = 6;   // screen px
-  const cxNow = g.ox + P.x / 100 * g.dwc + g.rx, cyNow = g.oy + P.y / 100 * g.dhc + g.ry;
-  const pick = (vals, tgts) => {
-    let best = null;
-    for (const v of vals) for (const t of tgts) {
-      const dd = t - v;
-      if (Math.abs(dd) < T && (!best || Math.abs(dd) < Math.abs(best.d))) best = { d: dd, at: t };
-    }
-    return best;
-  };
-  const bx = pick([cxNow, cxNow - g.w / 2, cxNow + g.w / 2], [g.ox + g.dwc / 2, g.ox, g.ox + g.dwc]);
-  const by = pick([cyNow, cyNow - g.h / 2, cyNow + g.h / 2], [g.oy + g.dhc / 2, g.oy, g.oy + g.dhc]);
-  const par = glCanvas.parentElement.getBoundingClientRect();
-  if (bx) {
-    P.x += bx.d / g.dwc * 100;
-    if (xfGuideV) { xfGuideV.style.left = (bx.at - par.left) + 'px'; xfGuideV.style.display = ''; }
-  }
-  if (by) {
-    P.y += by.d / g.dhc * 100;
-    if (xfGuideH) { xfGuideH.style.top = (by.at - par.top) + 'px'; xfGuideH.style.display = ''; }
-  }
-}
 function updateXformOverlay(res) {
   const pn = previewNode();
-  const sel = pn && pn.type === 'layers' && pn.id === previewId && pn.ui.layerSel != null ? pn.ui.layerSel : null;
-  const L = sel != null ? linkTo(pn.id, sel) : null;
-  const lr = L && res ? evalSource(L) : null;
-  if (!lr && !(pn && res && pn.id === previewId && pn.type !== 'audio')) { if (xfOv) xfOv.style.display = 'none'; return; }
+  if (!(pn && res && pn.id === previewId && pn.type !== 'audio')) { if (xfOv) xfOv.style.display = 'none'; return; }
   ensureXfOv();
   xfOv.style.display = '';
   const cv = glCanvas.getBoundingClientRect(), par = glCanvas.parentElement.getBoundingClientRect();
@@ -25269,26 +24388,6 @@ function updateXformOverlay(res) {
   const dwc = res.w * s, dhc = res.h * s;
   const ox = cv.left + cv.width / 2 + pv.panX - dwc / 2, oy = cv.top + cv.height / 2 + pv.panY - dhc / 2;
   if (xfLockBtn) xfLockBtn.style.display = 'none';
-  if (lr) {
-    const P = layerList(pn)[sel];
-    const cx = ox + P.x / 100 * dwc, cy = oy + P.y / 100 * dhc;
-    const lwR = (lr.fw || lr.w) / (res.fw || res.w) * res.w, lhR = (lr.fh || lr.h) / (res.fh || res.h) * res.h;   // 2.9.52: layer size already in the preview space (full fraction)
-    // the frame hugs the visible pixels (alpha > 0), not the whole source image
-    const bb = layerVisibleBox(lr);
-    const kR = lwR / lr.w, khR = lhR / lr.h;                    // preview px per source px
-    const bw = bb.w * kR, bh = bb.h * khR;
-    const scY = Number(P.sy == null ? P.scale : P.sy);
-    const w = bw * Number(P.scale) / 100 * s, h = bh * scY / 100 * s;
-    const gl0 = { offX0: (bb.x + bb.w / 2 - lr.w / 2) * kR, offY0: (bb.y + bb.h / 2 - lr.h / 2) * khR, s, rot: Number(P.rotation) || 0 };
-    const off = layerCenterOffset(gl0, P.scale, scY);
-    const fcx = cx + off.x, fcy = cy + off.y;                   // centre of the visible box (the layer centre is P.x/P.y)
-    Object.assign(xfFrame.style, {
-      left: (fcx - w / 2 - par.left) + 'px', top: (fcy - h / 2 - par.top) + 'px',
-      width: w + 'px', height: h + 'px', transform: `rotate(${P.rotation}deg)`,
-    });
-    xfFrame._geo = { mode: 'layer', cx: fcx, cy: fcy, px: cx, py: cy, rx: off.x, ry: off.y, dwc, dhc, node: pn.id, layer: sel, w, h, ox, oy, s, lw: bw, lh: bh, rot: gl0.rot, offX0: gl0.offX0, offY0: gl0.offY0 };
-    return;
-  }
   // 2.9.45: any other node in preview — the frame edits the node's transform
   const tf = pn.tf || tlNewTf();
   const sca = Number(tf.sca) || 1, scay = tf['sca.y'] == null ? sca : (Number(tf['sca.y']) || sca);
@@ -25316,12 +24415,10 @@ function onXfDown(e) {
   const mode = (e.target.closest('[data-mode]') || xfFrame).dataset.mode;
   e.preventDefault(); e.stopPropagation();
   xfFrame.setPointerCapture(e.pointerId);
-  const P = g.mode === 'layer' ? layerList(pn)[g.layer] : null;
   const tf = pn.tf || tlNewTf();
   const sca0 = Number(tf.sca) || 1;
   xfDrag = {
-    mode, pn, P, g, sx: e.clientX, sy: e.clientY,
-    x0: P ? P.x : 0, y0: P ? P.y : 0, s0: P ? P.scale : 1, r0: P ? P.rotation : 0,
+    mode, pn, g, sx: e.clientX, sy: e.clientY,
     tf0: {
       lx: Number(tf['loc.x']) || 0, ly: Number(tf['loc.y']) || 0,
       sca: sca0, scay: tf['sca.y'] == null ? sca0 : (Number(tf['sca.y']) || sca0),
@@ -25332,7 +24429,7 @@ function onXfDown(e) {
   };
   if (mode === 'scale') {
     // o canto oposto vira a âncora; o canto arrastado segue o ponteiro
-    // (g.rot is the CSS rotation on screen: layer = rotation; node = -rot.z)
+    // (g.rot is the CSS rotation on screen: -rot.z)
     const corner = (e.target.closest('[data-corner]') || {}).dataset ? e.target.closest('[data-corner]').dataset.corner : 'se';
     const th = (g.rot || 0) * Math.PI / 180, cos = Math.cos(th), sin = Math.sin(th);
     const sxn = corner.includes('e') ? 1 : -1, syn = corner.includes('s') ? 1 : -1;
@@ -25344,31 +24441,24 @@ function onXfDown(e) {
 function onXfMove(e) {
   const d = xfDrag;
   if (!d) return;
-  const { P, g } = d;
-  const node = g.mode === 'node';
+  const { g } = d;
   const clampLoc = v => Math.min(12000, Math.max(-12000, v));
   if (d.mode === 'move') {
-    if (node) {
-      xfTfSet(d.pn, 'loc.x', clampLoc(d.tf0.lx + (e.clientX - d.sx) / (g.s * (g.tfKx || 1))));
-      xfTfSet(d.pn, 'loc.y', clampLoc(d.tf0.ly - (e.clientY - d.sy) / (g.s * (g.tfKy || 1))));
-    } else {
-      P.x = Math.min(300, Math.max(-200, d.x0 + (e.clientX - d.sx) / g.dwc * 100));
-      P.y = Math.min(300, Math.max(-200, d.y0 + (e.clientY - d.sy) / g.dhc * 100));
-      layerSnap(P, g);
-    }
+    xfTfSet(d.pn, 'loc.x', clampLoc(d.tf0.lx + (e.clientX - d.sx) / (g.s * (g.tfKx || 1))));
+    xfTfSet(d.pn, 'loc.y', clampLoc(d.tf0.ly - (e.clientY - d.sy) / (g.s * (g.tfKy || 1))));
   } else if (d.mode === 'scale') {
     // pointer in the anchor's frame, on the (rotated) axes of the element
     const dx = e.clientX - d.anc.x, dy = e.clientY - d.anc.y;
     let lx = (dx * d.cos + dy * d.sin) * d.sxn;
     let ly = (-dx * d.sin + dy * d.cos) * d.syn;
-    const lock = node ? (d.pn.xfLock || e.shiftKey) : (P.lock || e.shiftKey);
+    const lock = d.pn.xfLock || e.shiftKey;
     if (lock) {          // proportional: projects along the corner's direction
       const f = (lx * d.w0 + ly * d.h0) / (d.w0 * d.w0 + d.h0 * d.h0 || 1);
       lx = d.w0 * f; ly = d.h0 * f;
     }
     // the centre moves half of what the corner moved (anchor still)
     const cxl = () => d.sxn * (lx - d.w0) / 2, cyl = () => d.syn * (ly - d.h0) / 2;
-    if (node) {
+    {
       const cs = v => Math.min(20, Math.max(0.05, v));
       const sca = cs(lx / g.dwc), scay = cs(ly / g.dhc);
       lx = sca * g.dwc; ly = scay * g.dhc;
@@ -25377,22 +24467,13 @@ function onXfMove(e) {
       xfTfSet(d.pn, 'sca.y', Math.round(scay * 1000) / 1000);
       xfTfSet(d.pn, 'loc.x', clampLoc((ncx - (g.ox + g.dwc / 2)) / (g.s * (g.tfKx || 1))));
       xfTfSet(d.pn, 'loc.y', clampLoc(-(ncy - (g.oy + g.dhc / 2)) / (g.s * (g.tfKy || 1))));
-    } else {
-      const clampS = v => Math.min(400, Math.max(5, v));
-      P.scale = clampS(lx / (g.lw * g.s) * 100);
-      P.sy = clampS(ly / (g.lh * g.s) * 100);
-      lx = P.scale / 100 * (g.lw * g.s); ly = P.sy / 100 * (g.lh * g.s);
-      const ncx = g.cx + cxl() * d.cos - cyl() * d.sin, ncy = g.cy + cxl() * d.sin + cyl() * d.cos;
-      const off = layerCenterOffset(g, P.scale, P.sy);
-      P.x = Math.min(300, Math.max(-200, ((ncx - off.x) - g.ox) / g.dwc * 100));
-      P.y = Math.min(300, Math.max(-200, ((ncy - off.y) - g.oy) / g.dhc * 100));
     }
   } else if (d.mode === 'rotate') {
     const a = Math.atan2(e.clientY - (g.py ?? g.cy), e.clientX - (g.px ?? g.cx));
     const dd = (a - d.a0) * 180 / Math.PI;
-    let r = (((((node ? d.tf0.rot - dd : d.r0 + dd) + 180) % 360) + 360) % 360) - 180;
+    let r = (((((d.tf0.rot - dd) + 180) % 360) + 360) % 360) - 180;
     r = Math.round(r * 10) / 10;
-    if (node) xfTfSet(d.pn, 'rot.z', r); else P.rotation = r;
+    xfTfSet(d.pn, 'rot.z', r);
   }
   markDirty(d.pn.id);
   requestRender();
@@ -25400,8 +24481,6 @@ function onXfMove(e) {
 function onXfUp() {
   if (!xfDrag) return;
   xfDrag = null;
-  if (xfGuideV) xfGuideV.style.display = 'none';
-  if (xfGuideH) xfGuideH.style.display = 'none';
   commit();
 }
 
@@ -25863,77 +24942,34 @@ function blurAplicaVis(raiz, params) {
   raiz.querySelectorAll('[data-pkey]').forEach(el => { el.style.display = vis.has(el.dataset.pkey) ? '' : 'none'; });
 }
 
-/* 3.7.1 — nó Note: a anotação agora é um nó (anda, duplica, apaga e salva como
-   qualquer outro). O corpo é o texto, com cor, tamanho e opacidade no próprio nó. */
-function makeNoteControl(n, p) {
-  if (n.params.color == null) n.params.color = ANN_CORES[0];
-  if (n.params.fs == null) n.params.fs = 14;
-  if (n.params.alpha == null) n.params.alpha = 100;
-  const wrap = E('div', 'note-wrap');
-  const ta = document.createElement('textarea');
-  ta.className = 'note-txt';
-  ta.spellcheck = false;
-  ta.value = String(n.params[p.key] ?? '');
-  ta.addEventListener('pointerdown', e => { e.stopPropagation(); selectFromControl(n); });
-  ta.addEventListener('keydown', e => e.stopPropagation());
-  ta.addEventListener('input', () => { n.params[p.key] = ta.value; marca(); });
-  ta.addEventListener('change', () => commit());
-  const linha = E('div', 'note-row');
-  const marcas = E('div', 'note-sw');
-  /* o elemento do nó só é ligado no fim do buildNodeEl: resolve na hora de pintar */
-  const alvo = () => n.el || document.querySelector('.node[data-id="' + n.id + '"]');
-  const pinta = () => {
-    const host = alvo();
-    const c = hexToRgb(n.params.color);
-    const a = Math.min(1, Math.max(0.1, Number(n.params.alpha) / 100));
-    if (host) {
-      host.classList.add('note-node');
-      host.style.borderColor = n.params.color;
-      host.style.background = `rgba(${c[0]},${c[1]},${c[2]},${(0.08 + 0.2 * a).toFixed(3)})`;
-    }
-    ta.style.fontSize = Math.max(10, Math.min(34, Number(n.params.fs) || 14)) + 'px';
-    ta.style.opacity = String(a);
-    for (const b of marcas.children) b.classList.toggle('on', b.dataset.c === n.params.color);
-    marca();
-  };
-  const marca = () => { markDirty(n.id); requestRender(); };
-  for (const c of ANN_CORES) {
-    const b = E('button', 'ann-sw');
-    b.type = 'button';
-    b.dataset.c = c;
-    b.style.background = c;
-    b.title = 'Note color ' + c;
-    b.addEventListener('click', e => {
-      e.stopPropagation();
-      n.params.color = c;
-      annCor = c;
-      pinta(); commit();
-    });
-    marcas.append(b);
-  }
-  const campo = (rotulo, min, max, chave, sufixo) => {
-    const l = E('label', 'note-fld');
-    const r = document.createElement('input');
-    r.type = 'range';
-    r.min = String(min); r.max = String(max); r.step = '1';
-    r.value = String(n.params[chave]);
-    r.title = rotulo;
-    r.addEventListener('pointerdown', e => e.stopPropagation());
-    r.addEventListener('input', () => { n.params[chave] = Number(r.value); pinta(); });
-    r.addEventListener('change', () => commit());
-    l.append(E('span', null, rotulo), r);
-    return l;
-  };
-  linha.append(marcas, campo('Size', 10, 34, 'fs'), campo('Opacity', 10, 100, 'alpha'));
-  wrap.append(ta, linha);
-  n.ui.noteLook = pinta;
-  pinta();                                     // ainda sem elemento: só valida os params
-  if (typeof requestAnimationFrame === 'function') requestAnimationFrame(pinta);
-  return wrap;
+/* 3.8.0 — seção recolhível do nó (Input maps / Vector control / Advanced / Mask).
+   O cabeçalho é um botão; o estado fica no localStorage para o painel abrir como o usuário deixou. */
+function buildSection(body, p) {
+  const box = E('div', 'ctl-sec');
+  const b = E('button', 'ctl-sec-h', '▾ ' + p.label);
+  b.type = 'button';
+  if (p.tip) b.title = p.tip;
+  const conteudo = E('div', 'ctl-sec-b');
+  const chave = 'node-image-editor:sec:' + (p.key || p.label);
+  const marca = fechada => { b.textContent = (fechada ? '▸ ' : '▾ ') + p.label; box.classList.toggle('fold', fechada); };
+  b.addEventListener('pointerdown', e => e.stopPropagation());
+  b.addEventListener('click', e => {
+    e.stopPropagation();
+    const fechada = !box.classList.contains('fold');
+    marca(fechada);
+    try { localStorage.setItem(chave, fechada ? '1' : '0'); } catch (_) {}
+  });
+  let gravado = null;
+  try { gravado = localStorage.getItem(chave); } catch (_) {}
+  if (gravado === '1') marca(true);
+  box.append(b, conteudo);
+  body.append(box);
+  return { box, body: conteudo };
 }
-
 function buildControls(n, body) {
+  let destino = body;                          // 3.8.0: seção recolhível corrente
   for (const p of NODE_TYPES[n.type].params) {
+    if (p.type === 'sec') { destino = buildSection(body, p).body; continue; }
     if (p.hidden) continue;                      // 3.5.0: este controle é montado pelo painel do nó
     let el = null;
     if (p.type === 'num') el = makeSlider(n, p, true);
@@ -25941,18 +24977,16 @@ function buildControls(n, body) {
     else if (p.type === 'color') el = makeColor(n, p);
     else if (p.type === 'paint') el = makePaintControl(n);
     else if (p.type === 'text') el = makeText(n, p);
-    else if (p.type === 'note') el = makeNoteControl(n, p);
     else if (p.type === 'blocos') el = makeTextBlocks(n, p);
     else if (p.type === 'file') el = makeFile(n, p);
     else if (p.type === 'lock') el = makeLock(n, p);
     else if (p.type === 'font') el = makeFont(n, p);
     else if (p.type === 'stack') el = makeStackControl(n);
-    else if (p.type === 'layers') el = makeLayersControl(n);
     else if (p.type === 'info') el = makeInfoLine(n, p);
     else if (p.type === 'gpins') el = makeGradientPins(n);
     else if (p.type === 'pview') el = makePerspView(n);
     else if (p.type === 'button') el = makeActionButton(n, p);
-    if (el) { el.dataset.pkey = p.key; body.append(el); }
+    if (el) { el.dataset.pkey = p.key; destino.append(el); }
   }
   if (n.type === 'glassStudio') {
     const note = E('div', 'glass-tex-note');
@@ -27778,7 +26812,6 @@ function startLinkDrag(sock, e) {
           const d2 = NODE_TYPES[alvo.type];
           const ordem = nodeInputs(alvo).map((_, i) => i).sort((a, b) => (b === d2.preferIn) - (a === d2.preferIn));
           let livre = ordem.find(i => isMultiIn(alvo.id, i) || !linkTo(alvo.id, i));
-          if (livre == null && alvo.type === 'layers') livre = addLayer(alvo);
           if (livre == null && alvo.type === 'perspectiveWarp') livre = perspAddSocket(alvo);
           if (livre != null && livre >= 0) connect(outId, alvo.id, livre, outIdx);
         } else if (inId != null && alvo.type !== 'output') {
@@ -27999,347 +27032,6 @@ function openGroupMenuCenter() {
   const r = viewEl.getBoundingClientRect();
   showGroupMenu(r.left + r.width / 2 - 120, r.top + r.height / 3);
 }
-/* =========================================================
-   3.7.1 — Anotações
-   Duas formas, escolhidas pelo usuário:
-   · o NÓ Note (tipo 'note'): texto, cor, tamanho e opacidade, com toda a
-     mecânica de nó (arrastar, duplicar, apagar, agrupar, salvar, undo);
-   · a CANETA: tinta livre sobre o grafo, desenhada em coordenadas do mundo
-     (#annPen) e salva junto com o projeto.
-   As anotações flutuantes da 3.7.0 são migradas para nós Note ao carregar.
-   ========================================================= */
-const NS_SVG = 'http://www.w3.org/2000/svg';
-const ANN_CORES = ['#ffd640', '#6ea8ff', '#7ee787', '#ff8ab3', '#c792ea', '#ffa657'];
-let annots = [];          // só a tinta da caneta
-let annSeq = 1;
-let annSel = new Set();   // traços selecionados
-let annPenOn = false;
-let annCor = ANN_CORES[0];
-let annAt = null;
-
-function annById(id) { return annots.find(a => a.id === id) || null; }
-function annPenLayer() {
-  let l = document.getElementById('annPen');
-  if (!l) { l = document.createElementNS(NS_SVG, 'svg'); l.id = 'annPen'; worldEl.append(l); }
-  return l;
-}
-function annCentro() {
-  const r = viewEl.getBoundingClientRect();
-  return screenToWorld(r.left + r.width / 2, r.top + r.height / 2);
-}
-function annNovoTraco(x, y) {
-  const a = { id: 'an' + (annSeq++), kind: 'pen', x: Math.round(x), y: Math.round(y), pts: [Math.round(x), Math.round(y)], color: annCor, lw: 3, alpha: 100 };
-  annots.push(a);
-  return a;
-}
-function annPathDe(pts) {
-  if (!pts || pts.length < 4) return '';
-  let d = 'M' + pts[0] + ' ' + pts[1];
-  for (let i = 2; i < pts.length; i += 2) d += 'L' + pts[i] + ' ' + pts[i + 1];
-  return d;
-}
-function annStrokePath(svg, a) {
-  const d = annPathDe(a.pts);
-  for (const p of svg.querySelectorAll('path')) p.setAttribute('d', d);
-  const vis = svg.querySelector('.ann-stroke');
-  if (vis) {
-    vis.style.stroke = a.color;
-    vis.style.strokeWidth = a.lw + 'px';
-    vis.style.opacity = String(Math.max(0.1, (a.alpha == null ? 100 : a.alpha) / 100));
-  }
-  svg.classList.toggle('sel', annSel.has(a.id));
-}
-function annStrokeEl(a) {
-  const svg = document.createElementNS(NS_SVG, 'svg');
-  svg.setAttribute('class', 'ann-pen');
-  svg.dataset.ann = a.id;
-  const vis = document.createElementNS(NS_SVG, 'path');
-  vis.setAttribute('class', 'ann-stroke');
-  const hit = document.createElementNS(NS_SVG, 'path');
-  hit.setAttribute('class', 'ann-penhit');
-  hit.style.strokeWidth = Math.max(14, a.lw * 3) + 'px';
-  svg.append(vis, hit);
-  annStrokePath(svg, a);
-  svg.addEventListener('pointerdown', e => annPega(e, a, svg));
-  return svg;
-}
-function annRender() {
-  const pen = annPenLayer();
-  for (const el of [...pen.children]) el.remove();
-  for (const a of annots) pen.append(annStrokeEl(a));
-  annBarSync();
-}
-function annUpdate() {
-  for (const a of annots) {
-    const el = document.querySelector('[data-ann="' + a.id + '"]');
-    if (el) annStrokePath(el, a);
-  }
-}
-function annSelVisual() {
-  for (const a of annots) {
-    const el = document.querySelector('[data-ann="' + a.id + '"]');
-    if (el) el.classList.toggle('sel', annSel.has(a.id));
-  }
-  annBarSync();
-}
-function annPega(e, a, el) {
-  if (e.button !== 0) return;
-  e.stopPropagation();
-  if (!annSel.has(a.id)) {
-    if (!e.shiftKey) annSel.clear();
-    annSel.add(a.id);
-  } else if (e.shiftKey) {
-    annSel.delete(a.id);
-  }
-  annSelVisual();
-  if (!annSel.has(a.id)) return;
-  const ids = [...annSel].filter(id => annById(id));
-  const ini = new Map(ids.map(id => { const A = annById(id); return [id, A.pts.slice()]; }));
-  const x0 = e.clientX, y0 = e.clientY;
-  try { el.setPointerCapture(e.pointerId); } catch (_) {}
-  const move = ev => {
-    const dx = Math.round((ev.clientX - x0) / view.zoom), dy = Math.round((ev.clientY - y0) / view.zoom);
-    for (const [id, pts0] of ini) {
-      const A = annById(id);
-      if (!A) continue;
-      A.x = A.x;                                  // x/y do traço são só informativos
-      for (let i = 0; i < pts0.length; i += 2) { A.pts[i] = pts0[i] + dx; A.pts[i + 1] = pts0[i + 1] + dy; }
-    }
-    annUpdate();
-  };
-  const up = () => {
-    window.removeEventListener('pointermove', move);
-    window.removeEventListener('pointerup', up);
-    window.removeEventListener('pointercancel', up);
-    commit();
-  };
-  /* o gesto mora na window: nada que o editor redesenhe no meio consegue matá-lo */
-  window.addEventListener('pointermove', move);
-  window.addEventListener('pointerup', up);
-  window.addEventListener('pointercancel', up);
-}
-function annSetPen(on) {
-  annPenOn = !!on;
-  viewEl.classList.toggle('ann-draw', annPenOn);
-  const b = document.getElementById('annPenBtn');
-  if (b) b.classList.toggle('on', annPenOn);
-  if (annPenOn) annBarToggle(true);
-  setStatus(annPenOn ? 'Pen on: drag on the graph to draw. Esc to stop.' : 'Pen off.');
-}
-function annPenBaixo(e) {
-  if (!annPenOn || e.button !== 0) return;
-  if (e.target.closest('[data-ann]')) return;     // clicar num traço existente seleciona/arrasta
-  e.preventDefault();
-  e.stopPropagation();
-  const w = screenToWorld(e.clientX, e.clientY);
-  const a = annNovoTraco(w.x, w.y);
-  annSel = new Set([a.id]);
-  annRender();
-  let last = w;
-  const move = ev => {
-    const q = screenToWorld(ev.clientX, ev.clientY);
-    if (Math.abs(q.x - last.x) + Math.abs(q.y - last.y) < 1.5) return;
-    a.pts.push(Math.round(q.x), Math.round(q.y));
-    last = q;
-    const svg = document.querySelector('[data-ann="' + a.id + '"]');
-    if (svg) annStrokePath(svg, a);
-  };
-  const up = () => {
-    viewEl.removeEventListener('pointermove', move);
-    viewEl.removeEventListener('pointerup', up);
-    viewEl.removeEventListener('pointercancel', up);
-    annRender(); commit();
-  };
-  viewEl.addEventListener('pointermove', move);
-  viewEl.addEventListener('pointerup', up);
-  viewEl.addEventListener('pointercancel', up);
-}
-/* ---- o nó Note ---- */
-function annNota(at) {
-  const c = at || annCentro();
-  const n = createNode('note', Math.round(c.x - 110), Math.round(c.y - 60));
-  n.params.color = annCor;
-  if (n.ui && n.ui.noteLook) n.ui.noteLook();
-  selected.clear();
-  selected.add(n.id);
-  refreshSelection();
-  markDirty(n.id); requestRender(); commit();
-  annBarToggle(true);
-  setStatus('Note node created — edit the text right on the node.');
-  return n;
-}
-function annNotaEm() {
-  const c = annAt || annCentro();
-  annAt = null;
-  return annNota({ x: c.x + 40, y: c.y + 30 });
-}
-function annEstilo(patch) {
-  if (patch.color) annCor = patch.color;
-  let mudou = false;
-  for (const id of selected) {
-    const n = nodes.get(id);
-    if (!n || n.type !== 'note') continue;
-    if (patch.color) n.params.color = patch.color;
-    if (patch.fs != null) n.params.fs = patch.fs;
-    if (patch.alpha != null) n.params.alpha = patch.alpha;
-    if (n.ui && n.ui.noteLook) n.ui.noteLook();
-    mudou = true;
-  }
-  for (const a of annots) {
-    if (!annSel.has(a.id)) continue;
-    if (patch.color) a.color = patch.color;
-    if (patch.alpha != null) a.alpha = patch.alpha;
-    mudou = true;
-  }
-  if (mudou) { annUpdate(); commit(); }
-  annBarSync();
-}
-function annApagaSel() {
-  if (!annSel.size) return;
-  annots = annots.filter(a => !annSel.has(a.id));
-  annSel.clear();
-  annRender(); commit();
-}
-function annDuplicaSel() {
-  if (!annSel.size) return;
-  const novos = [];
-  for (const id of [...annSel]) {
-    const a = annById(id);
-    if (!a) continue;
-    const c = JSON.parse(JSON.stringify(a));
-    c.id = 'an' + (annSeq++);
-    for (let i = 0; i < c.pts.length; i += 2) { c.pts[i] += 28; c.pts[i + 1] += 28; }
-    annots.push(c);
-    novos.push(c.id);
-  }
-  annSel = new Set(novos);
-  annRender(); commit();
-}
-function annBarSync() {
-  const bar = document.getElementById('annBar');
-  if (!bar || bar.hidden) return;
-  let nota = null;
-  for (const id of selected) {
-    const n = nodes.get(id);
-    if (n && n.type === 'note') nota = n;
-  }
-  const tinta = [...annSel].map(annById).filter(Boolean).pop() || null;
-  const cor = nota ? nota.params.color : (tinta ? tinta.color : annCor);
-  for (const b of bar.querySelectorAll('.ann-sw')) b.classList.toggle('on', b.dataset.c === cor);
-  const fs = document.getElementById('annFs'), op = document.getElementById('annOp');
-  if (fs) fs.value = String(nota ? nota.params.fs : 14);
-  if (op) op.value = String(nota ? nota.params.alpha : (tinta && tinta.alpha != null ? tinta.alpha : 100));
-}
-function annBarToggle(on) {
-  const bar = document.getElementById('annBar');
-  if (!bar) return;
-  bar.hidden = on === undefined ? !bar.hidden : !on;
-  annBarSync();
-}
-function annSerialize() {
-  return annots.map(a => ({ id: a.id, kind: 'pen', x: a.x, y: a.y, color: a.color, lw: a.lw, alpha: a.alpha, pts: a.pts.slice() }));
-}
-/* migração: as notas/molduras flutuantes da 3.7.0 viram nós Note */
-function annLegado(d) {
-  const texto = d.kind === 'frame' ? String(d.title || 'Frame') : String(d.text || '');
-  const n = createNode('note', +d.x || 0, +d.y || 0, {
-    params: { text: texto, color: /^#[0-9a-fA-F]{6}$/.test(String(d.color || '')) ? d.color : ANN_CORES[0], fs: Math.min(34, Math.max(10, +d.fs || 14)), alpha: Math.min(100, Math.max(10, +d.alpha || 100)) },
-  });
-  if (n.ui && n.ui.noteLook) n.ui.noteLook();
-  markDirty(n.id);
-}
-function annLoad(list) {
-  annots = [];
-  annSel = new Set();
-  annSeq = 1;
-  for (const d of Array.isArray(list) ? list : []) {
-    if (!d) continue;
-    if (d.kind === 'pen') {
-      const a = annNovoTraco(+d.x || 0, +d.y || 0);
-      a.color = /^#[0-9a-fA-F]{6}$/.test(String(d.color || '')) ? d.color : ANN_CORES[0];
-      a.lw = Math.min(16, Math.max(1, +d.lw || 3));
-      a.alpha = Math.min(100, Math.max(10, +d.alpha || 100));
-      a.pts = Array.isArray(d.pts) && d.pts.length >= 4 ? d.pts.map(Number).filter(n => isFinite(n)) : a.pts;
-      if (typeof d.id === 'string' && /^an\d+$/.test(d.id)) {
-        a.id = d.id;
-        annSeq = Math.max(annSeq, parseInt(d.id.slice(2), 10) + 1);
-      }
-      continue;
-    }
-    annLegado(d);          // nota/moldura da 3.7.0: virou nó Note
-  }
-  annRender();
-}
-{
-  const btn = document.getElementById('btnAnnot');
-  if (btn) btn.addEventListener('click', e => { e.stopPropagation(); annBarToggle(); });
-  const fechar = document.getElementById('annClose');
-  if (fechar) {
-    fechar.addEventListener('click', () => annBarToggle(false));
-    fechar.addEventListener('keydown', e => {
-      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); annBarToggle(false); }
-    });
-  }
-  const bNota = document.getElementById('annNote');
-  if (bNota) bNota.addEventListener('click', () => annNota());
-  const bGrupo = document.getElementById('annWrap');
-  if (bGrupo) bGrupo.addEventListener('click', () => groupSelected());
-  const bCaneta = document.getElementById('annPenBtn');
-  if (bCaneta) bCaneta.addEventListener('click', () => annSetPen(!annPenOn));
-  const bDup = document.getElementById('annDup');
-  if (bDup) bDup.addEventListener('click', annDuplicaSel);
-  const bDel = document.getElementById('annDel');
-  if (bDel) bDel.addEventListener('click', annApagaSel);
-  const sw = document.getElementById('annSwatches');
-  if (sw) {
-    for (const c of ANN_CORES) {
-      const b = E('button', 'ann-sw');
-      b.type = 'button';
-      b.dataset.c = c;
-      b.title = 'Note / ink color ' + c;
-      b.style.background = c;
-      b.addEventListener('click', () => annEstilo({ color: c }));
-      sw.append(b);
-    }
-  }
-  const fs = document.getElementById('annFs');
-  if (fs) fs.addEventListener('input', () => annEstilo({ fs: Number(fs.value) }));
-  const op = document.getElementById('annOp');
-  if (op) op.addEventListener('input', () => annEstilo({ alpha: Number(op.value) }));
-
-  /* a caneta precisa do pointerdown antes do resto (pan/seleção não podem roubar) */
-  viewEl.addEventListener('pointerdown', annPenBaixo, { capture: true });
-  viewEl.addEventListener('pointerdown', e => {
-    if (e.button !== 0 || !annSel.size) return;
-    if (e.target.closest('[data-ann]')) return;
-    annSel.clear();
-    annSelVisual();
-  });
-  document.addEventListener('keydown', e => {
-    const alvo = e.target;
-    if (alvo && (alvo.isContentEditable || /^(INPUT|SELECT|TEXTAREA)$/.test(alvo.tagName || ''))) return;
-    if (e.key === 'Escape') {
-      if (annPenOn) { annSetPen(false); e.stopPropagation(); return; }
-      if (annSel.size) { annSel.clear(); annSelVisual(); }
-      return;
-    }
-    if (!annSel.size) return;
-    if (e.key === 'Delete' || e.key === 'Backspace') {
-      e.preventDefault(); e.stopPropagation(); annApagaSel(); return;
-    }
-    const passo = e.shiftKey ? 10 : 1;
-    const delta = { ArrowLeft: [-passo, 0], ArrowRight: [passo, 0], ArrowUp: [0, -passo], ArrowDown: [0, passo] }[e.key];
-    if (!delta || e.ctrlKey || e.metaKey) return;
-    e.preventDefault(); e.stopPropagation();
-    for (const a of annots) {
-      if (!annSel.has(a.id)) continue;
-      for (let i = 0; i < a.pts.length; i += 2) { a.pts[i] += delta[0]; a.pts[i + 1] += delta[1]; }
-    }
-    annUpdate(); commit();
-  }, true);
-  annRender();
-}
-
 function showGroupMenu(clientX, clientY) {
   const sel = [...selected].filter(id => nodes.has(id));
   const selGroups = groups.filter(g => g.members.some(id => selected.has(id)));
@@ -28376,11 +27068,6 @@ function showGroupMenu(clientX, clientY) {
   add('Duplicate', 'Ctrl+D', sel.length > 0, duplicateSelected);
   add('Delete nodes', 'Del', sel.length > 0, deleteSelected);
   grpMenu.append(E('div', 'grp-sep'));
-  add('Add note node here', 'N', true, () => annNotaEm());
-  add('Frame selection', 'Ctrl+G', sel.length >= 2, groupSelected);
-  add(annPenOn ? 'Pen: on' : 'Pen: draw', 'P', true, () => annSetPen(!annPenOn));
-  add('Annotation panel', 'Annotate', true, () => annBarToggle(true));
-  annAt = screenToWorld(clientX, clientY);
   const r = viewEl.getBoundingClientRect();
   grpMenu.hidden = false;
   grpMenu.style.left = clamp(clientX - r.left, 8, r.width - 248) + 'px';
@@ -31414,7 +30101,6 @@ function serialize() {
     previewId,
     tl: tlSerialize(),
     groups: groups.map(g => ({ id: g.id, title: g.title, color: g.color, members: g.members.slice(), collapsed: !!g.collapsed })),
-    annots: annSerialize(),
   });
 }
 
@@ -31505,7 +30191,6 @@ function restoreGraph(data) {
   selZip = null;
   bindZipTies();
   loadGroups(data.groups);
-  annLoad(data.annots);
   tlLoad(data.tl);
   for (const n of nodes.values()) n.dirty = true;
   drawLinks();
@@ -33691,9 +32376,6 @@ window.NodeEditor = {
   restoreGraph, undo, redo, loadImageFile, markDirty, requestRender,
   get previewId() { return previewId; }, set previewId(v) { previewId = v; requestRender(); },
   outputNode, linkTo, removeLink, exportResFull,
-  layerList, addLayer, duplicateLayer, removeLayer, moveLayer, swapLayers,
-  createClippingMask, releaseClippingMask, toggleClippingMask, syncClippingHierarchy,
-  composeLayerClipCanvas2D, renderLayerStackCanvas2D,
   get maskStore() { return maskStore; }, openMaskPainter, closeMaskPainter,
   get groups() { return groups; }, groupSelected, ungroupSelected,
   // Timeline (animation)
