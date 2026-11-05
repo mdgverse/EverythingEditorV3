@@ -89,4 +89,19 @@ console.log('layer stack · compositor de camadas');
   ok(/btn\('▲', 'Bring forward \(up in the stack\)'/.test(linha) && /btn\('▼', 'Send backward \(down in the stack\)'/.test(linha), 'setas sobem e descem a camada');
 }
 
+/* ---------- 6. achável na pesquisa de nós (3.7.1) ---------- */
+{
+  const def = extrai('  layers: {', '  text: {');
+  ok(/title: 'Layers \(Layer Comp\)'/.test(def), 'o nó se chama Layers (Layer Comp)');
+  ok(/kw: '[^']*layer comp/.test(def), 'as palavras-chave trazem "layer comp"');
+  for (const termo of ['camadas', 'stack', 'photoshop', 'after effects', 'blend', 'opacity', 'mask', 'clipping', 'grupo']) {
+    ok(new RegExp(termo).test(def), `busca por "${termo}" encontra o nó`);
+  }
+  ok(/function buscaCasa\(q, tipo, def, cat\)/.test(html), 'a busca é por palavras, não por trecho literal');
+  ok(/split\(\/\\s\+\/\).filter\(Boolean\).every\(p => alvo.includes\(p\)\)/.test(html),
+    'todas as palavras digitadas precisam casar (ex.: "layer comp")');
+  ok(/buscaCasa\(q, t, d, cat\)/.test(html), 'o menu de nós usa a busca nova');
+  ok(/buscaCasa\(q, t, d, null\)/.test(html), 'a galeria usa a mesma busca');
+}
+
 process.exit(resumo() ? 0 : 1);
