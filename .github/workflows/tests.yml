@@ -52,6 +52,8 @@ jobs:
         run: node tests/ramp-generator.test.mjs
       - name: Comunidade (carrossel da Home e coletor do feed)
         run: node tests/community.test.mjs
+      - name: Layers (position) — o stack de camadas restaurado
+        run: node tests/layerstack.test.mjs
       - name: Displacement v6 (heightmap, normal, vetor, borda, interpolação e ruído)
         run: node tests/displacement.test.mjs
       - name: Remoções 3.8.0 (Layer Comp e anotações fora, sem resíduo)
