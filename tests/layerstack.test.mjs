@@ -110,7 +110,8 @@ console.log('layer stack · compositor de camadas');
   ok(/split\(\/\\s\+\/\).filter\(Boolean\).every\(p => alvo.includes\(p\)\)/.test(html),
     'todas as palavras digitadas precisam casar (ex.: "layer comp")');
   ok(/buscaCasa\(q, t, d, cat\)/.test(html), 'o menu de nós usa a busca nova');
-  ok(/buscaCasa\(q, t, d, null\)/.test(html), 'a galeria usa a mesma busca');
+  ok(!/galFiltrados|galEstado/.test(html), 'a galeria (que também usava a busca) foi removida em 3.9.1');
+  ok(/renderAddList\(addSearch\.value\)/.test(html), 'o radial é quem consome a busca agora');
 }
 
 /* ---------- 7. restauração da 3.8.1: parâmetros intocados ---------- */

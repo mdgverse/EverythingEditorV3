@@ -40,13 +40,11 @@ jobs:
         run: node tests/perspective.test.mjs
       - name: Zoom mínimo (canvas, preview e máscara em 5%)
         run: node tests/zoom.test.mjs
-      - name: Add menu · Gallery (nós com amostra)
-        run: node tests/gallery.test.mjs
       - name: Nó Scribble (textura de pincel, deslocamento e dither)
         run: node tests/scribble.test.mjs
       - name: Layer mix (mesclagem no lugar, sem cópia da camada)
         run: node tests/layermix.test.mjs
-      - name: Screencast keys (interruptor abaixo do Node picker e overlay de entradas)
+      - name: Screencast keys (interruptor no menu da marca e overlay de entradas)
         run: node tests/screencast.test.mjs
       - name: Ramp generator (harmonias, HSV global, presets e import/export)
         run: node tests/ramp-generator.test.mjs
