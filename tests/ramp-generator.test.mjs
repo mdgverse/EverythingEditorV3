@@ -107,4 +107,25 @@ console.log('ramp generator');
   ok(/setStatus\('Ramp generated: ' \+ genModo\.options\[genModo\.selectedIndex\]\.textContent/.test(html), 'o status conta o que foi gerado');
 }
 
+/* ---------- 9. biblioteca de presets legível (3.8.2) ---------- */
+{
+  /* o painel é uma coluna flex (.mdlg-side): filho só com max-height ENCOLHE até
+     virar uma tirinha com scrollbar — era o que aparecia no print do usuário. */
+  ok(/rpPresetBox\.style\.cssText = 'flex:0 0 auto;min-height:120px;overflow-y:auto/.test(html),
+    'a caixa dos presets não encolhe no flex da coluna');
+  ok(/#rpPresets\{height:186px\}/.test(html), 'a caixa tem altura de verdade (186px)');
+  ok(/body\.mobile #rpPresets\{height:150px\}/.test(html), 'no APK a caixa é mais baixa para caber na folha');
+  ok(!/rpPresetBox\.style\.cssText = '[^']*max-height:190px/.test(html), 'o max-height que causava o espremido saiu');
+  ok(/grid-template-columns:repeat\(3,1fr\);grid-auto-rows:34px;gap:6px;align-content:start/.test(html),
+    'grade de 3 colunas com linhas de 34px (swatch de ~72×34)');
+  ok(/b\.style\.cssText = 'height:100%;min-height:34px;border-radius:6px/.test(html), 'o swatch preenche a linha da grade');
+  ok(/b\.className = 'rp-preset'/.test(html), 'o swatch ganhou classe para o estado de hover');
+  ok(/\.rp-preset:hover\{box-shadow:0 0 0 2px var\(--accent\)\}/.test(html), 'hover marca o preset (dá para ver o que vai clicar)');
+  ok(/\.rp-preset\{transition:box-shadow/.test(html), 'o anel aparece com transição curta (sem repintar o painel)');
+  ok(/custBox\.style\.cssText = 'flex:0 0 auto;display:flex;flex-wrap:wrap/.test(html), '"My ramps" também não encolhe');
+  /* conta o que cabe na tela: 186px - 12px de padding = 174px / 34px = 5 linhas × 3 = 15 presets por vez */
+  const altura = 186, pad = 12, linha = 34;
+  ok(Math.floor((altura - pad) / linha) === 5, 'cabem 5 linhas (15 presets) por tela, o resto rola', Math.floor((altura - pad) / linha));
+}
+
 process.exit(resumo() ? 0 : 1);
