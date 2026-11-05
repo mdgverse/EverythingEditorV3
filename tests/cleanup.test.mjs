@@ -1,36 +1,44 @@
-/* 3.8.0 — remoções pedidas pelo usuário:
-   · o nó "Layers (Layer Comp)" saiu (é o mesmo terreno do Layer mix / layer position)
-   · as anotações saíram inteiras (o nó Note não criava a notinha na prática)
-   Ficam: layer position/mix, Effect stack e Mix. Nada de nó fantasma, código
-   morto, CSS órfão, teste verde de mentira ou passo de CI sobrando. */
+/* 3.8.x — ajustes pedidos pelo usuário:
+   · "Layers (Layer Comp)" e "Layers (position)" eram o MESMO nó: sai só o nome
+     duplicado (Layer Comp), o nó volta como "Layers (position)" com os
+     parâmetros intocados;
+   · as anotações saíram inteiras (o nó Note não criava a notinha na prática).
+   Ficam: Layers (position), Layer mix, Effect stack e Mix — sem código morto,
+   CSS órfão, teste verde de mentira ou passo de CI sobrando. */
 import fs from 'node:fs';
 import { ok, resumo } from './kit.mjs';
 
 const html = fs.readFileSync(new URL('../index.html', import.meta.url), 'utf8');
 const ci = fs.readFileSync(new URL('../.github/workflows/tests.yml', import.meta.url), 'utf8');
 const arquivos = fs.readdirSync(new URL('../tests', import.meta.url));
+const defLayers = html.slice(html.indexOf('  layers: {'), html.indexOf('  text: {', html.indexOf('  layers: {')));
 
-console.log('3.8.0 · remoções do Layer Comp e das anotações');
+console.log('3.8.x · Layer Comp fora, Layers (position) de volta, anotações fora');
 
-/* ---------------------------------------------------- 1. o que sai */
+/* ---------------------------------------------------- 1. o nome "Layer Comp" não existe mais */
 {
-  ok(!/title: 'Layers \(Layer Comp\)'/.test(html), 'o nó Layer Comp não está mais no NODE_TYPES');
-  ok(!/^  layers: \{/m.test(html), 'a chave "layers" saiu do NODE_TYPES');
-  ok(!/RUN\.layers|  layers: \(n, ins\) =>/.test(html), 'o RUN do layer stack saiu');
+  ok(!/Layer Comp/.test(html), 'nenhuma ocorrência de "Layer Comp" na interface nem nos comentários');
+  ok(!/title: 'Layers \(Layer Comp\)'/.test(html), 'o título duplicado saiu do NODE_TYPES');
+  ok(/title: 'Layers \(position\)'/.test(defLayers), 'o nó se chama Layers (position)');
+}
+
+/* ---------------------------------------------------- 2. o nó voltou inteiro, com os mesmos parâmetros */
+{
+  ok(defLayers.includes("    params: [{ type: 'layers', key: 'layers', label: 'Layers', def: [] }],"),
+    'definição de parâmetros idêntica à da 3.7.1');
+  ok(/inputs: \['Layer 1', 'Layer 2', 'Layer 3', 'Layer 4', 'Layer 5', 'Layer 6'\]/.test(defLayers), 'os seis sockets de camada continuam');
   for (const f of ['makeLayersControl', 'runLayers', 'layerList', 'syncClippingHierarchy', 'defaultLayer',
     'addLayer', 'duplicateLayer', 'removeLayer', 'moveLayer', 'swapLayers', 'createClippingMask',
     'releaseClippingMask', 'toggleClippingMask', 'composeLayerClipCanvas2D', 'renderLayerStackCanvas2D',
-    'layerGroupDe', 'layerRowEl', 'layerBodyEl', 'layerSnap', 'layerCenterOffset', 'layerVisibleBox']) {
-    ok(!new RegExp('function ' + f + '\\(').test(html), `função ${f} removida`);
+    'layerGroupDe', 'layerRowEl', 'layerBodyEl']) {
+    ok(new RegExp('function ' + f + '\\(').test(html), `função ${f} restaurada`);
   }
-  ok(!/lyr-row|lyr-ctx-menu|lyr-group-head|lyr-grip|lyr-clip-ind|lyr-tools|lyr-count/.test(html), 'CSS e classes do layer stack saíram');
-  ok(!/Layer Comp/.test(html), 'nem o nome "Layer Comp" sobrou na interface');
-  ok(!/id="annBar"|id="btnAnnot"|id="annPen"|ann-pen|note-node|makeNoteControl/.test(html), 'painel, caneta e nó Note das anotações saíram');
-  ok(!/annSerialize|annLoad|annRender|annPega|ANN_CORES/.test(html), 'módulo de anotações removido inteiro');
-  ok(!/annots:/.test(html), 'o save não grava mais tinta de anotação');
+  ok(/var LAYER_INITIAL_COUNT = 6;/.test(html), 'LAYER_INITIAL_COUNT = 6, como antes');
+  ok(/\.lyr-row\{/.test(html) && /\.lyr-ctx-menu\{/.test(html), 'CSS do stack restaurado');
+  ok(/createClippingMask, releaseClippingMask, toggleClippingMask, syncClippingHierarchy,/.test(html), 'API de debug volta a expor o stack');
 }
 
-/* ---------------------------------------------------- 2. o que fica */
+/* ---------------------------------------------------- 3. o que os outros nós precisam continua */
 {
   const def = nome => {
     const i = html.indexOf('  ' + nome + ': {');
@@ -39,27 +47,23 @@ console.log('3.8.0 · remoções do Layer Comp e das anotações');
   ok(/title: 'Layer mix'/.test(def('layerMix')), 'Layer mix (position) continua');
   ok(/title: 'Effect stack'/.test(def('effectStack')), 'Effect stack continua');
   ok(/title: 'Mix'/.test(def('mix')), 'Mix continua');
-  ok(/runLayers|makeLayersControl/.test(html) === false, 'e o stack não deixou chamada pendurada');
   ok(/  layerMix: \(n, \[a\]\) =>/.test(html), 'o RUN do Layer mix segue intacto');
 }
 
-/* ---------------------------------------------------- 3. save antigo não quebra */
+/* ---------------------------------------------------- 4. anotações continuam fora */
 {
-  ok(/const dados = \{[\s\S]{0,400}?nodes:/.test(html) || /nodes: \[\.\.\.nodes\.values\(\)\]/.test(html), 'o save continua serializando os nós existentes');
-  ok(!/data\.layers|params\.layers/.test(html), 'nenhum restaurador procura a chave "layers"');
-  ok(!/type === 'layers'/.test(html) && !/type !== 'layers'/.test(html), 'nenhum caminho de código compara com o tipo removido');
-  ok(/removeLink\(l\) \{/.test(html), 'ligar/desligar fios não depende mais do stack');
-  ok(/if \(!NODE_TYPES\[nd\.type\]\) continue;/.test(html), 'projeto antigo com o nó removido abre: o nó é ignorado');
-  ok(/links = links\.filter\(l => nodes\.has\(l\.from\) && nodes\.has\(l\.to\)\);/.test(html), 'os fios que apontavam para ele caem junto');
-  ok(!/type === 'note'|'note'/.test(html), 'o tipo de nó das anotações também não é mais reconhecido');
+  ok(!/id="annBar"|id="btnAnnot"|id="annPen"|ann-pen|note-node|makeNoteControl/.test(html),
+    'painel, caneta e nó Note das anotações saíram');
+  ok(!/annSerialize|annLoad|annRender|annPega|ANN_CORES/.test(html), 'módulo de anotações removido inteiro');
+  ok(!/annots:/.test(html), 'o save não grava mais tinta de anotação');
+  ok(/if \(!NODE_TYPES\[nd\.type\]\) continue;/.test(html), 'projeto antigo com o nó Note abre: o nó é ignorado');
 }
 
-/* ---------------------------------------------------- 4. suíte e CI limpos */
+/* ---------------------------------------------------- 5. suíte e CI */
 {
-  ok(!arquivos.includes('layerstack.test.mjs'), 'tests/layerstack.test.mjs removido');
-  ok(!arquivos.includes('annotations.test.mjs'), 'tests/annotations.test.mjs removido');
-  ok(!/layerstack|annotations/.test(ci), 'o CI não roda mais essas suítes');
-  ok(arquivos.includes('displacement.test.mjs') && ci.includes('tests/displacement.test.mjs'), 'o teste novo do Displacement roda no CI');
+  ok(arquivos.includes('layerstack.test.mjs') && ci.includes('tests/layerstack.test.mjs'), 'o teste do stack voltou e roda no CI');
+  ok(!arquivos.includes('annotations.test.mjs') && !/annotations\.test/.test(ci), 'o teste das anotações não existe mais (nem no CI)');
+  ok(arquivos.includes('displacement.test.mjs') && ci.includes('tests/displacement.test.mjs'), 'o teste do Displacement roda no CI');
   ok(arquivos.includes('cleanup.test.mjs') && ci.includes('tests/cleanup.test.mjs'), 'este teste roda no CI');
 }
 
