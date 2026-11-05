@@ -48,14 +48,14 @@ jobs:
         run: node tests/layermix.test.mjs
       - name: Screencast keys (interruptor abaixo do Node picker e overlay de entradas)
         run: node tests/screencast.test.mjs
-      - name: Anotações do grafo (notas, molduras e caneta)
-        run: node tests/annotations.test.mjs
-      - name: Layer stack (grupos de camadas e máscara por camada)
-        run: node tests/layerstack.test.mjs
       - name: Ramp generator (harmonias, HSV global, presets e import/export)
         run: node tests/ramp-generator.test.mjs
       - name: Comunidade (carrossel da Home e coletor do feed)
         run: node tests/community.test.mjs
+      - name: Displacement v6 (heightmap, normal, vetor, borda, interpolação e ruído)
+        run: node tests/displacement.test.mjs
+      - name: Remoções 3.8.0 (Layer Comp e anotações fora, sem resíduo)
+        run: node tests/cleanup.test.mjs
       - name: Versão (VERSION = index.html = APK)
         run: node tests/version.test.mjs
       - name: Higiene (código morto, CSS sem uso, reference/ fora)
