@@ -437,7 +437,7 @@ html, body{overscroll-behavior:none;-webkit-tap-highlight-color:transparent}/* 1
 
 /* Versão do editor — o arquivo VERSION na raiz é a fonte da verdade
    (o build do APK usa o mesmo número no versionName e falha se divergir). */
-const APP_VERSION = '3.13.0';
+const APP_VERSION = '3.13.1';
 /* sem a telinha, a versão aparece no tooltip da marca (e o título da aba segue curto) */
 {
   const marca = document.getElementById('brandBtn');
@@ -9771,8 +9771,116 @@ function sprayPaletteUI(n, body) {
   redraw();
 }
 
+/* Conversão local: alpha é preferido quando existe transparência; para imagens
+   opacas, a borda determina se a tinta é mais escura ou mais clara que o fundo. */
+function sprayDetectMaskMode(pixels, w, h) {
+  for (let i = 3; i < pixels.length; i += 4) if (pixels[i] !== 255) return 'alpha';
+  let sum = 0, count = 0;
+  const sample = (x,y) => { const i=(y*w+x)*4; sum += pixels[i]*0.2126+pixels[i+1]*0.7152+pixels[i+2]*0.0722; count++; };
+  const stepX = Math.max(1, Math.floor(w/256)), stepY = Math.max(1, Math.floor(h/256));
+  for (let x=0; x<w; x+=stepX) { sample(x,0); if (h>1) sample(x,h-1); }
+  for (let y=0; y<h; y+=stepY) { sample(0,y); if (w>1) sample(w-1,y); }
+  return sum / count >= 128 ? 'dark' : 'light';
+}
+// Escreve branco opaco para a tinta e preto transparente para o fundo.
+function sprayBinaryChunk(pixels, start, end, threshold, mode, invert) {
+  for (let i=start; i<end; i+=4) {
+    const v = mode === 'alpha' ? pixels[i+3] : pixels[i]*0.2126+pixels[i+1]*0.7152+pixels[i+2]*0.0722;
+    let ink = mode === 'dark' ? v < threshold : v >= threshold;
+    if (invert) ink = !ink;
+    const c = ink ? 255 : 0;
+    pixels[i]=pixels[i+1]=pixels[i+2]=pixels[i+3]=c;
+  }
+}
+// Textura de trabalho menor para a GPU; o PNG salvo mantém a resolução original.
+function sprayUploadLocalMask(n, canvas) {
+  const small = document.createElement('canvas'); small.width=small.height=256;
+  const ctx=small.getContext('2d'); ctx.imageSmoothingEnabled=false;
+  const k=Math.min(256/canvas.width,256/canvas.height), w=Math.max(1,Math.round(canvas.width*k)), h=Math.max(1,Math.round(canvas.height*k));
+  ctx.drawImage(canvas, Math.floor((256-w)/2), Math.floor((256-h)/2), w, h);
+  const px=ctx.getImageData(0,0,256,256).data, atlas=new Uint8Array(1024*256*4);
+  for (let y=0;y<256;y++) for (let x=0;x<256;x++) {
+    const c=px[(y*256+x)*4+3] >= 128 ? 255 : 0;
+    for (let t=0;t<4;t++) { const k=(y*1024+t*256+x)*4; atlas[k]=atlas[k+1]=atlas[k+2]=c; atlas[k+3]=255; }
+  }
+  const texture=gl.createTexture();
+  if (!texture) throw new Error('Não foi possível criar a textura.');
+  gl.bindTexture(gl.TEXTURE_2D, texture);
+  gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MIN_FILTER,gl.NEAREST); gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MAG_FILTER,gl.NEAREST);
+  gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_S,gl.CLAMP_TO_EDGE); gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_T,gl.CLAMP_TO_EDGE);
+  gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,1024,256,0,gl.RGBA,gl.UNSIGNED_BYTE,atlas);
+  if (n.runtime.sprayLocalTex) gl.deleteTexture(n.runtime.sprayLocalTex);
+  n.runtime.sprayLocalTex=texture;
+}
+
+function sprayLocalMaskUI(n, body) {
+  const panel=E('div','spray-local-mask');
+  panel.style.cssText='border:1px solid var(--line3);border-radius:6px;padding:6px;display:flex;flex-direction:column;gap:6px';
+  panel.addEventListener('pointerdown',e=>e.stopPropagation()); panel.addEventListener('click',e=>e.stopPropagation());
+  const title=E('div','plbl','Máscara local · sem envio à internet');
+  const choose=E('button','stk-btn','Escolher imagens'); choose.type='button';
+  const input=document.createElement('input'); input.type='file'; input.accept='image/png,image/jpeg,image/webp'; input.multiple=true; input.style.display='none';
+  const status=E('div','plbl','Descompacte o ZIP e escolha PNG, JPG ou WebP.');
+  const nav=E('div'); nav.style.cssText='display:flex;gap:4px';
+  const previous=E('button','stk-btn','‹'); previous.type='button'; previous.setAttribute('aria-label','Imagem anterior');
+  const next=E('button','stk-btn','›'); next.type='button'; next.setAttribute('aria-label','Próxima imagem');
+  const name=E('div','plbl','Nenhuma imagem'); name.style.flex='1'; nav.append(previous,name,next);
+  const mode=document.createElement('select'); mode.className='psel'; mode.setAttribute('aria-label','Origem da máscara');
+  for(const [v,l] of [['auto','Automático'],['alpha','Transparência'],['dark','Tinta escura'],['light','Tinta clara']]) {const o=document.createElement('option');o.value=v;o.textContent=l;mode.append(o);}
+  const thresholdLabel=E('label','plbl','Limiar: 128'); const threshold=document.createElement('input'); threshold.type='range'; threshold.min='1';threshold.max='255';threshold.value='128';threshold.setAttribute('aria-label','Limiar da máscara');
+  const invLabel=E('label','plbl',' Inverter'); const invert=document.createElement('input');invert.type='checkbox';invLabel.prepend(invert);
+  const convert=E('button','stk-btn','Processar máscara');convert.type='button';
+  const preview=document.createElement('canvas'); preview.width=preview.height=128; preview.setAttribute('aria-label','Prévia da máscara'); preview.style.cssText='width:100%;height:80px;object-fit:contain;background:#222;border-radius:4px';
+  const actions=E('div'); actions.style.cssText='display:flex;gap:4px;flex-wrap:wrap';
+  const use=E('button','stk-btn','Usar no nó');use.type='button';
+  const save=E('button','stk-btn','Baixar PNG');save.type='button';
+  const clear=E('button','stk-btn','Usar máscaras internas');clear.type='button';
+  actions.append(use,save,clear); panel.append(title,choose,input,nav,status,mode,thresholdLabel,threshold,invLabel,convert,preview,actions);
+  body.insertBefore(panel, body.querySelector('.spray-palette').nextSibling);
+  let files=[], index=0, result=null, generation=0;
+  const update=()=>{ name.textContent=files.length ? `${index+1}/${files.length} · ${files[index].name}` : 'Nenhuma imagem'; previous.disabled=!files.length||index===0; next.disabled=!files.length||index===files.length-1; convert.disabled=!files.length; use.disabled=save.disabled=!result; };
+  const change=()=>{ generation++;result=null;preview.getContext('2d').clearRect(0,0,128,128);status.textContent='Escolha o limiar e processe a imagem.';update(); };
+  choose.addEventListener('click',()=>input.click()); input.addEventListener('change',()=>{files=Array.from(input.files||[]);index=0;input.value='';change();});
+  previous.addEventListener('click',()=>{if(index>0){index--;change();}}); next.addEventListener('click',()=>{if(index<files.length-1){index++;change();}});
+  threshold.addEventListener('input',()=>{thresholdLabel.textContent='Limiar: '+threshold.value;});
+  for(const el of [threshold,mode,invert]) el.addEventListener('change',()=>{generation++;result=null;status.textContent='Configuração alterada. Processe novamente.';update();});
+  convert.addEventListener('click', async()=>{
+    if(!files.length)return;
+    const current=files[index], run=++generation, limit=Number(threshold.value), isInverted=invert.checked, requestedMode=mode.value; result=null;update();convert.disabled=true;status.textContent='Processando localmente…';
+    let bitmap=null, url=null;
+    try {
+      if (current.size > 100*1024*1024) throw new Error('Arquivo excede 100 MB.');
+      if (typeof createImageBitmap === 'function') bitmap=await createImageBitmap(current);
+      else { url=URL.createObjectURL(current); bitmap=await new Promise((resolve,reject)=>{const img=new Image();img.onload=()=>resolve(img);img.onerror=()=>reject(new Error('Imagem inválida.'));img.src=url;}); }
+      const w=bitmap.width,h=bitmap.height;
+      if (!w||!h||w*h>25000000) throw new Error('Imagem inválida ou acima de 25 megapixels.');
+      const canvas=document.createElement('canvas');canvas.width=w;canvas.height=h;
+      const ctx=canvas.getContext('2d',{willReadFrequently:true}); if(!ctx)throw new Error('Canvas indisponível.');
+      ctx.drawImage(bitmap,0,0); if(bitmap.close){bitmap.close();bitmap=null;}
+      const image=ctx.getImageData(0,0,w,h), pixels=image.data;
+      const chosen=requestedMode==='auto' ? sprayDetectMaskMode(pixels,w,h) : requestedMode;
+      // Processa em blocos para que a UI continue responsiva.
+      for(let i=0;i<pixels.length;i+=4*250000){
+        if(run!==generation)return;
+        sprayBinaryChunk(pixels,i,Math.min(pixels.length,i+4*250000),limit,chosen,isInverted);
+        await new Promise(resolve=>setTimeout(resolve,0));
+      }
+      if(run!==generation || nodes.get(n.id)!==n)return;
+      ctx.putImageData(image,0,0);result={canvas,name:current.name};
+      const g=preview.getContext('2d');g.clearRect(0,0,128,128);g.imageSmoothingEnabled=false;g.drawImage(canvas,0,0,128,128);
+      status.textContent=`Pronta: ${w} × ${h} · ${chosen} · PNG binário`;update();
+    } catch(e) { if(run===generation){status.textContent='Erro: '+e.message;update();} }
+    finally {if(bitmap&&bitmap.close)bitmap.close();if(url)URL.revokeObjectURL(url);}
+  });
+  use.addEventListener('click',()=>{if(!result)return;try{sprayUploadLocalMask(n,result.canvas);if(!Number(n.params.density)){n.params.density=60;refreshNodeControls(n);commit();}markDirty(n.id);requestRender();status.textContent='Máscara aplicada só nesta sessão; salve o PNG para reutilizar.';}catch(e){status.textContent='Erro: '+e.message;}});
+  save.addEventListener('click',()=>{if(!result)return;const {canvas,name}=result;canvas.toBlob(blob=>{if(blob){downloadBlob(blob,name.replace(/\.[^.]+$/,'')+'-mask.png');setStatus('Máscara PNG salva.');}else setStatus('Não foi possível salvar a máscara.',true);},'image/png');});
+  clear.addEventListener('click',()=>{generation++;if(n.runtime.sprayLocalTex)gl.deleteTexture(n.runtime.sprayLocalTex);n.runtime.sprayLocalTex=null;markDirty(n.id);requestRender();status.textContent='Usando as máscaras internas.';update();});
+  update();
+}
+
 function sprayPanel(n, body) {
   sprayPaletteUI(n, body);
+  sprayLocalMaskUI(n, body);
   const nodeEl = body.closest('.node');
   if (nodeEl && Number(n.params.spW)) nodeEl.style.width = Number(n.params.spW) + 'px';
   if (nodeEl) addPanelResize(n, nodeEl, 'spW');
@@ -23170,7 +23278,7 @@ const RUN = {
     if (!a) return null;
     const p = n.params;
     const e = acquire(a.w, a.h);
-    draw('spray', e, { uSrc: a.tex, uSprayAtlas: sprayAtlasTexture() }, {
+    draw('spray', e, { uSrc: a.tex, uSprayAtlas: n.runtime.sprayLocalTex || sprayAtlasTexture() }, {
       uRes: [a.w, a.h],
       uPal0: hexRGB(p.c1), uPal1: hexRGB(p.c2), uPal2: hexRGB(p.c3), uPal3: hexRGB(p.c4), uPal4: hexRGB(p.c5), uPal5: hexRGB(p.c6),
       uZones: p.zones, uBlack: p.black / 100, uWhite: p.white / 100, uCurve: p.curve / 100,
@@ -23801,6 +23909,7 @@ function releaseNode(n) {
   n.cache = undefined;
   if (n.runtime.tex) { gl.deleteTexture(n.runtime.tex); n.runtime.tex = null; }
   if (n.runtime.maskTex) { gl.deleteTexture(n.runtime.maskTex); n.runtime.maskTex = null; n.runtime.maskId = null; }
+  if (n.runtime.sprayLocalTex) { gl.deleteTexture(n.runtime.sprayLocalTex); n.runtime.sprayLocalTex = null; }
 }
 
 function removeNode(id) {
