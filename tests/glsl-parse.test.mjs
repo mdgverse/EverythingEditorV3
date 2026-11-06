@@ -94,8 +94,7 @@ for (const [n, e] of falhas) console.log('  ✗ ' + n + ': ' + e);
 
 let f = 0;
 const ok1 = (c, msg, extra) => { if (!c) { f++; console.log('  ✗ ' + msg + (extra ? ' → ' + extra : '')); } };
-ok1(nomes.includes('bsdf'), 'o shader bsdf está no arquivo');
-ok1(nomes.includes('shaderMix'), 'o shader shaderMix está no arquivo');
+ok1(!nomes.includes('bsdf') && !nomes.includes('shaderMix'), 'shaders dos nós Blender removidos');
 ok1(falhas.length === 0, 'nenhum fragment shader com erro de sintaxe', falhas.map(x => x[0]).join(', '));
 ok1(shaders.length >= 95, 'todos os shaders foram encontrados', shaders.length);
 console.log(f ? `\n${f} falharam` : '\nGLSL ok');

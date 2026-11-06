@@ -62,8 +62,8 @@ jobs:
         run: node tests/layers-reorder.test.mjs
       - name: Array Machine (glifos, SVG do usuário e SVG da biblioteca)
         run: node tests/array-machine.test.mjs
-      - name: Shader Nodes (sockets do Blender, uniforms e BRDF GGX/multiscatter)
-        run: node tests/shader-nodes.test.mjs
+      - name: Remoção dos nós Shader (Blender)
+        run: node tests/shader-removal.test.mjs
       - name: Remoções 3.8.0 (Layer Comp e anotações fora, sem resíduo)
         run: node tests/cleanup.test.mjs
       - name: Versão (VERSION = index.html = APK)
@@ -83,5 +83,5 @@ jobs:
           node-version: '22'
       - name: Parser GLSL
         run: npm install --no-save --prefix /tmp/glsl @shaderfrog/glsl-parser
-      - name: Sintaxe de todos os fragment shaders (inclui bsdf e shaderMix)
+      - name: Sintaxe de todos os fragment shaders
         run: GLSL_PARSER=/tmp/glsl/node_modules/@shaderfrog/glsl-parser/index.js node tests/glsl-parse.test.mjs
