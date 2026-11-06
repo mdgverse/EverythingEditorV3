@@ -60,6 +60,8 @@ jobs:
         run: node tests/layers-reorder.test.mjs
       - name: Array Machine (glifos, SVG do usuário e SVG da biblioteca)
         run: node tests/array-machine.test.mjs
+      - name: Shader Nodes (sockets do Blender, uniforms e BRDF GGX/multiscatter)
+        run: node tests/shader-nodes.test.mjs
       - name: Remoções 3.8.0 (Layer Comp e anotações fora, sem resíduo)
         run: node tests/cleanup.test.mjs
       - name: Versão (VERSION = index.html = APK)
@@ -68,3 +70,16 @@ jobs:
         run: node tests/hygiene.test.mjs
       - name: Boot · toda função chamada existe (compileShader e cia)
         run: node tests/boot-symbols.test.mjs
+
+  glsl:
+    name: GLSL (sintaxe dos shaders)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Parser GLSL
+        run: npm install --no-save --prefix /tmp/glsl @shaderfrog/glsl-parser
+      - name: Sintaxe de todos os fragment shaders (inclui bsdf e shaderMix)
+        run: GLSL_PARSER=/tmp/glsl/node_modules/@shaderfrog/glsl-parser/index.js node tests/glsl-parse.test.mjs
