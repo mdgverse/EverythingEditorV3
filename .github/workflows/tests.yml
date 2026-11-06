@@ -40,6 +40,8 @@ jobs:
         run: node tests/spray-local-mask.test.mjs
       - name: Spraydelic (máscaras, paletas e controles)
         run: node tests/spraydelic-upgrade.test.mjs
+      - name: Glass fracture (mapa, deslocamento, freeze e blur)
+        run: node tests/glass-fracture.test.mjs
       - name: Efeito Spin Focus Light Leak (Editor 3.0)
         run: node tests/spin-focus.test.mjs
       - name: Efeito Perspective Warp (Editor 3.1 · Perspectivo)
