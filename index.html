@@ -200,7 +200,7 @@ html, body{overscroll-behavior:none;-webkit-tap-highlight-color:transparent}/* 1
   
   <div class="bm-sec"><div class="bm-h">Theme</div><select class="bm-sel" id="themeSel" title="Theme"><option value="dark">Dark</option><option value="light">Light</option><option value="night">Night blue</option><option value="contrast">High contrast</option><option value="purple">Purple</option><option value="custom">Custom</option></select></div>
   <div class="bm-sec"><div class="bm-h">Node / Noodle Curve</div>
-    <div class="bm-curve"><span class="curve-ctl" id="curveCtl" title="Node / Noodle Curve"><span class="curve-ico"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle cx="5" cy="17" r="2.5"/><circle cx="19" cy="7" r="2.5"/><path d="M7.5 17C13 17 11 7 16.5 7"/></svg></span><select class="bm-sel curve-sel" id="curveSel" title="Node / Noodle Curve"><option value="bezier">Soft Bezier</option><option value="straight">Straight</option><option value="ortho">Orthogonal</option><option value="noodle">Full noodle</option></select><input type="range" class="curve-ten" id="curveTen" min="0" max="100" value="50" title="Tension"></span></div>
+    <div class="bm-curve"><span class="curve-ctl" id="curveCtl" title="Node / Noodle Curve"><span class="curve-ico"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle cx="5" cy="17" r="2.5"/><circle cx="19" cy="7" r="2.5"/><path d="M7.5 17C13 17 11 7 16.5 7"/></svg></span><select class="bm-sel curve-sel" id="curveSel" title="Node / Noodle Curve"><option value="bezier">Soft Bezier</option><option value="straight">Straight</option><option value="ortho">Orthogonal</option><option value="noodle">Full noodle</option><option value="angled_orthogonal">Angled Orthogonal</option></select><input type="range" class="curve-ten" id="curveTen" min="0" max="100" value="50" title="Tension"></span></div>
   </div>
   <div class="bm-sec"><div class="bm-h">Screencast keys</div>
     <label class="bm-tg" title="Shows keys, clicks and the commands the editor runs, live in the corner — for screen recording">
@@ -437,7 +437,7 @@ html, body{overscroll-behavior:none;-webkit-tap-highlight-color:transparent}/* 1
 
 /* Versão do editor — o arquivo VERSION na raiz é a fonte da verdade
    (o build do APK usa o mesmo número no versionName e falha se divergir). */
-const APP_VERSION = '3.11.0';
+const APP_VERSION = '3.12.0';
 /* sem a telinha, a versão aparece no tooltip da marca (e o título da aba segue curto) */
 {
   const marca = document.getElementById('brandBtn');
@@ -27578,12 +27578,43 @@ function socketCenter(sock) {
 /* Wire curvature (global preference, saved in the browser).
    bezier = default (smooth Bezier); straight = straight; ortho = stairs; noodle = handles proportional to the tension */
 const WIRE_CURVE_KEY = 'ee_wire_curve';
-const WIRE_MODES = ['bezier', 'straight', 'ortho', 'noodle'];
+const WIRE_MODES = ['bezier', 'straight', 'ortho', 'noodle', 'angled_orthogonal'];
 let WIRE_CURVE = { mode: 'bezier', tension: 50 };
 try {
   const w = JSON.parse(localStorage.getItem(WIRE_CURVE_KEY) || 'null');
   if (w && WIRE_MODES.includes(w.mode)) WIRE_CURVE = { mode: w.mode, tension: Math.max(0, Math.min(100, +w.tension || 0)) };
 } catch (e) { /* no storage */ }
+// Polilinha compartilhada pelo SVG, corte e detecção de inserção.
+function angledVerts(a, b) {
+  const dx = b.x - a.x, dy = b.y - a.y;
+  if (dy === 0) return [a, b];
+  if (dx > 0) {
+    const lead = Math.min(20, dx * 0.2);
+    const width = Math.min(Math.abs(dy), dx - 2 * lead);
+    const center = (a.x + b.x) / 2;
+    return [a, { x: center - width / 2, y: a.y },
+      { x: center + width / 2, y: b.y }, b];
+  }
+  // Reverso: sai à direita e contorna por fora, entrando pela esquerda.
+  const pad = 40, right = Math.max(a.x, b.x) + pad;
+  const left = Math.min(a.x, b.x) - pad;
+  const lane = a.y - Math.sign(dy) * pad;
+  return [a, { x: right, y: a.y }, { x: right + pad, y: lane },
+    { x: left - pad, y: lane }, { x: left, y: b.y }, b];
+}
+function polylinePath(v) {
+  return `M${v[0].x} ${v[0].y}` + v.slice(1).map(p => ` L${p.x} ${p.y}`).join('');
+}
+function samplePolyline(v) {
+  const out = [];
+  for (let i = 0; i < v.length - 1; i++) {
+    const a = v[i], b = v[i + 1];
+    const steps = Math.min(512, Math.max(1, Math.ceil(Math.hypot(b.x-a.x, b.y-a.y) / 8)));
+    for (let k = 0; k < steps; k++) out.push({ x: a.x + (b.x-a.x)*k/steps, y: a.y + (b.y-a.y)*k/steps });
+  }
+  out.push(v[v.length - 1]);
+  return out;
+}
 // horizontal handle of the Bezier (also used in the node-insertion detection over the link)
 function bezierHandle(a, b) {
   if (WIRE_CURVE.mode === 'noodle') {
@@ -27593,6 +27624,7 @@ function bezierHandle(a, b) {
   return Math.max(40, Math.abs(b.x - a.x) * 0.5);
 }
 function bezier(a, b) {
+  if (WIRE_CURVE.mode === 'angled_orthogonal') return polylinePath(angledVerts(a, b));
   if (WIRE_CURVE.mode === 'straight') return `M${a.x} ${a.y} L${b.x} ${b.y}`;
   if (WIRE_CURVE.mode === 'ortho') return orthoPath(routeVerts(a, [], b));
   const d = bezierHandle(a, b);
@@ -27612,6 +27644,7 @@ function setWireCurve(mode, tension) {
   try { localStorage.setItem(WIRE_CURVE_KEY, JSON.stringify(WIRE_CURVE)); } catch (e) { /* no storage */ }
   syncWireCurveUI();
   if (typeof linksEl !== 'undefined' && linksEl) drawLinks();
+  commit();
 }
 // "Node Link" icon: two nodes joined by a curved wire (stroke 2, rounded corners, currentColor)
 
@@ -27827,6 +27860,7 @@ function linkSamples(l, S, T) {
   const out = [];
   if (l.zt && !(l.pts && l.pts.length)) return zipSamples(S, l.zt, T);
   if (!(l.pts && l.pts.length)) {
+    if (WIRE_CURVE.mode === 'angled_orthogonal') return samplePolyline(angledVerts(S, T));
     if (WIRE_CURVE.mode === 'straight' || WIRE_CURVE.mode === 'ortho') {
       const v = WIRE_CURVE.mode === 'straight' ? [S, T] : routeVerts(S, [], T);
       for (let m = 0; m < v.length - 1; m++) {
@@ -28089,6 +28123,7 @@ function bindZipTies() {
 
 // route of a tied wire: source -> anchor -> target, keeping the current curve style
 function zipD(S, A, T) {
+  if (WIRE_CURVE.mode === 'angled_orthogonal') return polylinePath(angledVerts(S, A).concat(angledVerts(A, T).slice(1)));
   if (WIRE_CURVE.mode === 'straight') return `M${S.x} ${S.y} L${A.x} ${A.y} L${T.x} ${T.y}`;
   if (WIRE_CURVE.mode === 'ortho') return orthoPath(routeVerts(S, [A], T), A);
   const d1 = bezierHandle(S, A), d2 = bezierHandle(A, T);
@@ -28098,6 +28133,7 @@ function zipD(S, A, T) {
 
 // polyline of the tied route (used for the cut test and node-insertion detection)
 function zipSamples(S, A, T) {
+  if (WIRE_CURVE.mode === 'angled_orthogonal') return samplePolyline(angledVerts(S, A).concat(angledVerts(A, T).slice(1)));
   const out = [];
   if (WIRE_CURVE.mode === 'straight') return [S, A, T];
   if (WIRE_CURVE.mode === 'ortho') return routeVerts(S, [A], T);
@@ -31570,6 +31606,7 @@ function serialize() {
   bindZipTies();   // drops keys of links that were removed
   return JSON.stringify({
     v: 1,
+    wireCurve: { ...WIRE_CURVE },
     nodes: [...nodes.values()].map(n => ({ id: n.id, type: n.type, x: Math.round(n.x), y: Math.round(n.y), params: n.params, imgId: n.imgId, collapsed: !!n.collapsed, tf: n.tf, animOpen: !!n.animOpen })),
     links,
     zipTies: zipTies.map(t => ({ id: t.id, x: t.x, y: t.y, keys: t.keys.slice() })),
@@ -31644,6 +31681,11 @@ function bypassShapeHalftone(data, rawLinks) {
 }
 
 function restoreGraph(data) {
+  if (data.wireCurve && WIRE_MODES.includes(data.wireCurve.mode)) {
+    WIRE_CURVE = { mode: data.wireCurve.mode, tension: Math.max(0, Math.min(100, Number(data.wireCurve.tension) || 0)) };
+    try { localStorage.setItem(WIRE_CURVE_KEY, JSON.stringify(WIRE_CURVE)); } catch (_) {}
+    syncWireCurveUI();
+  }
   for (const n of nodes.values()) { releaseNode(n); if (n.el) n.el.remove(); }
   nodes.clear();
   selected.clear();
