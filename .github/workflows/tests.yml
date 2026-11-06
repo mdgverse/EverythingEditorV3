@@ -32,6 +32,8 @@ jobs:
         run: node tests/backup.test.mjs
       - name: Restore ao lado de Assets e zoom mínimo
         run: node tests/topbar.test.mjs
+      - name: Fio Angled Orthogonal (geometria, interação e persistência)
+        run: node tests/wire-angled.test.mjs
       - name: Quinas do fio (criar, arrastar, fio reto e zip tie)
         run: node tests/pivot.test.mjs
       - name: Efeito Spin Focus Light Leak (Editor 3.0)
