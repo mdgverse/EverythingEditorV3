@@ -51,6 +51,17 @@ const lista = trecho('function layerRotulo(n, i) {', 'function nodeInputs(n) {')
   ok(/P\.name = String\(v\)\.slice\(0, 40\)\.trim\(\);/.test(linha), 'o nome é normalizado e limitado a 40 caracteres');
   ok(/render\(\); commit\(\);/.test(linha), 'renomear atualiza a lista e entra no histórico (undo)');
   ok(/const baseTitle = P\.name \|\| \(sn \?/.test(linha), 'nome vazio volta para o título padrão');
+  ok(/name\.tabIndex = 0;/.test(linha), 'o nome da camada recebe foco pelo teclado');
+  ok(/name\.setAttribute\('role', 'button'\)/.test(linha), 'e se anuncia como botão para leitores de tela');
+  ok(/F2 renames, arrows reorder/.test(linha), 'o aria-label explica F2 e as setas');
+  ok(/if \(e\.key === 'F2' \|\| e\.key === 'Enter'\) \{ e\.preventDefault\(\); e\.stopPropagation\(\); renomeia\(\); return; \}/.test(linha),
+    'F2/Enter abre o campo de renomear');
+  ok(/e\.key === 'ArrowUp' && i < total - 1[\s\S]{0,140}moveLayer\(n, i, i \+ 1, render\); focaNomeCamada\(n, i \+ 1\);/.test(linha),
+    'seta para cima reordena e devolve o foco à mesma camada');
+  ok(/e\.key === 'ArrowDown' && i > 0[\s\S]{0,140}moveLayer\(n, i, i - 1, render\); focaNomeCamada\(n, i - 1\);/.test(linha),
+    'seta para baixo faz o mesmo descendo');
+  ok(/function focaNomeCamada\(n, i\)/.test(html), 'existe o helper que devolve o foco após reordenar');
+  ok(/\.lyr-name:focus-visible\{outline:1px solid var\(--accent\)/.test(html), 'o foco no nome fica visível');
   ok(/\.lyr-edit\{/.test(html), 'o botão ✎ tem estilo próprio');
   ok(/body\.mobile \.lyr-edit\{width:28px;height:26px/.test(html), 'no APK o ✎ tem alvo de toque maior');
 }

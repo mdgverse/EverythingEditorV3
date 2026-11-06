@@ -56,8 +56,8 @@ jobs:
         run: node tests/displacement.test.mjs
       - name: Layer Position (renomear por id e persistir)
         run: node tests/layers-rename.test.mjs
-      - name: Hot Node (busca fuzzy, favoritos e auto-ligação)
-        run: node tests/hot-node.test.mjs
+      - name: Layer Position (reordenar leva o nome junto — teste funcional)
+        run: node tests/layers-reorder.test.mjs
       - name: Array Machine (glifos, SVG do usuário e SVG da biblioteca)
         run: node tests/array-machine.test.mjs
       - name: Remoções 3.8.0 (Layer Comp e anotações fora, sem resíduo)
