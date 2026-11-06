@@ -437,7 +437,7 @@ html, body{overscroll-behavior:none;-webkit-tap-highlight-color:transparent}/* 1
 
 /* Versão do editor — o arquivo VERSION na raiz é a fonte da verdade
    (o build do APK usa o mesmo número no versionName e falha se divergir). */
-const APP_VERSION = '3.12.1';
+const APP_VERSION = '3.13.0';
 /* sem a telinha, a versão aparece no tooltip da marca (e o título da aba segue curto) */
 {
   const marca = document.getElementById('brandBtn');
@@ -3142,7 +3142,13 @@ const NODE_TYPES = {
       NUM('splatter', 'Splatter', 0, 100, 30), NUM('mist', 'Mist (overspray)', 0, 100, 35),
       NUM('thresh', 'Stencil threshold', 0, 85, 5), NUM('crush', 'Crush tones', 0, 100, 30),
       NUM('hue', 'Psychedelic hue spin', -180, 180, 0), NUM('grain', 'Grain', 0, 60, 14),
-      ENUM('mixb', 'Blend', [['tinta', 'Spray ink'], ['mult', 'Multiply'], ['suave', 'Soft']], 'tinta'),
+      SEC('sp_scatter', 'Spray scatter', 'Máscaras originais geradas proceduralmente'),
+      NUM('density', 'Splatter density', 0, 100, 0), NUM('particles', 'Particle count', 1, 4, 1), NUM('radius', 'Spray radius', 8, 160, 45),
+      ENUM('maskStyle', 'Spray mask', [['auto', 'Random'], ['1', 'Splash 1'], ['2', 'Splash 2'], ['3', 'Splash 3'], ['4', 'Splash 4']], 'auto'),
+      NUM('jitter', 'Jitter', 0, 100, 60), NUM('variance', 'Size variance', 0, 100, 50),
+      NUM('pressure', 'Pressure', 0, 100, 65), NUM('drip', 'Drip length', 0, 100, 0),
+      NUM('bleed', 'Edge bleed', 0, 100, 0), NUM('cast', 'Color cast', 0, 100, 100),
+      ENUM('mixb', 'Blend', [['tinta', 'Spray ink'], ['mult', 'Multiply'], ['suave', 'Soft'], ['additive', 'Additive'], ['overlap', 'Overlap'], ['subtract', 'Multiply-subtractive']], 'tinta'),
       NUM('mix', 'Intensity', 0, 100, 100), NUM('seed', 'Seed', 0, 100, 7),
     ],
   },
@@ -7913,10 +7919,11 @@ void main(){
    sliced into up to 6 zones (black/white point + curve), each zone paints with
    its colour through a field of spray drops (stencil/overspray). */
 SHADERS.spray = `
-uniform sampler2D uSrc;
+uniform sampler2D uSrc, uSprayAtlas;
 uniform vec2 uRes;
 uniform vec3 uPal0, uPal1, uPal2, uPal3, uPal4, uPal5;
 uniform float uZones, uBlack, uWhite, uCurve, uSoft, uSpray, uDrop, uSplatter, uMist, uThresh, uCrush, uHue, uGrain, uMix, uSeed, uPx;
+uniform float uDensity, uRadius, uJitter, uVariance, uPressure, uDrip, uBleed, uCast, uParticles, uMaskStyle;
 uniform int uKind;
 float vnoise(vec2 p){
   vec2 i = floor(p), f = fract(p);
@@ -7973,6 +7980,43 @@ void main(){
     float d2 = length(fp - centro);
     float drop = smoothstep(cs * 0.16, cs * 0.05, d2) * step(1.0 - uSplatter / 100.0 * 0.13, h1);
     col = mix(col, hueRot(uPal0, uHue), drop * 0.85);
+  }
+  // Bounded 3x3 cell search. Atlas pixels are binary, sampled nearest; no per-frame compilation.
+  if (uDensity > 0.0) {
+    float cell = max(8.0, uRadius * max(uPx, 0.05) * 3.0 / sqrt(max(uParticles, 1.0)));
+    vec2 grid = floor(fp / cell);
+    for (int yy = -1; yy <= 1; yy++) for (int xx = -1; xx <= 1; xx++) {
+      vec2 g = grid + vec2(float(xx), float(yy));
+      float rnd = hash(g.x + uSeed * 41.0, g.y + 17.0);
+      if (rnd < uDensity) {
+        vec2 j = vec2(hash(g.x + 12.0, g.y + uSeed), hash(g.x + uSeed, g.y + 23.0)) - 0.5;
+        vec2 center = (g + 0.5 + j * uJitter * 0.8) * cell;
+        vec2 delta = fp - center;
+        float angle = hash(g.x + 34.0, g.y + uSeed * 2.0) * 6.2831853;
+        float cs = cos(angle), sn = sin(angle);
+        vec2 q = mat2(cs, -sn, sn, cs) * delta;
+        if (rnd > 0.5) q.x = -q.x;
+        float size = uRadius * max(uPx, 0.05) * mix(1.0, 0.6 + hash(g.x + 7.0, g.y + 9.0) * 0.8, uVariance);
+        vec2 uv = q / max(size * 2.0, 1.0) + 0.5;
+        float mask = 0.0;
+        if (all(greaterThanEqual(uv, vec2(0.0))) && all(lessThan(uv, vec2(1.0)))) {
+          float tile = uMaskStyle > 0.0 ? uMaskStyle - 1.0 : floor(hash(g.x + 81.0, g.y + uSeed) * 4.0);
+          mask = texture(uSprayAtlas, vec2((tile + uv.x) * 0.25, uv.y)).r;
+        }
+        float dripLen = size * uDrip * 2.0;
+        float drip = step(abs(delta.x), size * 0.045) * step(-dripLen, delta.y) * step(delta.y, 0.0) * step(0.60, rnd);
+        float haze = exp(-dot(delta,delta) / max(size * size * 0.4, 1.0)) * uBleed * 0.3;
+        float coverage = clamp((mask + drip + haze) * uPressure, 0.0, 1.0);
+        int pi = int(floor(hash(g.x + 62.0, g.y + uSeed * 3.0) * uZones));
+        vec3 ink = mix(pal, hueRot(palAt(pi), uHue), uCast);
+        vec3 blended = ink;
+        if (uKind == 1) blended = col * ink;
+        else if (uKind == 3) blended = min(vec3(1.0), col + ink);
+        else if (uKind == 4) blended = mix(2.0 * col * ink, 1.0 - 2.0 * (1.0-col) * (1.0-ink), step(vec3(0.5), col));
+        else if (uKind == 5) blended = max(vec3(0.0), col * ink - (1.0 - ink) * 0.25);
+        col = mix(col, blended, coverage);
+      }
+    }
   }
   col += (hash(fp.x + uSeed * 13.0, fp.y) - 0.5) * (uGrain / 100.0);
   float a = C.a * (1.0 - (1.0 - paint) * uSpray * 0.55);
@@ -9584,6 +9628,57 @@ function fx6MarkColor(s, tone, p) {
 /* Resize arrow of the panel (HalfMode/Distressor): dragging the
    bottom-right corner changes the node width; saved in n.params[key]. */
 
+/* Quatro máscaras binárias originais, geradas uma vez e reutilizadas como atlas.
+   Não inclui imagens extraídas de terceiros. Branco = tinta, preto = fundo. */
+function sprayMaskAtlas() {
+  const size = 64, tiles = 4, data = new Uint8Array(size * tiles * size * 4);
+  let seed = 19237;
+  const rand = () => { seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0; return seed / 4294967296; };
+  for (let t = 0; t < tiles; t++) {
+    const spots = [{ x: 32, y: 32, r: 8 + t * 1.5 }];
+    for (let k = 0; k < 48 + t * 12; k++) {
+      const a = rand() * Math.PI * 2, d = Math.pow(rand(), 0.7) * 28;
+      spots.push({ x: 32 + Math.cos(a) * d, y: 32 + Math.sin(a) * d, r: 0.6 + rand() * (3.5 - d / 14) });
+    }
+    for (let y = 0; y < size; y++) for (let x = 0; x < size; x++) {
+      const ink = spots.some(p => (x-p.x)**2 + (y-p.y)**2 <= p.r*p.r) ? 255 : 0;
+      const i = (y * size * tiles + t * size + x) * 4;
+      data[i] = data[i+1] = data[i+2] = ink; data[i+3] = 255;
+    }
+  }
+  return data;
+}
+let sprayAtlas = null;
+function sprayAtlasTexture() {
+  if (sprayAtlas) return sprayAtlas;
+  sprayAtlas = gl.createTexture(); gl.bindTexture(gl.TEXTURE_2D, sprayAtlas);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+  gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 256, 64, 0, gl.RGBA, gl.UNSIGNED_BYTE, sprayMaskAtlas());
+  return sprayAtlas;
+}
+
+// Lê GPL, lista JSON de cores e texto/URLs com cores hexadecimais.
+function sprayParsePalette(text) {
+  const txt = String(text || '').trim();
+  const colors = [];
+  const add = c => { if (/^#[\da-f]{6}$/i.test(c)) colors.push(c.toUpperCase()); };
+  if (/^GIMP Palette/i.test(txt)) {
+    for (const line of txt.split(/\r?\n/)) {
+      const m = /^\s*(\d{1,3})\s+(\d{1,3})\s+(\d{1,3})(?:\s|$)/.exec(line);
+      if (m && m.slice(1).every(v => +v <= 255)) add('#' + m.slice(1).map(v => (+v).toString(16).padStart(2, '0')).join(''));
+    }
+  } else {
+    let obj; try { obj = JSON.parse(txt); } catch (_) {}
+    const list = Array.isArray(obj) ? obj : obj && (obj.colors || obj.colours || obj.paradas || obj.s);
+    if (Array.isArray(list)) for (const item of list) add(typeof item === 'string' ? item : item && (item.c || item.color) || '');
+    if (!colors.length) for (const m of txt.matchAll(/(?:#|(?:^|[\/-]))([\da-f]{6})(?=$|[\s,;\/-])/gi)) add('#' + m[1]);
+  }
+  return colors.slice(0, 6);
+}
+
 /* Spraydelic (2.9.60) — presets: colours of the 6 zones + adjustments, in the spirit of
    "Factory Color System" (real can colours) and the Shorts looks. */
 const SPRAY_PRESETS = {
@@ -9607,7 +9702,77 @@ function applySprayPreset(n) {
 
 /* Spraydelic panel: the editor's native VERTICAL dock (buildControls),
    only with the preset hook, the width arrow and the saved width (spW). */
+let sprayWheelCache = null;
+function sprayPaletteUI(n, body) {
+  const panel = E('div', 'spray-palette');
+  panel.style.cssText = 'padding:6px;border:1px solid var(--line3);border-radius:6px;display:flex;flex-direction:column;gap:6px;touch-action:auto';
+  panel.addEventListener('pointerdown', e => e.stopPropagation());
+  panel.addEventListener('click', e => e.stopPropagation());
+  const label = E('div', 'plbl', 'Paleta · selecione uma amostra');
+  const swatches = E('div'); swatches.style.cssText = 'display:flex;gap:3px';
+  const wheel = document.createElement('canvas'); wheel.width = wheel.height = 128;
+  wheel.setAttribute('aria-label', 'Roda de matiz e saturação');
+  wheel.style.cssText = 'width:128px;height:128px;max-width:100%;align-self:center;touch-action:none;cursor:crosshair';
+  const value = document.createElement('input'); value.type = 'range'; value.min = 0; value.max = 100; value.setAttribute('aria-label', 'Brilho da cor');
+  const row = E('div'); row.style.cssText = 'display:flex;gap:4px;flex-wrap:wrap';
+  const file = document.createElement('input'); file.type = 'file'; file.accept = '.gpl,.json,.txt,text/plain,application/json'; file.style.display = 'none';
+  const load = E('button', 'stk-btn', 'Importar paleta'); load.type = 'button';
+  const random = E('button', 'stk-btn', 'Nova semente'); random.type = 'button';
+  const hint = E('div', 'plbl', 'Arraste GPL, JSON ou TXT aqui · até 6 cores');
+  row.append(load, random, file); panel.append(label, swatches, wheel, value, row, hint);
+  body.insertBefore(panel, body.querySelector('[data-pkey="c1"]') || body.firstChild);
+  let selectedColor = 0, dragging = -1;
+  if (!sprayWheelCache) {
+  const canvas = document.createElement('canvas'); canvas.width = canvas.height = 128;
+  const cg = canvas.getContext('2d'), im = cg.createImageData(128, 128);
+  for (let y = 0; y < 128; y++) for (let x = 0; x < 128; x++) {
+    const dx = (x - 63.5) / 62, dy = (y - 63.5) / 62, r = Math.hypot(dx, dy), i = (y * 128 + x) * 4;
+    if (r <= 1) { const rgb = hsvParaRgb((Math.atan2(dy, dx) / (2*Math.PI) + 1) % 1, r, 1); im.data[i] = rgb[0]*255; im.data[i+1] = rgb[1]*255; im.data[i+2] = rgb[2]*255; im.data[i+3] = 255; }
+  }
+  cg.putImageData(im, 0, 0);
+  sprayWheelCache = canvas;
+  }
+  const canvas = sprayWheelCache;
+  const buttons = [];
+  const redraw = () => {
+    for (let i = 0; i < 6; i++) { buttons[i].style.background = n.params['c'+(i+1)]; buttons[i].style.outline = i === selectedColor ? '2px solid white' : 'none'; }
+    const hsv = rgbParaHsv(...hexRGB(n.params['c'+(selectedColor+1)]));
+    value.value = Math.round(hsv[2] * 100);
+    const g = wheel.getContext('2d'); g.clearRect(0, 0, 128, 128); g.drawImage(canvas, 0, 0);
+    const a = hsv[0]*Math.PI*2; g.beginPath(); g.arc(63.5+Math.cos(a)*hsv[1]*62,63.5+Math.sin(a)*hsv[1]*62,5,0,Math.PI*2); g.strokeStyle = '#000'; g.lineWidth=3; g.stroke(); g.strokeStyle='#fff'; g.lineWidth=1; g.stroke();
+  };
+  const apply = (i, color) => { n.params['c'+(i+1)] = color; n.params.preset = 'custom'; refreshNodeControls(n); markDirty(n.id); requestRender(); redraw(); };
+  for (let i = 0; i < 6; i++) {
+    const btn = E('button'); btn.type = 'button'; btn.draggable = true; btn.title = 'Cor da zona ' + (i+1); btn.setAttribute('aria-label', btn.title);
+    btn.style.cssText = 'flex:1;min-width:20px;height:25px;border:1px solid #888;border-radius:3px;cursor:pointer';
+    btn.addEventListener('click', () => { selectedColor = i; redraw(); });
+    btn.addEventListener('dragstart', e => { dragging = i; e.dataTransfer.setData('text/plain', String(i)); e.stopPropagation(); });
+    btn.addEventListener('dragover', e => { if (dragging >= 0) { e.preventDefault(); e.stopPropagation(); } });
+    btn.addEventListener('drop', e => { if (dragging < 0) return; e.preventDefault(); e.stopPropagation(); const c = n.params['c'+(i+1)]; n.params['c'+(i+1)] = n.params['c'+(dragging+1)]; n.params['c'+(dragging+1)] = c; dragging = -1; n.params.preset='custom'; refreshNodeControls(n); markDirty(n.id); requestRender(); redraw(); commit(); });
+    btn.addEventListener('dragend', () => { dragging = -1; }); buttons.push(btn); swatches.append(btn);
+  }
+  const pick = e => { const r=wheel.getBoundingClientRect(), dx=(e.clientX-r.left)/r.width*128-63.5, dy=(e.clientY-r.top)/r.height*128-63.5;
+    const hue=(Math.atan2(dy,dx)/(2*Math.PI)+1)%1, sat=Math.min(1,Math.hypot(dx,dy)/62);
+    apply(selectedColor, rampaHexDe(hsvParaRgb(hue,sat,Number(value.value)/100))); };
+  wheel.addEventListener('pointerdown', e => { e.preventDefault(); e.stopPropagation(); wheel.setPointerCapture(e.pointerId); pick(e); });
+  wheel.addEventListener('pointermove', e => { if (wheel.hasPointerCapture(e.pointerId)) pick(e); });
+  wheel.addEventListener('pointerup', e => { if (wheel.hasPointerCapture(e.pointerId)) { wheel.releasePointerCapture(e.pointerId); commit(); } });
+  value.addEventListener('input', () => { const hsv=rgbParaHsv(...hexRGB(n.params['c'+(selectedColor+1)])); apply(selectedColor,rampaHexDe(hsvParaRgb(hsv[0],hsv[1],Number(value.value)/100))); });
+  value.addEventListener('change', () => commit());
+  const importFile = async f => { if (!f) return; if (f.size > 1048576) { setStatus('Paleta maior que 1 MB.', true); return; }
+    try { const colors=sprayParsePalette(await f.text()); if (colors.length < 2) throw new Error('Use pelo menos duas cores.');
+      colors.forEach((c,i) => { n.params['c'+(i+1)] = c; }); n.params.zones=colors.length; n.params.preset='custom'; refreshNodeControls(n); markDirty(n.id); requestRender(); redraw(); commit(); setStatus('Paleta importada: '+colors.length+' cores.');
+    } catch (e) { setStatus('Paleta inválida: '+e.message, true); } };
+  load.addEventListener('click', () => file.click()); file.addEventListener('change', () => { importFile(file.files[0]); file.value=''; });
+  panel.addEventListener('dragover', e => { if (e.dataTransfer.types.includes('Files')) { e.preventDefault(); e.stopPropagation(); } });
+  panel.addEventListener('drop', e => { if (e.dataTransfer.files.length) { e.preventDefault(); e.stopPropagation(); importFile(e.dataTransfer.files[0]); } });
+  random.addEventListener('click', () => { const p=NODE_TYPES.spraydelic.params.find(q=>q.key==='seed'); setParam(n,p,Math.floor(Math.random()*101)); commit(); });
+  for (let i = 1; i <= 6; i++) { const key='c'+i, prev=n.ui[key]; n.ui[key]=() => { if (prev) prev(); redraw(); }; }
+  redraw();
+}
+
 function sprayPanel(n, body) {
+  sprayPaletteUI(n, body);
   const nodeEl = body.closest('.node');
   if (nodeEl && Number(n.params.spW)) nodeEl.style.width = Number(n.params.spW) + 'px';
   if (nodeEl) addPanelResize(n, nodeEl, 'spW');
@@ -23005,14 +23170,16 @@ const RUN = {
     if (!a) return null;
     const p = n.params;
     const e = acquire(a.w, a.h);
-    draw('spray', e, { uSrc: a.tex }, {
+    draw('spray', e, { uSrc: a.tex, uSprayAtlas: sprayAtlasTexture() }, {
       uRes: [a.w, a.h],
       uPal0: hexRGB(p.c1), uPal1: hexRGB(p.c2), uPal2: hexRGB(p.c3), uPal3: hexRGB(p.c4), uPal4: hexRGB(p.c5), uPal5: hexRGB(p.c6),
       uZones: p.zones, uBlack: p.black / 100, uWhite: p.white / 100, uCurve: p.curve / 100,
       uSoft: p.soft / 100, uSpray: p.spray / 100, uDrop: p.drop, uSplatter: p.splatter, uMist: p.mist,
       uThresh: p.thresh / 100, uCrush: p.crush / 100, uHue: p.hue, uGrain: p.grain, uMix: p.mix / 100,
       uSeed: p.seed, uPx: (a.fw && a.fw !== a.w) ? a.w / a.fw : 1,
-      uKind: ({ tinta: 0, mult: 1, suave: 2 })[p.mixb] ?? 0,
+      uKind: ({ tinta: 0, mult: 1, suave: 2, additive: 3, overlap: 4, subtract: 5 })[p.mixb] ?? 0,
+      uDensity: p.density / 100, uRadius: p.radius, uParticles: p.particles, uMaskStyle: Number(p.maskStyle) || 0, uJitter: p.jitter / 100, uVariance: p.variance / 100,
+      uPressure: p.pressure / 100, uDrip: p.drip / 100, uBleed: p.bleed / 100, uCast: p.cast / 100,
     });
     return mkRes(e);
   },
