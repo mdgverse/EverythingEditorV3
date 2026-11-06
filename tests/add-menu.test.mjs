@@ -226,5 +226,17 @@ console.log('menu radial de categorias');
   ok(/const CATS = \{/.test(src) && /add-wheet|add-wheel|addWheel/.test(src), 'as categorias e o círculo seguem no lugar');
 }
 
+/* ---------- o Node Adder é o único caminho para criar nó (3.10.0) ---------- */
+{
+  const src = fs.readFileSync(new URL('../index.html', import.meta.url), 'utf8');
+  for (const simbolo of ['HOT_TECLAS', 'hotAberto', 'hotInserir', 'hotAbrir', 'hot-menu', 'hotRender', 'hotFecha', 'hotCursor']) {
+    ok(src.indexOf(simbolo) < 0, 'o Hot Node saiu por completo: ' + simbolo);
+  }
+  ok(!/Shift\+B/.test(src), 'nenhum atalho Shift+B sobrou na interface');
+  ok(/openAddMenu\(tap\.x, tap\.y\);/.test(src), 'no APK o toque longo volta a abrir o Node Adder');
+  ok(!/hot node/i.test(src), 'nenhuma menção ao Hot Node nos textos');
+  ok(/function addNodeAt\(type, x, y\)/.test(src) && /function openAddMenu\(/.test(src), 'criar nó continua passando por openAddMenu → addNodeAt');
+}
+
 const tudo = resumo();
 process.exit(tudo ? 0 : 1);
