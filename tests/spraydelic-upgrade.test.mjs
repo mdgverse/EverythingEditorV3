@@ -17,6 +17,6 @@ assert.equal(sprayParsePalette('nonsense').length,0);
 const def=html.slice(html.indexOf('  spraydelic: {'),html.indexOf('  ascii: {'));
 for (const p of ['density','radius','jitter','variance','pressure','drip','bleed','cast','c1','c6','grain','seed']) assert(def.includes("'"+p+"'"),p);
 assert(def.includes("NUM('density', 'Splatter density', 0, 100, 0)"), 'projetos antigos sem scatter mantêm aparência');
-assert(html.includes('uSprayAtlas: sprayAtlasTexture()'));
+assert(html.includes('uSprayAtlas: n.runtime.sprayLocalTex || sprayAtlasTexture()'));
 assert(html.includes("wheel.addEventListener('pointerdown'") && html.includes("panel.addEventListener('drop'"));
 console.log('Spraydelic: máscaras binárias, importação, controles e compatibilidade OK');

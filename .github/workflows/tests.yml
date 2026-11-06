@@ -36,6 +36,8 @@ jobs:
         run: node tests/wire-angled.test.mjs
       - name: Quinas do fio (criar, arrastar, fio reto e zip tie)
         run: node tests/pivot.test.mjs
+      - name: Spraydelic (conversão local de máscaras)
+        run: node tests/spray-local-mask.test.mjs
       - name: Spraydelic (máscaras, paletas e controles)
         run: node tests/spraydelic-upgrade.test.mjs
       - name: Efeito Spin Focus Light Leak (Editor 3.0)
