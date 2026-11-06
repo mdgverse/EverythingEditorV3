@@ -1,0 +1,22 @@
+import fs from 'node:fs';
+import vm from 'node:vm';
+import assert from 'node:assert/strict';
+const html=fs.readFileSync(new URL('../index.html',import.meta.url),'utf8');
+const section=html.slice(html.indexOf('function sprayMaskAtlas()'), html.indexOf('/* Spraydelic (2.9.60) — presets:'));
+const ctx=vm.createContext({Uint8Array,Math}); vm.runInContext(section+'\nthis.api={sprayMaskAtlas,sprayParsePalette};',ctx);
+const {sprayMaskAtlas,sprayParsePalette}=ctx.api;
+const data=sprayMaskAtlas(); assert.equal(data.length,256*64*4);
+let white=0,black=0;
+for(let i=0;i<data.length;i+=4) { assert(data[i]===0 || data[i]===255); assert.equal(data[i],data[i+1]); assert.equal(data[i],data[i+2]); assert.equal(data[i+3],255); data[i] ? white++ : black++; }
+assert(white>100 && black>100); assert.deepEqual([...sprayMaskAtlas()],[...data]);
+const plain=x=>Array.from(x);
+assert.deepEqual(plain(sprayParsePalette('GIMP Palette\nName: Test\n255 0 128 pink\n0 12 255 blue\n')), ['#FF0080','#000CFF']);
+assert.deepEqual(plain(sprayParsePalette('["#112233", "#abcdef"]')), ['#112233','#ABCDEF']);
+assert.deepEqual(plain(sprayParsePalette('https://coolors.co/ff0000-00ff00-0000ff')), ['#FF0000','#00FF00','#0000FF']);
+assert.equal(sprayParsePalette('nonsense').length,0);
+const def=html.slice(html.indexOf('  spraydelic: {'),html.indexOf('  ascii: {'));
+for (const p of ['density','radius','jitter','variance','pressure','drip','bleed','cast','c1','c6','grain','seed']) assert(def.includes("'"+p+"'"),p);
+assert(def.includes("NUM('density', 'Splatter density', 0, 100, 0)"), 'projetos antigos sem scatter mantêm aparência');
+assert(html.includes('uSprayAtlas: sprayAtlasTexture()'));
+assert(html.includes("wheel.addEventListener('pointerdown'") && html.includes("panel.addEventListener('drop'"));
+console.log('Spraydelic: máscaras binárias, importação, controles e compatibilidade OK');
