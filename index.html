@@ -437,7 +437,7 @@ html, body{overscroll-behavior:none;-webkit-tap-highlight-color:transparent}/* 1
 
 /* Versão do editor — o arquivo VERSION na raiz é a fonte da verdade
    (o build do APK usa o mesmo número no versionName e falha se divergir). */
-const APP_VERSION = '3.13.1';
+const APP_VERSION = '3.14.0';
 /* sem a telinha, a versão aparece no tooltip da marca (e o título da aba segue curto) */
 {
   const marca = document.getElementById('brandBtn');
@@ -3902,13 +3902,17 @@ const NODE_TYPES = {
     title: 'Glass fracture', cat: 'lens', inputs: ['Image'],
     params: [
       NUM('crackCount', 'Break amount', 6, 80, 24, 1), NUM('displace', 'Displacement strength', 0, 100, 28, 1),
+      NUM('seed', 'Variation', 1, 99, 12, 1),
+      ENUM('fractureEngine', 'Fracture pattern', [['map', 'Seed texture'], ['classic', 'Classic']], 'map'),
+      NUM('frostedBlur', 'Frosted Blur', 0, 30, 0, 0.5),
+      ENUM('freeze', 'Freeze', [['no', 'Off'], ['yes', 'On']], 'no'),
       NUM('panX', 'Image position X', -100, 100, 0, 1), NUM('panY', 'Image position Y', -100, 100, 0, 1),
       NUM('rgbSplit', 'Prism aberration', 0, 30, 8, 1), NUM('angle', 'Fracture angle', 0, 360, 0, 1),
       NUM('impactX', 'Impact center X', 0, 100, 50, 1), NUM('impactY', 'Impact center Y', 0, 100, 50, 1),
       NUM('contourWidth', 'Crack width', 1, 15, 2, 1), COL('contourColor', 'Outline color', '#ffffff'),
       NUM('contourOpacity', 'Outline opacity', 0, 100, 85, 1), NUM('glassHighlight', 'Specular highlight', 0, 100, 60, 1),
       COL('tintColor', 'Glass tone', '#c8f0ff'), NUM('tintAmount', 'Tint', 0, 100, 20, 1),
-      NUM('seed', 'Variation', 1, 99, 12, 1), NUM('mix', 'Blend', 0, 100, 100, 1),
+      NUM('mix', 'Blend', 0, 100, 100, 1),
     ],
   },
   linearHalftone: {
@@ -8183,6 +8187,38 @@ void main(){
   outColor = vec4(clamp(col, 0.0, 1.0), 1.0);
 }`;
 
+/* Glass fracture: o mapa fornece vetor de deslocamento e máscaras de contorno. */
+SHADERS.fractureMap = `
+uniform sampler2D uSrc, uFractureMap;
+uniform vec2 uRes, uPan;
+uniform float uDisplace, uSplit, uContourOpacity, uHighlight, uTint;
+uniform vec3 uContourColor, uTintColor;
+void main() {
+  vec4 original = texture(uSrc, vUv);
+  vec4 f = texture(uFractureMap, vUv);
+  vec2 fracture_normal = f.rg * 2.0 - 1.0;
+  vec2 offset = vec2(fracture_normal.x, -fracture_normal.y) * uDisplace + vec2(uPan.x, -uPan.y);
+  vec2 uv = clamp(vUv + offset / uRes, vec2(0.0), vec2(1.0));
+  vec4 sampled = texture(uSrc, uv);
+  if (uSplit > 0.0 && f.a > 0.0) {
+    vec2 delta = vec2(fracture_normal.x, -fracture_normal.y);
+    delta = length(delta) > 0.001 ? normalize(delta) * uSplit / uRes : vec2(0.0);
+    sampled.r = texture(uSrc, clamp(uv + delta, vec2(0.0), vec2(1.0))).r;
+    sampled.b = texture(uSrc, clamp(uv - delta, vec2(0.0), vec2(1.0))).b;
+  }
+  vec3 col = mix(sampled.rgb, uTintColor, uTint * 0.6);
+  col = clamp(col + vec3(180.0,200.0,255.0) / 255.0 * f.a * uHighlight, 0.0, 1.0);
+  col = mix(col, uContourColor, f.b * uContourOpacity);
+  outColor = vec4(col, original.a);
+}`;
+SHADERS.fractureBlend = `
+uniform sampler2D uSrc, uEffect;
+uniform float uMix;
+void main() {
+  vec4 src=texture(uSrc,vUv), effect=texture(uEffect,vUv);
+  outColor=vec4(mix(src.rgb,effect.rgb,uMix),src.a);
+}`;
+
 const PROGS = {};
 const SHADER_FALHOU = [];
 /* 3.8.0 — um shader problemático não pode derrubar o app inteiro (era tela branca):
@@ -10242,6 +10278,7 @@ const FX_PXKEYS = {
 // original parameters to restore after RUN, or null if there is nothing to do
 function fxFastParams(n, ins) {
   if (!FX_FAST) return null;
+  if (n.type === 'fractureEffect' && (n.params.freeze === 'yes' && n.params.fractureFrozen ? n.params.fractureFrozen.fractureEngine : n.params.fractureEngine) === 'map') return null;
   const keys = FX_PXKEYS[n.type];
   if (!keys) return null;
   const a0 = ins.find(r => r && typeof r.w === 'number');
@@ -15559,6 +15596,98 @@ function fx37Lofi(srcCanvas, W, H, p) {
     backgroundOpacity: 0, mix: p.mix, seed: p.seed,
   });
 }
+// Uma fotografia serializável do mapa e do deslocamento ao ligar Freeze.
+const FRACTURE_LOCK_KEYS = ['fractureEngine', 'seed', 'displace', 'crackCount', 'angle', 'impactX', 'impactY', 'contourWidth'];
+function fractureSetFreeze(n, on) {
+  if (on) {
+    const state = {};
+    for (const k of FRACTURE_LOCK_KEYS) state[k] = n.params[k];
+    n.params.fractureFrozen = state;
+  } else delete n.params.fractureFrozen;
+}
+function fractureEffectiveParams(p) {
+  const frozen = p.freeze === 'yes' && p.fractureFrozen && typeof p.fractureFrozen === 'object';
+  return frozen ? { ...p, ...p.fractureFrozen } : { ...p };
+}
+// Mapa procedural original; cada seed gera um vetor por fragmento de vidro e
+// duas máscaras de contorno. A textura pequena é cacheada por geometria/seed.
+function fractureBuildMap(p, W, H, size = 384) {
+  const count = Math.max(6, Math.min(80, Math.round(Number(p.crackCount) || 24)));
+  const seed = Number(p.seed ?? 12), angle = Number(p.angle || 0) * Math.PI / 180;
+  const cx = Number(p.impactX ?? 50) / 100 * W, cy = Number(p.impactY ?? 50) / 100 * H;
+  const width = Math.max(1, Math.min(15, Number(p.contourWidth || 2)));
+  const rays=[];
+  for (let r=0;r<count;r++) rays.push(angle+r/count*Math.PI*2+(fx6Hash(r*19+seed,seed*7)-0.5)*(Math.PI*2/count)*0.65);
+  rays.sort((a,b)=>a-b);
+  const nr=Math.max(3,Math.min(10,Math.round(count*0.25))), rings=[];
+  for(let i=1;i<=nr;i++)rings.push(Math.pow(i/nr,1.4)*Math.hypot(W,H)*0.85);
+  const data=new Uint8Array(size*size*4);
+  for(let row=0;row<size;row++) for(let x=0;x<size;x++){
+    const dx=(x+0.5)*W/size-cx, dy=(size-row-0.5)*H/size-cy, dist=Math.hypot(dx,dy);
+    let ang=Math.atan2(dy,dx);if(ang<0)ang+=Math.PI*2;
+    let ray=0;for(let r=0;r<count;r++) if(ang>=rays[r]) ray=r;
+    let ring=nr-1;for(let r=0;r<nr;r++) if(dist<=rings[r]){ring=r;break;}
+    const hash=fx6Hash(ray*31+seed,ring*47-seed), tilt=(hash-0.5)*Math.PI*2, mag=hash*0.8+0.2;
+    let cd=Infinity;const arc=Math.abs(ang-rays[ray])*dist;
+    if(arc<width*1.5)cd=arc;
+    for(let r=0;r<nr;r++){const d=Math.abs(dist-rings[r]);if(d<width*1.2)cd=Math.min(cd,d);}
+    const line=cd<width?1-cd/width:0, spec=cd<width*2.5?Math.pow(1-cd/(width*2.5),2):0;
+    const i=(row*size+x)*4;
+    data[i]=Math.round((Math.cos(tilt)*mag*0.5+0.5)*255);
+    data[i+1]=Math.round((Math.sin(tilt)*mag*0.5+0.5)*255);
+    data[i+2]=Math.round(line*255);data[i+3]=Math.round(spec*255);
+  }
+  return data;
+}
+function fractureTexture(n,p,w,h) {
+  const maps=n.runtime.fractureMaps || (n.runtime.fractureMaps=[]);
+  const key=JSON.stringify([w,h,p.seed,p.crackCount,p.angle,p.impactX,p.impactY,p.contourWidth]);
+  const idx=maps.findIndex(m=>m.key===key);
+  if(idx>=0){const m=maps.splice(idx,1)[0];maps.push(m);return m.tex;}
+  const tex=fx4UploadTex(384,384,fractureBuildMap(p,w,h));
+  gl.bindTexture(gl.TEXTURE_2D,tex);
+  gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MIN_FILTER,gl.NEAREST);
+  gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MAG_FILTER,gl.NEAREST);
+  maps.push({key,tex}); if(maps.length>4)gl.deleteTexture(maps.shift().tex);
+  return tex;
+}
+function runFracture(n,a) {
+  const p=fractureEffectiveParams({ ...FX37_DEFAULTS.fractureEffect, ...n.params });
+  const frost=Math.max(0,Math.min(30,Number(p.frostedBlur)||0));
+  const mix=clamp01(Number(p.mix ?? 100)/100);
+  if (p.fractureEngine !== 'map') {
+    // O renderer anterior permanece byte a byte para os projetos antigos.
+    if (p.freeze === 'yes' && p.fractureFrozen && FX_FAST) {
+      const scale=fxFastDims(a).W/(a.fw||a.w);
+      if(scale<0.999) {p.displace*=scale;p.contourWidth*=scale;}
+    }
+    if(!frost) return fx7Canvas(a,(src,w,h)=>fx37Fracture(src,w,h,p));
+    p.mix=100;
+    const painted=fx7Canvas(a,(src,w,h)=>fx37Fracture(src,w,h,p));
+    return fractureBlurAndMix(a,painted,frost,mix);
+  }
+  const e=acquire(a.w,a.h);
+  draw('fractureMap',e,{uSrc:a.tex,uFractureMap:fractureTexture(n,p,a.w,a.h)}, {
+    uRes:[a.w,a.h],uPan:[Number(p.panX)||0,Number(p.panY)||0],uDisplace:Number(p.displace ?? 28),uSplit:Number(p.rgbSplit ?? 8),
+    uContourOpacity:Number(p.contourOpacity ?? 85)/100,uHighlight:Number(p.glassHighlight ?? 60)/100,
+    uContourColor:hexRGB(p.contourColor),uTintColor:hexRGB(p.tintColor),uTint:Number(p.tintAmount ?? 20)/100,
+  });
+  return fractureBlurAndMix(a,mkRes(e),frost,mix);
+}
+function fractureBlurAndMix(original, displaced, frost, mix) {
+  let effect=displaced;
+  if(frost>0){
+    const t=acquire(effect.w,effect.h), b=acquire(effect.w,effect.h);
+    draw('blur',t,{uSrc:effect.tex},{uDir:[1/effect.w,0],uSigma:frost});
+    draw('blur',b,{uSrc:t.tex},{uDir:[0,1/effect.h],uSigma:frost});
+    t.busy=false;if(effect.pooled)effect.pooled.busy=false;effect=mkRes(b);
+  }
+  const result=acquire(effect.w,effect.h);
+  draw('fractureBlend',result,{uSrc:original.tex,uEffect:effect.tex},{uMix:mix});
+  if(effect.pooled)effect.pooled.busy=false;
+  return mkRes(result);
+}
+
 // Fracture: radial fractures (rays) and concentric rings (circles) with shard displacement, RGB split and glass brightness.
 function fx37Fracture(srcCanvas, W, H, p) {
   const d = fx32Pixels(srcCanvas, W, H);
@@ -23806,7 +23935,7 @@ const RUN = {
   dotMatrix: (n, [a]) => (a ? fx7Canvas(a, (s, W, H) => fx35DotMatrix(s, W, H, { ...FX35_DEFAULTS.dotMatrix, ...n.params })) : null),
   coloredBitmap: (n, [a]) => (a ? fx7Canvas(a, (s, W, H) => fx36ColoredBitmap(s, W, H, { ...FX36_DEFAULTS.coloredBitmap, ...n.params })) : null),
   lofiEffect: (n, [a]) => (a ? fx7Canvas(a, (s, W, H) => fx37Lofi(s, W, H, { ...FX37_DEFAULTS.lofiEffect, ...n.params })) : null),
-  fractureEffect: (n, [a]) => (a ? fx7Canvas(a, (s, W, H) => fx37Fracture(s, W, H, { ...FX37_DEFAULTS.fractureEffect, ...n.params })) : null),
+  fractureEffect: (n, [a]) => a ? runFracture(n, a) : null,
   linearHalftone: (n, [a]) => (a ? fx7Canvas(a, (s, W, H) => fx38LinearHalftone(s, W, H, { ...FX38_DEFAULTS.linearHalftone, ...n.params })) : null),
   stippling: (n, [a]) => (a ? fx7Canvas(a, (s, W, H) => fx38Stippling(s, W, H, { ...FX38_DEFAULTS.stippling, ...n.params })) : null),
   risoPrint: (n, [a]) => (a ? fx7Canvas(a, (s, W, H) => fx38Riso(s, W, H, { ...FX38_DEFAULTS.risoPrint, ...n.params })) : null),
@@ -23891,6 +24020,7 @@ function createNode(type, x, y, opts = {}) {
   n.animOpen = !!opts.animOpen;
   if (type === 'image') n.params.file = 'Pattern (generated)';
   if (opts.params) Object.assign(n.params, opts.params);
+  if (type === 'fractureEffect' && opts.params && !('fractureEngine' in opts.params)) n.params.fractureEngine = 'classic';
   if (type === 'transform' && opts.params && !('unit' in opts.params)) n.params.unit = 'pct';   // old project: X/Y were in %
   if (type === 'fill' && opts.params && !('gX1' in opts.params)) fillMigraLegado(n);   // old Fill: centred line from the angle
   if (type === 'halfmode' && !/^(custom|p\d+)$/.test(String(n.params.theme))) n.params.theme = 'custom';
@@ -23910,6 +24040,7 @@ function releaseNode(n) {
   if (n.runtime.tex) { gl.deleteTexture(n.runtime.tex); n.runtime.tex = null; }
   if (n.runtime.maskTex) { gl.deleteTexture(n.runtime.maskTex); n.runtime.maskTex = null; n.runtime.maskId = null; }
   if (n.runtime.sprayLocalTex) { gl.deleteTexture(n.runtime.sprayLocalTex); n.runtime.sprayLocalTex = null; }
+  if (n.runtime.fractureMaps) { for (const m of n.runtime.fractureMaps) gl.deleteTexture(m.tex); n.runtime.fractureMaps = null; }
 }
 
 function removeNode(id) {
@@ -26511,6 +26642,7 @@ function makeEnum(n, p) {
     if (p.key === 'kind' && KIND_OF_MACHINE_TYPE[n.type]) return machineSetKind(n, sel.value);   // Machine: changes the internal type and the card
     const prevVal = n.params[p.key];
     n.params[p.key] = sel.value;
+    if (n.type === 'fractureEffect' && p.key === 'freeze') fractureSetFreeze(n, sel.value === 'yes');
     if (n.type === 'blRGBCurves' && p.key === 'channel') blCurveSwitch(n, prevVal, sel.value);
     if (n.type === 'halfmode') {
       if (p.key === 'theme') applyHalfModeTheme(n);
