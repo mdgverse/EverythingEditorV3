@@ -79,3 +79,28 @@ assert(html.includes("swatch.addEventListener('click'"));
 assert(html.includes("p.decalAsset!=='local'"));
 assert(html.includes('vandalEnsureMaskTextures(n)'));
 console.log('Vandal: interface, suavização individual e máscaras locais OK');
+
+// Rotação e visibilidade são individuais; os dados antigos sem rotação continuam em 0°.
+params.vandalMode='combined';params.decalAsset='local';params.vandalMasks[0].rotation=90;params.vandalMasks[1].visible=false;
+calls.length=0;runtime.run(node,[source]);
+assert.deepEqual(calls.map(x=>x.name),['vandalBase','vandalDecal']);
+assert(Math.abs(calls[1].uniforms.uRotation[0])<1e-9);assert.equal(calls[1].uniforms.uRotation[1],1);
+const shader=html.slice(html.indexOf('SHADERS.vandalDecal = `'),html.indexOf('/* Topog:',html.indexOf('SHADERS.vandalDecal = `')));
+assert(shader.includes('texture(uSrc,vUv)'));assert(shader.includes('vec2((uAsset+m.x)*0.25,m.y)'));
+assert(html.includes("group('Local Mask',true)"));assert(html.includes("className='vandal-group'"));
+assert(html.includes("'Rotation (°)'"));assert(html.includes('vandal-mask-visibility'));assert(html.includes('vandal-mask-delete'));
+console.log('Vandal: rotação, visibilidade e orientação da máscara OK');
+
+// A biblioteca licenciada é autocontida, numerada e empacotada nas duas plataformas.
+const assetFiles=fs.readdirSync(new URL('../assets/vandal/',import.meta.url)).filter(n=>n.endsWith('.png')).sort();
+assert.deepEqual(assetFiles,Array.from({length:200},(_,i)=>String(i+1).padStart(3,'0')+'.png'));
+for(const name of assetFiles){
+  const png=fs.readFileSync(new URL('../assets/vandal/'+name,import.meta.url));
+  assert.equal(png.subarray(0,8).toString('hex'),'89504e470d0a1a0a',name);
+  assert.equal(png.readUInt32BE(16),256,name);assert.equal(png.readUInt32BE(20),256,name);
+}
+assert(html.includes("id.slice(8)+'.png'"));
+assert(html.includes('n.runtime.vandalDefault=entry'));
+assert(fs.readFileSync(new URL('../android/app/build.gradle',import.meta.url),'utf8').includes('from("${rootProject.projectDir}/../assets")'));
+assert(fs.readFileSync(new URL('../.github/workflows/deploy-pages.yml',import.meta.url),'utf8').includes('cp -R assets _site/assets'));
+console.log('Vandal: 200 máscaras locais e empacotamento Web/Android OK');

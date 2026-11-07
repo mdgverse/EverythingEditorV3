@@ -63,6 +63,7 @@ android {
 // assets/ em todo build, então nunca existe uma segunda cópia para manter.
 tasks.register('copyWebApp', Copy) {
     from("${rootProject.projectDir}/../index.html")
+    from("${rootProject.projectDir}/../assets") { into("assets") }
     into("${projectDir}/src/main/assets")
 }
 
