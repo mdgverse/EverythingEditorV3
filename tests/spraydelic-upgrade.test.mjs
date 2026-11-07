@@ -30,10 +30,10 @@ const runEnd=html.indexOf('  distressor: (n, [a]) => {',runStart);
 const calls=[], targets=[];
 const runtime=vm.createContext({Number,Math,acquire:(w,h)=>{const t={w,h,tex:{},busy:true};targets.push(t);return t;},
   draw:(name,target,textures,uniforms)=>calls.push({name,target,textures,uniforms}),
-  mkRes:e=>({tex:e.tex,w:e.w,h:e.h,pooled:e}),hexRGB:()=>[1,0,0],vandalAtlasTexture:()=> 'atlas'});
+  mkRes:e=>({tex:e.tex,w:e.w,h:e.h,pooled:e}),ptRes:a=>({...a,pooled:null}),hexRGB:()=>[1,0,0],vandalAtlasTexture:()=> 'atlas'});
 vm.runInContext('this.run=({'+html.slice(runStart,runEnd)+'}).vandal',runtime);
 const params={vandalMode:'combined',vandalStop1:17,vandalStop2:33,vandalStop3:50,vandalStop4:67,vandalStop5:83,vandalSoft:0,
-  zones:3,decalX:50,decalY:50,decalScale:40,decalAsset:'1',decalOpacity:100,paletteCast:0,
+  vandalMasks:[], vandalSoft1:0,vandalSoft2:0,vandalSoft3:0,vandalSoft4:0,vandalSoft5:0, zones:3,decalX:50,decalY:50,decalScale:40,decalAsset:'1',decalOpacity:100,paletteCast:0,
   c1:'#000000',c2:'#ff0000',c3:'#00ff00',c4:'#ffffff',c5:'#ffffff',c6:'#ffffff'};
 const node={params,runtime:{}}, source={w:64,h:64,tex:{}};
 let result=runtime.run(node,[source]);
@@ -44,9 +44,23 @@ assert.equal(calls[0].target.busy,false);assert.equal(result.pooled.busy,true);
 for(const [mode,expected] of [['classic','vandalLegacy'],['decal','vandalDecal']]){
   calls.length=0;params.vandalMode=mode;runtime.run(node,[source]);assert.deepEqual(calls.map(x=>x.name),[expected]);
 }
+
+// Uma seleção local vazia não desenha o splash; máscaras têm passes e transformações próprios.
+calls.length=0;params.vandalMode='combined';params.decalAsset='local';params.vandalMasks=[];runtime.run(node,[source]);
+assert.deepEqual(calls.map(x=>x.name),['vandalBase']);
+params.vandalMasks=[{id:'a',x:20,y:30,scale:40,color:'#ff0000',opacity:100},{id:'b',x:80,y:70,scale:20,color:'#00ff00',opacity:50}];
+node.runtime.vandalMaskTextures={a:{tex:'texture-a'},b:{tex:'texture-b'}};params.vandalSoft1=75;params.vandalSoft2=0;
+calls.length=0;result=runtime.run(node,[source]);
+assert.deepEqual(calls.map(x=>x.name),['vandalBase','vandalDecal','vandalDecal']);
+assert.equal(calls[0].uniforms.uWheelSoft1,.75);assert.equal(calls[0].uniforms.uWheelSoft2,0);
+assert.equal(calls[1].textures.uAtlas,'texture-a');assert.equal(calls[2].textures.uAtlas,'texture-b');
+assert.deepEqual(Array.from(calls[1].uniforms.uPosition),[.2,.3]);assert.deepEqual(Array.from(calls[2].uniforms.uPosition),[.8,.7]);
+assert.equal(calls[1].target.busy,false);assert.equal(result.pooled.busy,true);
+
 const startShader=html.indexOf('SHADERS.vandalLegacy = `'),stopShader=html.indexOf('  /* Noise Texture',startShader);
 const shaders=vm.createContext({SHADERS:{}});vm.runInContext(html.slice(startShader,stopShader),shaders);
 assert(shaders.SHADERS.vandalBase.includes('level >= uStop1'));
+for(let i=1;i<=5;i++) assert(shaders.SHADERS.vandalBase.includes('uWheelSoft'+i));
 assert(!shaders.SHADERS.vandalBase.includes('float z = pow(t, uCurve) * uZones;'));
 assert(shaders.SHADERS.vandalLegacy.includes('float z = pow(t, uCurve) * uZones;'));
 const normStart=html.indexOf('function vandalNormalizeStops('),normEnd=html.indexOf('function vandalPaletteUI(',normStart);
@@ -55,3 +69,13 @@ const p={zones:6,vandalStop1:95,vandalStop2:33,vandalStop3:50,vandalStop4:67,van
 assert.deepEqual([p.vandalStop1,p.vandalStop2,p.vandalStop3,p.vandalStop4,p.vandalStop5],[83,87,91,95,99]);
 assert(html.includes("slice.addEventListener('dblclick'"));
 console.log('Vandal: passes independentes, modos legados e limites ordenados OK');
+
+assert(html.includes("if(/^c[1-6]$/.test(key)){el.remove();continue;}"));
+assert(!html.includes('function vandalLogo('));
+assert(html.includes("className='vandal-wheel-picker'"));
+assert(html.includes("n.params['vandalSoft'+(boundary+1)]=Number(softenInput.value)"));
+assert(html.includes("if (!('vandalSoft'+i in opts.params))"));
+assert(html.includes("swatch.addEventListener('click'"));
+assert(html.includes("p.decalAsset!=='local'"));
+assert(html.includes('vandalEnsureMaskTextures(n)'));
+console.log('Vandal: interface, suavização individual e máscaras locais OK');
