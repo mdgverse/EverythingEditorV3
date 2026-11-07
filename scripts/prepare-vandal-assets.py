@@ -30,7 +30,9 @@ def prepare(archive):
                     raise ValueError(f'Invalid or opaque source: {entry.filename}')
                 alpha = image.getchannel('A')
                 alpha.thumbnail((256, 256), Image.Resampling.LANCZOS)
-                alpha = alpha.point(lambda v: 255 if v >= 128 else 0, mode='1').convert('L')
+                # Fine spray marks can average well below 128 when a large
+                # source is downsampled. Keep those marks in the binary mask.
+                alpha = alpha.point(lambda v: 255 if v >= 16 else 0, mode='1').convert('L')
                 if alpha.getbbox() is None:
                     raise ValueError(f'Empty mask: {entry.filename}')
                 result = Image.new('RGBA', (256, 256), (255, 255, 255, 0))
