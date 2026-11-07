@@ -17,9 +17,41 @@ assert.equal(vandalParsePalette('nonsense').length,0);
 const def=html.slice(html.indexOf('  vandal: {'),html.indexOf('  ascii: {'));
 for (const p of ['density','radius','jitter','variance','pressure','drip','bleed','cast','c1','c6','grain','seed']) assert(def.includes("'"+p+"'"),p);
 assert(def.includes("NUM('density', 'Splatter density', 0, 100, 0)"), 'projetos antigos sem scatter mantêm aparência');
-assert(html.includes('uSprayAtlas: n.runtime.vandalLocalTex || vandalAtlasTexture()'));
+assert(html.includes('n.runtime.vandalLocalTex || vandalAtlasTexture()'));
 assert(html.includes("circle.addEventListener('pointerdown'") && html.includes("panel.addEventListener('drop'"));
 assert(html.includes("nd.type === 'spraydelic'") && html.includes("vandalMode: 'classic'"));
 assert(html.includes("vandalBox.addEventListener('pointermove'") && html.includes("svg.addEventListener('pointermove'"));
 assert(html.includes('alpha=a+src.a*(1.0-a)'));
 console.log('Vandal: máscaras, gestos, alpha e migração presentes');
+
+// O modo novo produz base e decal em passes separados; modos antigos não mudam.
+const runStart=html.indexOf('  vandal: (n, [a]) => {');
+const runEnd=html.indexOf('  distressor: (n, [a]) => {',runStart);
+const calls=[], targets=[];
+const runtime=vm.createContext({Number,Math,acquire:(w,h)=>{const t={w,h,tex:{},busy:true};targets.push(t);return t;},
+  draw:(name,target,textures,uniforms)=>calls.push({name,target,textures,uniforms}),
+  mkRes:e=>({tex:e.tex,w:e.w,h:e.h,pooled:e}),hexRGB:()=>[1,0,0],vandalAtlasTexture:()=> 'atlas'});
+vm.runInContext('this.run=({'+html.slice(runStart,runEnd)+'}).vandal',runtime);
+const params={vandalMode:'combined',vandalStop1:17,vandalStop2:33,vandalStop3:50,vandalStop4:67,vandalStop5:83,vandalSoft:0,
+  zones:3,decalX:50,decalY:50,decalScale:40,decalAsset:'1',decalOpacity:100,paletteCast:0,
+  c1:'#000000',c2:'#ff0000',c3:'#00ff00',c4:'#ffffff',c5:'#ffffff',c6:'#ffffff'};
+const node={params,runtime:{}}, source={w:64,h:64,tex:{}};
+let result=runtime.run(node,[source]);
+assert.deepEqual(calls.map(x=>x.name),['vandalBase','vandalDecal']);
+assert.equal(calls[0].textures.uSrc,source.tex);assert.equal(calls[1].textures.uSrc,calls[0].target.tex);
+assert.equal(calls[0].uniforms.uStop1,.17);assert.equal(calls[1].uniforms.uOpacity,1);
+assert.equal(calls[0].target.busy,false);assert.equal(result.pooled.busy,true);
+for(const [mode,expected] of [['classic','vandalLegacy'],['decal','vandalDecal']]){
+  calls.length=0;params.vandalMode=mode;runtime.run(node,[source]);assert.deepEqual(calls.map(x=>x.name),[expected]);
+}
+const startShader=html.indexOf('SHADERS.vandalLegacy = `'),stopShader=html.indexOf('  /* Noise Texture',startShader);
+const shaders=vm.createContext({SHADERS:{}});vm.runInContext(html.slice(startShader,stopShader),shaders);
+assert(shaders.SHADERS.vandalBase.includes('level >= uStop1'));
+assert(!shaders.SHADERS.vandalBase.includes('float z = pow(t, uCurve) * uZones;'));
+assert(shaders.SHADERS.vandalLegacy.includes('float z = pow(t, uCurve) * uZones;'));
+const normStart=html.indexOf('function vandalNormalizeStops('),normEnd=html.indexOf('function vandalPaletteUI(',normStart);
+const norm=vm.createContext({Number,Math});vm.runInContext(html.slice(normStart,normEnd)+'\nthis.normalize=vandalNormalizeStops;',norm);
+const p={zones:6,vandalStop1:95,vandalStop2:33,vandalStop3:50,vandalStop4:67,vandalStop5:83};norm.normalize(p);
+assert.deepEqual([p.vandalStop1,p.vandalStop2,p.vandalStop3,p.vandalStop4,p.vandalStop5],[83,87,91,95,99]);
+assert(html.includes("slice.addEventListener('dblclick'"));
+console.log('Vandal: passes independentes, modos legados e limites ordenados OK');
