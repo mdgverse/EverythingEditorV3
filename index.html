@@ -437,7 +437,7 @@ html, body{overscroll-behavior:none;-webkit-tap-highlight-color:transparent}/* 1
 
 /* Versão do editor — o arquivo VERSION na raiz é a fonte da verdade
    (o build do APK usa o mesmo número no versionName e falha se divergir). */
-const APP_VERSION = '3.15.0';
+const APP_VERSION = '3.15.1';
 /* sem a telinha, a versão aparece no tooltip da marca (e o título da aba segue curto) */
 {
   const marca = document.getElementById('brandBtn');
@@ -3146,7 +3146,7 @@ const NODE_TYPES = {
   vandal: {
     title: 'Vandal', cat: 'style', inputs: ['Image'], kw: 'vandal spray tinta zonas stencil grafite psychedelic',
     params: [
-      ENUM('vandalMode', 'Modo', [['decal', 'Asset único'], ['classic', 'Spray clássico']], 'decal'),
+      ENUM('vandalMode', 'Modo', [['combined', 'Spray + asset'], ['decal', 'Somente asset (legado)'], ['classic', 'Spray clássico']], 'combined'),
       ENUM('decalAsset', 'Asset', [['1', 'Splash 1'], ['2', 'Splash 2'], ['3', 'Splash 3'], ['4', 'Splash 4'], ['local', 'Máscara local']], '1'),
       NUM('decalX', 'Posição X', 0, 100, 50, 0.1), NUM('decalY', 'Posição Y', 0, 100, 50, 0.1),
       NUM('decalScale', 'Escala', 1, 200, 40, 0.5), COL('decalColor', 'Cor do asset', '#ffb000'),
@@ -8047,6 +8047,38 @@ void main(){
   outColor = vec4(clamp(mix(C.rgb, col, uMix), 0.0, 1.0), a);
 }`;
 
+// Variante da base: os limites da roda substituem as zonas uniformes do modo clássico.
+SHADERS.vandalBase = SHADERS.vandalLegacy.replace(
+  'uniform int uKind;',
+  'uniform int uKind; uniform float uStop1, uStop2, uStop3, uStop4, uStop5, uWheelSoft;'
+).replace(
+  `  float z = pow(t, uCurve) * uZones;
+  int idx = int(floor(min(z, uZones - 0.001)));
+  float fz = fract(z);
+  float sw = clamp(uSoft, 0.02, 1.0);
+  vec3 pal = hueRot(palAt(idx), uHue);
+  if (fz > 1.0 - sw && idx < int(uZones) - 1) pal = mix(pal, hueRot(palAt(idx + 1), uHue), smoothstep(1.0 - sw, 1.0, fz));`,
+  `  float level = pow(t, uCurve);
+  int idx = 0;
+  if (uZones >= 2.0 && level >= uStop1) idx = 1;
+  if (uZones >= 3.0 && level >= uStop2) idx = 2;
+  if (uZones >= 4.0 && level >= uStop3) idx = 3;
+  if (uZones >= 5.0 && level >= uStop4) idx = 4;
+  if (uZones >= 6.0 && level >= uStop5) idx = 5;
+  vec3 pal = hueRot(palAt(idx), uHue);
+  float sw = uWheelSoft * 0.08;
+  if (sw > 0.0001) {
+    if (uZones >= 2.0 && abs(level-uStop1)<sw) pal=mix(hueRot(uPal0,uHue),hueRot(uPal1,uHue),smoothstep(uStop1-sw,uStop1+sw,level));
+    if (uZones >= 3.0 && abs(level-uStop2)<sw) pal=mix(hueRot(uPal1,uHue),hueRot(uPal2,uHue),smoothstep(uStop2-sw,uStop2+sw,level));
+    if (uZones >= 4.0 && abs(level-uStop3)<sw) pal=mix(hueRot(uPal2,uHue),hueRot(uPal3,uHue),smoothstep(uStop3-sw,uStop3+sw,level));
+    if (uZones >= 5.0 && abs(level-uStop4)<sw) pal=mix(hueRot(uPal3,uHue),hueRot(uPal4,uHue),smoothstep(uStop4-sw,uStop4+sw,level));
+    if (uZones >= 6.0 && abs(level-uStop5)<sw) pal=mix(hueRot(uPal4,uHue),hueRot(uPal5,uHue),smoothstep(uStop5-sw,uStop5+sw,level));
+  }`
+).replace(
+  'float a = C.a * (1.0 - (1.0 - paint) * uSpray * 0.55);',
+  'float a = mix(C.a, C.a * (1.0 - (1.0 - paint) * uSpray * 0.55), uMix);'
+);
+
   /* Noise Texture — fractal Perlin ported from the official GLSL 
      (gpu_shader_material_tex_noise.glsl + gpu_shader_material_fractal_noise.glsl, 5.2):
      fBM / Multifractal / Híbrido / Ridged / Hetero Terrain, Detail fracionário,
@@ -9829,8 +9861,18 @@ function vandalLogo() {
   span.innerHTML=`<svg viewBox="0 0 282 72" role="img" aria-label="VANDAL" style="width:100%;height:auto;display:block"><g fill="#c9ae69" stroke="#eedca1" stroke-width="1.2" stroke-linejoin="miter"><path d="M2 5 L16 1 28 43 43 4 56 0 34 67 20 72 12 40Z"/><path fill-rule="evenodd" d="M52 69 70 5 86 0 104 65 88 70 84 51 68 53 65 67ZM71 40 81 39 77 20Z"/><path d="M101 66 105 5 117 0 137 35 139 2 152 5 150 67 136 70 116 35 115 67Z"/><path fill-rule="evenodd" d="M151 7 168 1 193 8 198 21 195 51 182 66 153 70ZM166 18 165 54 177 52 183 45 184 22 178 18Z"/><path fill-rule="evenodd" d="M198 70 216 7 232 0 250 66 234 70 230 51 214 53 211 67ZM217 40 227 39 223 20Z"/><path d="M248 4 263 0 261 51 281 49 278 64 247 71Z"/></g><path d="M49 4 30 71 M143 3 133 68 M232 3 217 67 M267 3 259 68" stroke="#16130b" stroke-width="3"/></svg>`;
   return span;
 }
+// Mantém os limites ativos ordenados inclusive ao ampliar o número de zonas.
+function vandalNormalizeStops(p) {
+  const count=Math.max(2,Math.min(6,Math.round(Number(p.zones)||3)))-1;
+  let prev=-3;
+  for(let i=1;i<=count;i++){
+    const value=Number(p['vandalStop'+i]);
+    const next=Math.max(prev+4,Math.min(99-(count-i)*4,Number.isFinite(value)?Math.round(value):i*100/(count+1)));
+    p['vandalStop'+i]=next;prev=next;
+  }
+}
 function vandalPaletteUI(n, body) {
-  const panel=E('div','vandal-panel');panel.style.cssText='background:#090909;color:#eee;border:1px solid #47443c;padding:7px;border-radius:5px;display:flex;flex-direction:column;gap:5px';
+  const panel=E('div','vandal-panel');panel.style.cssText='background:#090909;color:#eee;border:1px solid #47443c;padding:7px;border-radius:5px;display:flex;flex-direction:column;gap:5px;position:relative';
   panel.addEventListener('pointerdown',e=>e.stopPropagation());panel.addEventListener('click',e=>e.stopPropagation());
   const logo=vandalLogo();logo.style.cssText='width:95%;margin:0 auto';panel.append(logo);
   const svg=document.createElementNS(SVGNS,'svg');svg.setAttribute('viewBox','0 0 320 190');svg.style.cssText='width:100%;height:auto;touch-action:none;overflow:visible';svg.setAttribute('aria-label','Faixas de cor e limites de luminância');
@@ -9849,13 +9891,20 @@ function vandalPaletteUI(n, body) {
   panel.addEventListener('drop',e=>{if(e.dataTransfer.files.length){e.preventDefault();e.stopPropagation();importFile(e.dataTransfer.files[0]);}});
   const ns=SVGNS, pt=(r,t)=>[160+r*Math.cos(Math.PI-t*Math.PI),160-r*Math.sin(Math.PI-t*Math.PI)];
   const path=(r1,r2,a,b)=>{const p=pt(r1,a),q=pt(r1,b),r=pt(r2,b),s=pt(r2,a);return `M${p} A${r1} ${r1} 0 0 1 ${q} L${r} A${r2} ${r2} 0 0 0 ${s} Z`;};
-  let drag=-1, active=0;
+  let drag=-1, active=0, pickerKey=null;
+  // O seletor permanece disponível mesmo com a aba de paleta fechada.
+  const picker=document.createElement('input');picker.type='color';picker.className='vandal-wheel-picker';
+  picker.setAttribute('aria-label','Cor da faixa selecionada');
+  picker.style.cssText='position:absolute;width:1px;height:1px;opacity:0;pointer-events:none';panel.append(picker);
+  picker.addEventListener('input',()=>{if(!pickerKey)return;n.params[pickerKey]=picker.value;if(n.ui[pickerKey])n.ui[pickerKey]();markDirty(n.id);requestRender();});
+  picker.addEventListener('change',()=>{if(pickerKey)commit();});
   function redraw(){
-    svg.replaceChildren();const zones=Math.max(2,Math.min(6,Math.round(Number(n.params.zones)||3)));
+    vandalNormalizeStops(n.params);svg.replaceChildren();const zones=Math.max(2,Math.min(6,Math.round(Number(n.params.zones)||3)));
     const vals=[0,...Array.from({length:zones-1},(_,i)=>Number(n.params['vandalStop'+(i+1)])/100),1];
     for(let i=0;i<zones;i++){
       const slice=document.createElementNS(ns,'path');slice.setAttribute('d',path(145,54,vals[i],vals[i+1]));slice.setAttribute('fill',n.params['c'+(i+1)]);slice.setAttribute('stroke','#161616');slice.setAttribute('stroke-width','1');slice.style.cursor='pointer';slice.setAttribute('aria-label','Cor da zona '+(i+1));
-      slice.addEventListener('pointerdown',e=>{e.stopPropagation();active=i;n.params.decalColor=n.params['c'+(i+1)];if(n.ui.decalColor)n.ui.decalColor();markDirty(n.id);requestRender();redraw();commit();});svg.append(slice);
+      slice.addEventListener('pointerdown',e=>{e.stopPropagation();active=i;detail.textContent=`Mid-Hi: ${Math.round(Number(n.params['vandalStop'+Math.max(1,Math.min(5,active+1))])*2.55)} · Soften: ${n.params.vandalSoft}`;});
+      slice.addEventListener('dblclick',e=>{e.preventDefault();e.stopPropagation();pickerKey='c'+(i+1);picker.value=n.params[pickerKey];const rect=panel.getBoundingClientRect();picker.style.left=(e.clientX-rect.left)+'px';picker.style.top=(e.clientY-rect.top)+'px';if(typeof picker.showPicker==='function')picker.showPicker();else picker.click();});svg.append(slice);
     }
     for(let i=0;i<zones-1;i++){
       const [x,y]=pt(150,vals[i+1]), circle=document.createElementNS(ns,'circle');circle.setAttribute('cx',x);circle.setAttribute('cy',y);circle.setAttribute('r','9');circle.setAttribute('fill','#050505');circle.setAttribute('stroke','#777');circle.setAttribute('stroke-width','2');circle.setAttribute('aria-label','Limite '+(i+1));circle.style.cursor='grab';circle.style.touchAction='none';
@@ -9863,10 +9912,11 @@ function vandalPaletteUI(n, body) {
     }
     detail.textContent=`Mid-Hi: ${Math.round(Number(n.params['vandalStop'+Math.max(1,Math.min(5,active+1))])*2.55)} · Soften: ${n.params.vandalSoft}`;
   }
-  svg.addEventListener('pointermove',e=>{if(drag<0)return;const mousePoint=svg.createSVGPoint();mousePoint.x=e.clientX;mousePoint.y=e.clientY;const point=mousePoint.matrixTransform(svg.getScreenCTM().inverse());let t=Math.atan2(160-point.y,160-point.x)/Math.PI;t=Math.max(0,Math.min(1,t));const zones=Math.max(2,Math.min(6,Math.round(Number(n.params.zones)||3)));const lo=drag===0?1:Number(n.params['vandalStop'+drag])+1,hi=drag>=zones-2?99:Number(n.params['vandalStop'+(drag+2)])-1;n.params['vandalStop'+(drag+1)]=Math.round(Math.max(lo,Math.min(hi,t*100)));n.params.paletteCast=100;if(n.ui.paletteCast)n.ui.paletteCast();markDirty(n.id);requestRender();redraw();});
+  svg.addEventListener('pointermove',e=>{if(drag<0)return;const mousePoint=svg.createSVGPoint();mousePoint.x=e.clientX;mousePoint.y=e.clientY;const point=mousePoint.matrixTransform(svg.getScreenCTM().inverse());let t=point.y>160?(point.x<160?0:1):Math.atan2(160-point.y,160-point.x)/Math.PI;t=Math.max(0,Math.min(1,t));const zones=Math.max(2,Math.min(6,Math.round(Number(n.params.zones)||3)));const lo=drag===0?1:Number(n.params['vandalStop'+drag])+4,hi=drag>=zones-2?99:Number(n.params['vandalStop'+(drag+2)])-4;n.params['vandalStop'+(drag+1)]=Math.round(Math.max(lo,Math.min(hi,t*100)));if(n.params.vandalMode==='decal'){n.params.paletteCast=100;if(n.ui.paletteCast)n.ui.paletteCast();}markDirty(n.id);requestRender();redraw();});
   svg.addEventListener('pointerup',e=>{if(drag>=0){drag=-1;if(svg.hasPointerCapture(e.pointerId))svg.releasePointerCapture(e.pointerId);commit();}});
   svg.addEventListener('pointercancel',()=>{if(drag>=0){drag=-1;commit();}});
   for(const key of ['c1','c2','c3','c4','c5','c6','zones','vandalSoft']){const prev=n.ui[key];n.ui[key]=()=>{if(prev)prev();redraw();};}
+  for(const key of ['c1','c2','c3','c4','c5','c6']){const row=body.querySelector('[data-pkey="'+key+'"]');if(row)row.querySelectorAll('input').forEach(el=>{el.addEventListener('input',redraw);el.addEventListener('change',redraw);});}
   redraw();tabs.querySelector('button').click();return {panel,sections};
 }
 
@@ -23492,31 +23542,36 @@ const RUN = {
   vandal: (n, [a]) => {
     if (!a) return null;
     const p = n.params;
-    if (p.vandalMode !== 'classic') {
-      const e = acquire(a.w, a.h);
-      const local = p.decalAsset === 'local' && n.runtime.vandalLocalTex;
-      draw('vandalDecal', e, { uSrc: a.tex, uAtlas: local || vandalAtlasTexture() }, {
-        uRes: [a.w, a.h], uPosition: [Number(p.decalX)/100, Number(p.decalY)/100],
-        uScale: Number(p.decalScale)/100, uAsset: local ? 0 : Math.max(0,Math.min(3,(Number(p.decalAsset)||1)-1)),
-        uInk: hexRGB(p.decalColor), uOpacity: Number(p.decalOpacity)/100, uCast: Number(p.paletteCast)/100,
-        uZones: Number(p.zones), uSoftness: Number(p.vandalSoft)/100, uStop1: Number(p.vandalStop1)/100, uStop2: Number(p.vandalStop2)/100,
-        uStop3: Number(p.vandalStop3)/100, uStop4: Number(p.vandalStop4)/100, uStop5: Number(p.vandalStop5)/100,
+    let source = a, base = null;
+    if (p.vandalMode !== 'decal') {
+      base = acquire(a.w, a.h);
+      draw(p.vandalMode === 'classic' ? 'vandalLegacy' : 'vandalBase', base, { uSrc: a.tex, uSprayAtlas: p.vandalMode === 'classic' ? (n.runtime.vandalLocalTex || vandalAtlasTexture()) : vandalAtlasTexture() }, {
+        uStop1: Number(p.vandalStop1)/100, uStop2: Number(p.vandalStop2)/100, uStop3: Number(p.vandalStop3)/100,
+        uStop4: Number(p.vandalStop4)/100, uStop5: Number(p.vandalStop5)/100, uWheelSoft: Number(p.vandalSoft)/100,
+        uRes: [a.w, a.h],
         uPal0: hexRGB(p.c1), uPal1: hexRGB(p.c2), uPal2: hexRGB(p.c3), uPal3: hexRGB(p.c4), uPal4: hexRGB(p.c5), uPal5: hexRGB(p.c6),
+        uZones: p.zones, uBlack: p.black / 100, uWhite: p.white / 100, uCurve: p.curve / 100,
+        uSoft: p.soft / 100, uSpray: p.spray / 100, uDrop: p.drop, uSplatter: p.splatter, uMist: p.mist,
+        uThresh: p.thresh / 100, uCrush: p.crush / 100, uHue: p.hue, uGrain: p.grain, uMix: p.mix / 100,
+        uSeed: p.seed, uPx: (a.fw && a.fw !== a.w) ? a.w / a.fw : 1,
+        uKind: ({ tinta: 0, mult: 1, suave: 2, additive: 3, overlap: 4, subtract: 5 })[p.mixb] ?? 0,
+        uDensity: p.density / 100, uRadius: p.radius, uParticles: p.particles, uMaskStyle: Number(p.maskStyle) || 0, uJitter: p.jitter / 100, uVariance: p.variance / 100,
+        uPressure: p.pressure / 100, uDrip: p.drip / 100, uBleed: p.bleed / 100, uCast: p.cast / 100,
       });
-      return mkRes(e);
+      if (p.vandalMode === 'classic') return mkRes(base);
+      source = mkRes(base);
     }
     const e = acquire(a.w, a.h);
-    draw('vandalLegacy', e, { uSrc: a.tex, uSprayAtlas: n.runtime.vandalLocalTex || vandalAtlasTexture() }, {
-      uRes: [a.w, a.h],
+    const local = p.decalAsset === 'local' && n.runtime.vandalLocalTex;
+    draw('vandalDecal', e, { uSrc: source.tex, uAtlas: local || vandalAtlasTexture() }, {
+      uRes: [a.w, a.h], uPosition: [Number(p.decalX)/100, Number(p.decalY)/100],
+      uScale: Number(p.decalScale)/100, uAsset: local ? 0 : Math.max(0,Math.min(3,(Number(p.decalAsset)||1)-1)),
+      uInk: hexRGB(p.decalColor), uOpacity: Number(p.decalOpacity)/100, uCast: Number(p.paletteCast)/100,
+      uZones: Number(p.zones), uSoftness: Number(p.vandalSoft)/100, uStop1: Number(p.vandalStop1)/100, uStop2: Number(p.vandalStop2)/100,
+      uStop3: Number(p.vandalStop3)/100, uStop4: Number(p.vandalStop4)/100, uStop5: Number(p.vandalStop5)/100,
       uPal0: hexRGB(p.c1), uPal1: hexRGB(p.c2), uPal2: hexRGB(p.c3), uPal3: hexRGB(p.c4), uPal4: hexRGB(p.c5), uPal5: hexRGB(p.c6),
-      uZones: p.zones, uBlack: p.black / 100, uWhite: p.white / 100, uCurve: p.curve / 100,
-      uSoft: p.soft / 100, uSpray: p.spray / 100, uDrop: p.drop, uSplatter: p.splatter, uMist: p.mist,
-      uThresh: p.thresh / 100, uCrush: p.crush / 100, uHue: p.hue, uGrain: p.grain, uMix: p.mix / 100,
-      uSeed: p.seed, uPx: (a.fw && a.fw !== a.w) ? a.w / a.fw : 1,
-      uKind: ({ tinta: 0, mult: 1, suave: 2, additive: 3, overlap: 4, subtract: 5 })[p.mixb] ?? 0,
-      uDensity: p.density / 100, uRadius: p.radius, uParticles: p.particles, uMaskStyle: Number(p.maskStyle) || 0, uJitter: p.jitter / 100, uVariance: p.variance / 100,
-      uPressure: p.pressure / 100, uDrip: p.drip / 100, uBleed: p.bleed / 100, uCast: p.cast / 100,
     });
+    if (base) base.busy = false;
     return mkRes(e);
   },
   distressor: (n, [a]) => {
@@ -24612,7 +24667,7 @@ function buildNodeEl(n) {
 
   const head = E('div', 'nhead');
   head.style.background = cat.color;
-  if(n.type === 'vandal') { const title=E('span','ttl'); title.append(vandalLogo()); head.append(title); }
+  if(n.type === 'vandal') { const title=E('span','ttl'); title.setAttribute('aria-label','Vandal'); head.append(title); }
   else head.append(E('span', 'ttl', def.title));
   const fold = E('button', 'fold', n.collapsed ? '▸' : '▾');
   fold.title = 'Collapse / expand this node';

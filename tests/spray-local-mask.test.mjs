@@ -16,7 +16,7 @@ assert.deepEqual(convertAll(p,'dark').slice(8,12),[255,255,255,255]);
 p=rgba([[0,0,0,255],[0,0,0,255],[250,250,250,255],[0,0,0,255]]);assert.equal(detect(p,2,2),'light');
 assert.deepEqual(convertAll(p,'light',128,true).slice(8,12),[0,0,0,0]);
 p=rgba([[255,255,255,255],[0,0,0,255]]); convert(p,4,8,128,'dark',false); assert.deepEqual([...p.slice(0,4)],[255,255,255,255]); assert.deepEqual([...p.slice(4)],[255,255,255,255]);
-assert(html.includes('uSprayAtlas: n.runtime.vandalLocalTex || vandalAtlasTexture()'));
+assert(html.includes('n.runtime.vandalLocalTex || vandalAtlasTexture()'));
 assert(html.includes('gl.deleteTexture(n.runtime.vandalLocalTex)'));
 assert(html.includes('canvas.toBlob(blob=>'));
 console.log('Conversão local: transparência, polaridade, limiar, inversão, blocos e descarte OK');
