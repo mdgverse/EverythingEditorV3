@@ -437,7 +437,7 @@ html, body{overscroll-behavior:none;-webkit-tap-highlight-color:transparent}/* 1
 
 /* Versão do editor — o arquivo VERSION na raiz é a fonte da verdade
    (o build do APK usa o mesmo número no versionName e falha se divergir). */
-const APP_VERSION = '3.14.0';
+const APP_VERSION = '3.15.0';
 /* sem a telinha, a versão aparece no tooltip da marca (e o título da aba segue curto) */
 {
   const marca = document.getElementById('brandBtn');
@@ -3129,9 +3129,29 @@ const NODE_TYPES = {
       NUM('seed', 'Random seed', 0, 100, 4),
     ],
   },
-  spraydelic: {
-    title: 'Spraydelic', cat: 'style', inputs: ['Image'], kw: 'spraydellic spraydelic spray tinta zonas stencil grafite psychedelic',
+  topog: {
+    title: 'Topog', cat: 'style', inputs: ['Image'],
+    kw: 'topog topografia topography contour linhas posterize glowing edges',
     params: [
+      NUM('blur', 'Desfoque gaussiano', 0, 30, 4, 0.5),
+      NUM('levels', 'Níveis de posterização', 2, 24, 4, 1),
+      NUM('width', 'Largura das linhas', 0.5, 12, 1.5, 0.5),
+      NUM('intensity', 'Intensidade das linhas', 0, 200, 100, 1),
+      NUM('contrast', 'Contraste das linhas', 10, 300, 100, 1),
+      COL('lineColor', 'Cor das linhas', '#ffffff'),
+      ENUM('outputMode', 'Saída', [['screen', 'Screen sobre imagem'], ['lines', 'Somente linhas']], 'screen'),
+      NUM('mix', 'Mistura', 0, 100, 100, 1),
+    ],
+  },
+  vandal: {
+    title: 'Vandal', cat: 'style', inputs: ['Image'], kw: 'vandal spray tinta zonas stencil grafite psychedelic',
+    params: [
+      ENUM('vandalMode', 'Modo', [['decal', 'Asset único'], ['classic', 'Spray clássico']], 'decal'),
+      ENUM('decalAsset', 'Asset', [['1', 'Splash 1'], ['2', 'Splash 2'], ['3', 'Splash 3'], ['4', 'Splash 4'], ['local', 'Máscara local']], '1'),
+      NUM('decalX', 'Posição X', 0, 100, 50, 0.1), NUM('decalY', 'Posição Y', 0, 100, 50, 0.1),
+      NUM('decalScale', 'Escala', 1, 200, 40, 0.5), COL('decalColor', 'Cor do asset', '#ffb000'),
+      NUM('decalOpacity', 'Opacidade do asset', 0, 100, 100), NUM('paletteCast', 'Aplicar paleta', 0, 100, 0), NUM('vandalSoft', 'Soften', 0, 100, 0),
+      ...[17, 33, 50, 67, 83].map((v, i) => ({ ...NUM('vandalStop' + (i+1), 'Limite ' + (i+1), 1, 99, v, 1), hidden: true })),
       ENUM('preset', 'Preset', [['custom', 'Custom'], ['bomb', 'Bomb (spray poster)'], ['acido', 'Acid'], ['neon', 'Urban neon'], ['sunset', 'Sunset'], ['serigrafia', 'Screen print'], ['toxico', 'Toxic'], ['algodao', 'Cotton candy'], ['stencil', 'B&W stencil']], 'bomb'),
       COL('c1', 'Zone 1 (shadows)', '#0A0A0A'), COL('c2', 'Zona 2', '#D90452'), COL('c3', 'Zona 3', '#00B7EB'),
       COL('c4', 'Zona 4', '#F5F0E6'), COL('c5', 'Zona 5', '#F5F0E6'), COL('c6', 'Zone 6 (highlights)', '#F5F0E6'),
@@ -7922,7 +7942,7 @@ void main(){
 /* Spraydelic (2.9.60) — tonal zones with spray colours: the luminance is
    sliced into up to 6 zones (black/white point + curve), each zone paints with
    its colour through a field of spray drops (stencil/overspray). */
-SHADERS.spray = `
+SHADERS.vandalLegacy = `
 uniform sampler2D uSrc, uSprayAtlas;
 uniform vec2 uRes;
 uniform vec3 uPal0, uPal1, uPal2, uPal3, uPal4, uPal5;
@@ -8217,6 +8237,70 @@ uniform float uMix;
 void main() {
   vec4 src=texture(uSrc,vUv), effect=texture(uEffect,vUv);
   outColor=vec4(mix(src.rgb,effect.rgb,uMix),src.a);
+}`;
+
+/* Vandal: apenas uma instância; fora do retângulo o pixel é intocado. */
+SHADERS.vandalDecal = `
+uniform sampler2D uSrc, uAtlas;
+uniform vec2 uRes, uPosition;
+uniform vec3 uInk, uPal0, uPal1, uPal2, uPal3, uPal4, uPal5;
+uniform float uScale, uAsset, uOpacity, uCast, uZones, uSoftness;
+uniform float uStop1, uStop2, uStop3, uStop4, uStop5;
+vec3 vandalColor(float l) {
+  if (l < uStop1 || uZones < 2.0) return uPal0;
+  if (l < uStop2 || uZones < 3.0) return uPal1;
+  if (l < uStop3 || uZones < 4.0) return uPal2;
+  if (l < uStop4 || uZones < 5.0) return uPal3;
+  if (l < uStop5 || uZones < 6.0) return uPal4;
+  return uPal5;
+}
+vec3 vandalSoftColor(float l) {
+  vec3 c=vandalColor(l);
+  float w=uSoftness*0.08;
+  if(w>0.0001) {
+    if(uZones>=2.0 && abs(l-uStop1)<w) c=mix(uPal0,uPal1,smoothstep(uStop1-w,uStop1+w,l));
+    if(uZones>=3.0 && abs(l-uStop2)<w) c=mix(uPal1,uPal2,smoothstep(uStop2-w,uStop2+w,l));
+    if(uZones>=4.0 && abs(l-uStop3)<w) c=mix(uPal2,uPal3,smoothstep(uStop3-w,uStop3+w,l));
+    if(uZones>=5.0 && abs(l-uStop4)<w) c=mix(uPal3,uPal4,smoothstep(uStop4-w,uStop4+w,l));
+    if(uZones>=6.0 && abs(l-uStop5)<w) c=mix(uPal4,uPal5,smoothstep(uStop5-w,uStop5+w,l));
+  }
+  return c;
+}
+void main() {
+  vec4 src=texture(uSrc,vUv);
+  vec2 pos=vec2(vUv.x,1.0-vUv.y)*uRes;
+  float size=max(1.0,min(uRes.x,uRes.y)*uScale);
+  vec2 m=(pos-uPosition*uRes)/size+0.5;
+  if(any(lessThan(m,vec2(0.0)))||any(greaterThanEqual(m,vec2(1.0)))){outColor=src;return;}
+  float a=texture(uAtlas,vec2((uAsset+m.x)*0.25,1.0-m.y)).r*uOpacity;
+  float l=dot(src.rgb,vec3(0.2126,0.7152,0.0722));
+  vec3 ink=mix(uInk,vandalSoftColor(l),uCast);
+  float alpha=a+src.a*(1.0-a);
+  vec3 rgb=alpha>0.0 ? (ink*a+src.rgb*src.a*(1.0-a))/alpha : vec3(0.0);
+  outColor=vec4(rgb,alpha);
+}`;
+
+/* Topog: blur -> posterização -> bordas de níveis -> Screen. */
+SHADERS.topog = `
+uniform sampler2D uSrc, uSmooth;
+uniform vec2 uRes;
+uniform float uLevels, uWidth, uIntensity, uContrast, uMix, uLinesOnly;
+uniform vec3 uLineColor;
+float topoLevel(vec2 p) {
+  vec3 c=texture(uSmooth,clamp(p,vec2(0.0),vec2(1.0))).rgb;
+  float l=dot(c,vec3(0.2126,0.7152,0.0722));
+  return floor(clamp(l,0.0,0.99999)*uLevels);
+}
+void main() {
+  vec4 src=texture(uSrc,vUv);
+  vec2 d=vec2(uWidth)/uRes;
+  float left=topoLevel(vUv-vec2(d.x,0.0)), right=topoLevel(vUv+vec2(d.x,0.0));
+  float down=topoLevel(vUv-vec2(0.0,d.y)), up=topoLevel(vUv+vec2(0.0,d.y));
+  float edge=clamp((abs(right-left)+abs(up-down))*uIntensity,0.0,1.0);
+  edge=pow(edge,max(0.05,1.0/uContrast));
+  vec3 lines=uLineColor*edge;
+  vec3 effect=uLinesOnly>0.5 ? lines : 1.0-(1.0-src.rgb)*(1.0-lines);
+  outColor=vec4(mix(src.rgb,effect,uMix),src.a);
 }`;
 
 const PROGS = {};
@@ -9666,7 +9750,7 @@ function fx6MarkColor(s, tone, p) {
 
 /* Quatro máscaras binárias originais, geradas uma vez e reutilizadas como atlas.
    Não inclui imagens extraídas de terceiros. Branco = tinta, preto = fundo. */
-function sprayMaskAtlas() {
+function vandalMaskAtlas() {
   const size = 64, tiles = 4, data = new Uint8Array(size * tiles * size * 4);
   let seed = 19237;
   const rand = () => { seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0; return seed / 4294967296; };
@@ -9684,20 +9768,20 @@ function sprayMaskAtlas() {
   }
   return data;
 }
-let sprayAtlas = null;
-function sprayAtlasTexture() {
-  if (sprayAtlas) return sprayAtlas;
-  sprayAtlas = gl.createTexture(); gl.bindTexture(gl.TEXTURE_2D, sprayAtlas);
+let vandalAtlas = null;
+function vandalAtlasTexture() {
+  if (vandalAtlas) return vandalAtlas;
+  vandalAtlas = gl.createTexture(); gl.bindTexture(gl.TEXTURE_2D, vandalAtlas);
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-  gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 256, 64, 0, gl.RGBA, gl.UNSIGNED_BYTE, sprayMaskAtlas());
-  return sprayAtlas;
+  gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 256, 64, 0, gl.RGBA, gl.UNSIGNED_BYTE, vandalMaskAtlas());
+  return vandalAtlas;
 }
 
 // Lê GPL, lista JSON de cores e texto/URLs com cores hexadecimais.
-function sprayParsePalette(text) {
+function vandalParsePalette(text) {
   const txt = String(text || '').trim();
   const colors = [];
   const add = c => { if (/^#[\da-f]{6}$/i.test(c)) colors.push(c.toUpperCase()); };
@@ -9717,7 +9801,7 @@ function sprayParsePalette(text) {
 
 /* Spraydelic (2.9.60) — presets: colours of the 6 zones + adjustments, in the spirit of
    "Factory Color System" (real can colours) and the Shorts looks. */
-const SPRAY_PRESETS = {
+const VANDAL_PRESETS = {
   bomb:       { c: ['#0A0A0A', '#D90452', '#00B7EB', '#F5F0E6', '#F5F0E6', '#F5F0E6'], zones: 3, black: 4, white: 92, curve: 100, soft: 30, spray: 70, drop: 3, splatter: 30, mist: 35, thresh: 5, crush: 30, mixb: 'tinta' },
   acido:      { c: ['#12002E', '#7B2FF7', '#00C2FF', '#00FFA3', '#F9FF21', '#FF3D81'], zones: 6, black: 0, white: 100, curve: 100, soft: 45, spray: 55, drop: 2, splatter: 15, mist: 20, thresh: 0, crush: 15, mixb: 'tinta' },
   neon:       { c: ['#050510', '#120A5E', '#00E5FF', '#FF2EA6', '#FFE600', '#FFFFFF'], zones: 5, black: 2, white: 96, curve: 110, soft: 35, spray: 60, drop: 2, splatter: 20, mist: 30, thresh: 0, crush: 35, mixb: 'tinta' },
@@ -9727,8 +9811,8 @@ const SPRAY_PRESETS = {
   algodao:    { c: ['#3A2E5C', '#8E6CC8', '#FF8FAB', '#FFC2D4', '#A8E6FF', '#FFF6EC'], zones: 5, black: 5, white: 98, curve: 90, soft: 60, spray: 40, drop: 2, splatter: 8, mist: 20, thresh: 0, crush: 10, mixb: 'suave' },
   stencil:    { c: ['#0D0D0D', '#0D0D0D', '#EDEDED', '#EDEDED', '#EDEDED', '#EDEDED'], zones: 2, black: 10, white: 90, curve: 100, soft: 5, spray: 80, drop: 3, splatter: 5, mist: 15, thresh: 42, crush: 55, mixb: 'tinta' },
 };
-function applySprayPreset(n) {
-  const pr = SPRAY_PRESETS[n.params.preset];
+function applyVandalPreset(n) {
+  const pr = VANDAL_PRESETS[n.params.preset];
   if (!pr) return;
   pr.c.forEach((c, i) => { n.params['c' + (i + 1)] = c; });
   for (const k of ['zones', 'black', 'white', 'curve', 'soft', 'spray', 'drop', 'splatter', 'mist', 'thresh', 'crush', 'mixb']) n.params[k] = pr[k];
@@ -9738,78 +9822,57 @@ function applySprayPreset(n) {
 
 /* Spraydelic panel: the editor's native VERTICAL dock (buildControls),
    only with the preset hook, the width arrow and the saved width (spW). */
-let sprayWheelCache = null;
-function sprayPaletteUI(n, body) {
-  const panel = E('div', 'spray-palette');
-  panel.style.cssText = 'padding:6px;border:1px solid var(--line3);border-radius:6px;display:flex;flex-direction:column;gap:6px;touch-action:auto';
-  panel.addEventListener('pointerdown', e => e.stopPropagation());
-  panel.addEventListener('click', e => e.stopPropagation());
-  const label = E('div', 'plbl', 'Paleta · selecione uma amostra');
-  const swatches = E('div'); swatches.style.cssText = 'display:flex;gap:3px';
-  const wheel = document.createElement('canvas'); wheel.width = wheel.height = 128;
-  wheel.setAttribute('aria-label', 'Roda de matiz e saturação');
-  wheel.style.cssText = 'width:128px;height:128px;max-width:100%;align-self:center;touch-action:none;cursor:crosshair';
-  const value = document.createElement('input'); value.type = 'range'; value.min = 0; value.max = 100; value.setAttribute('aria-label', 'Brilho da cor');
-  const row = E('div'); row.style.cssText = 'display:flex;gap:4px;flex-wrap:wrap';
-  const file = document.createElement('input'); file.type = 'file'; file.accept = '.gpl,.json,.txt,text/plain,application/json'; file.style.display = 'none';
-  const load = E('button', 'stk-btn', 'Importar paleta'); load.type = 'button';
-  const random = E('button', 'stk-btn', 'Nova semente'); random.type = 'button';
-  const hint = E('div', 'plbl', 'Arraste GPL, JSON ou TXT aqui · até 6 cores');
-  row.append(load, random, file); panel.append(label, swatches, wheel, value, row, hint);
-  body.insertBefore(panel, body.querySelector('[data-pkey="c1"]') || body.firstChild);
-  let selectedColor = 0, dragging = -1;
-  if (!sprayWheelCache) {
-  const canvas = document.createElement('canvas'); canvas.width = canvas.height = 128;
-  const cg = canvas.getContext('2d'), im = cg.createImageData(128, 128);
-  for (let y = 0; y < 128; y++) for (let x = 0; x < 128; x++) {
-    const dx = (x - 63.5) / 62, dy = (y - 63.5) / 62, r = Math.hypot(dx, dy), i = (y * 128 + x) * 4;
-    if (r <= 1) { const rgb = hsvParaRgb((Math.atan2(dy, dx) / (2*Math.PI) + 1) % 1, r, 1); im.data[i] = rgb[0]*255; im.data[i+1] = rgb[1]*255; im.data[i+2] = rgb[2]*255; im.data[i+3] = 255; }
+/* Letreiro vetorial original inspirado em letras angulares de graffiti. */
+function vandalLogo() {
+  const span=E('span','vandal-logo');
+  span.setAttribute('aria-label','VANDAL');
+  span.innerHTML=`<svg viewBox="0 0 282 72" role="img" aria-label="VANDAL" style="width:100%;height:auto;display:block"><g fill="#c9ae69" stroke="#eedca1" stroke-width="1.2" stroke-linejoin="miter"><path d="M2 5 L16 1 28 43 43 4 56 0 34 67 20 72 12 40Z"/><path fill-rule="evenodd" d="M52 69 70 5 86 0 104 65 88 70 84 51 68 53 65 67ZM71 40 81 39 77 20Z"/><path d="M101 66 105 5 117 0 137 35 139 2 152 5 150 67 136 70 116 35 115 67Z"/><path fill-rule="evenodd" d="M151 7 168 1 193 8 198 21 195 51 182 66 153 70ZM166 18 165 54 177 52 183 45 184 22 178 18Z"/><path fill-rule="evenodd" d="M198 70 216 7 232 0 250 66 234 70 230 51 214 53 211 67ZM217 40 227 39 223 20Z"/><path d="M248 4 263 0 261 51 281 49 278 64 247 71Z"/></g><path d="M49 4 30 71 M143 3 133 68 M232 3 217 67 M267 3 259 68" stroke="#16130b" stroke-width="3"/></svg>`;
+  return span;
+}
+function vandalPaletteUI(n, body) {
+  const panel=E('div','vandal-panel');panel.style.cssText='background:#090909;color:#eee;border:1px solid #47443c;padding:7px;border-radius:5px;display:flex;flex-direction:column;gap:5px';
+  panel.addEventListener('pointerdown',e=>e.stopPropagation());panel.addEventListener('click',e=>e.stopPropagation());
+  const logo=vandalLogo();logo.style.cssText='width:95%;margin:0 auto';panel.append(logo);
+  const svg=document.createElementNS(SVGNS,'svg');svg.setAttribute('viewBox','0 0 320 190');svg.style.cssText='width:100%;height:auto;touch-action:none;overflow:visible';svg.setAttribute('aria-label','Faixas de cor e limites de luminância');
+  const detail=E('div','vandal-detail');detail.style.cssText='text-align:center;font-size:11px;color:#bdbdbd';
+  const tabs=E('div','vandal-tabs');tabs.style.cssText='display:flex;gap:5px;border-bottom:1px solid #555';
+  const sections=['Paleta','Configurações','Efeitos'].map(()=>{const e=E('div','vandal-section');e.style.cssText='display:flex;flex-direction:column;gap:5px';return e;});
+  const names=['Palette Warehouse','Render Settings','Paint Effects'];
+  names.forEach((name,i)=>{const b=E('button','stk-btn',name);b.type='button';b.style.cssText='flex:1;padding:3px 1px;font-size:9px;background:transparent;border:0;border-bottom:2px solid transparent';b.addEventListener('click',()=>{sections.forEach((v,j)=>v.style.display=i===j?'flex':'none');tabs.querySelectorAll('button').forEach((x,j)=>x.style.borderBottomColor=i===j?'#eee':'transparent');});tabs.append(b);});
+  panel.append(svg,detail,tabs,...sections);body.insertBefore(panel,body.querySelector('[data-pkey="vandalMode"]') || body.firstChild);
+  const buttons=E('div');buttons.style.cssText='display:flex;gap:4px';
+  const input=document.createElement('input');input.type='file';input.accept='.gpl,.json,.txt,text/plain,application/json';input.style.display='none';
+  const load=E('button','stk-btn','Importar paleta');load.type='button';load.addEventListener('click',()=>input.click());buttons.append(load,input);sections[0].append(buttons);
+  const importFile=async f=>{if(!f)return;try{if(f.size>1048576)throw Error('Máximo 1 MB');const colors=vandalParsePalette(await f.text());if(colors.length<2)throw Error('Use ao menos duas cores');colors.forEach((c,i)=>n.params['c'+(i+1)]=c);n.params.zones=colors.length;n.params.preset='custom';refreshNodeControls(n);markDirty(n.id);requestRender();redraw();commit();setStatus('Paleta importada: '+colors.length+' cores.');}catch(e){setStatus('Paleta inválida: '+e.message,true);}};
+  input.addEventListener('change',()=>{importFile(input.files[0]);input.value='';});
+  panel.addEventListener('dragover',e=>{if(e.dataTransfer.types.includes('Files')){e.preventDefault();e.stopPropagation();}});
+  panel.addEventListener('drop',e=>{if(e.dataTransfer.files.length){e.preventDefault();e.stopPropagation();importFile(e.dataTransfer.files[0]);}});
+  const ns=SVGNS, pt=(r,t)=>[160+r*Math.cos(Math.PI-t*Math.PI),160-r*Math.sin(Math.PI-t*Math.PI)];
+  const path=(r1,r2,a,b)=>{const p=pt(r1,a),q=pt(r1,b),r=pt(r2,b),s=pt(r2,a);return `M${p} A${r1} ${r1} 0 0 1 ${q} L${r} A${r2} ${r2} 0 0 0 ${s} Z`;};
+  let drag=-1, active=0;
+  function redraw(){
+    svg.replaceChildren();const zones=Math.max(2,Math.min(6,Math.round(Number(n.params.zones)||3)));
+    const vals=[0,...Array.from({length:zones-1},(_,i)=>Number(n.params['vandalStop'+(i+1)])/100),1];
+    for(let i=0;i<zones;i++){
+      const slice=document.createElementNS(ns,'path');slice.setAttribute('d',path(145,54,vals[i],vals[i+1]));slice.setAttribute('fill',n.params['c'+(i+1)]);slice.setAttribute('stroke','#161616');slice.setAttribute('stroke-width','1');slice.style.cursor='pointer';slice.setAttribute('aria-label','Cor da zona '+(i+1));
+      slice.addEventListener('pointerdown',e=>{e.stopPropagation();active=i;n.params.decalColor=n.params['c'+(i+1)];if(n.ui.decalColor)n.ui.decalColor();markDirty(n.id);requestRender();redraw();commit();});svg.append(slice);
+    }
+    for(let i=0;i<zones-1;i++){
+      const [x,y]=pt(150,vals[i+1]), circle=document.createElementNS(ns,'circle');circle.setAttribute('cx',x);circle.setAttribute('cy',y);circle.setAttribute('r','9');circle.setAttribute('fill','#050505');circle.setAttribute('stroke','#777');circle.setAttribute('stroke-width','2');circle.setAttribute('aria-label','Limite '+(i+1));circle.style.cursor='grab';circle.style.touchAction='none';
+      circle.addEventListener('pointerdown',e=>{e.preventDefault();e.stopPropagation();drag=i;svg.setPointerCapture(e.pointerId);});svg.append(circle);
+    }
+    detail.textContent=`Mid-Hi: ${Math.round(Number(n.params['vandalStop'+Math.max(1,Math.min(5,active+1))])*2.55)} · Soften: ${n.params.vandalSoft}`;
   }
-  cg.putImageData(im, 0, 0);
-  sprayWheelCache = canvas;
-  }
-  const canvas = sprayWheelCache;
-  const buttons = [];
-  const redraw = () => {
-    for (let i = 0; i < 6; i++) { buttons[i].style.background = n.params['c'+(i+1)]; buttons[i].style.outline = i === selectedColor ? '2px solid white' : 'none'; }
-    const hsv = rgbParaHsv(...hexRGB(n.params['c'+(selectedColor+1)]));
-    value.value = Math.round(hsv[2] * 100);
-    const g = wheel.getContext('2d'); g.clearRect(0, 0, 128, 128); g.drawImage(canvas, 0, 0);
-    const a = hsv[0]*Math.PI*2; g.beginPath(); g.arc(63.5+Math.cos(a)*hsv[1]*62,63.5+Math.sin(a)*hsv[1]*62,5,0,Math.PI*2); g.strokeStyle = '#000'; g.lineWidth=3; g.stroke(); g.strokeStyle='#fff'; g.lineWidth=1; g.stroke();
-  };
-  const apply = (i, color) => { n.params['c'+(i+1)] = color; n.params.preset = 'custom'; refreshNodeControls(n); markDirty(n.id); requestRender(); redraw(); };
-  for (let i = 0; i < 6; i++) {
-    const btn = E('button'); btn.type = 'button'; btn.draggable = true; btn.title = 'Cor da zona ' + (i+1); btn.setAttribute('aria-label', btn.title);
-    btn.style.cssText = 'flex:1;min-width:20px;height:25px;border:1px solid #888;border-radius:3px;cursor:pointer';
-    btn.addEventListener('click', () => { selectedColor = i; redraw(); });
-    btn.addEventListener('dragstart', e => { dragging = i; e.dataTransfer.setData('text/plain', String(i)); e.stopPropagation(); });
-    btn.addEventListener('dragover', e => { if (dragging >= 0) { e.preventDefault(); e.stopPropagation(); } });
-    btn.addEventListener('drop', e => { if (dragging < 0) return; e.preventDefault(); e.stopPropagation(); const c = n.params['c'+(i+1)]; n.params['c'+(i+1)] = n.params['c'+(dragging+1)]; n.params['c'+(dragging+1)] = c; dragging = -1; n.params.preset='custom'; refreshNodeControls(n); markDirty(n.id); requestRender(); redraw(); commit(); });
-    btn.addEventListener('dragend', () => { dragging = -1; }); buttons.push(btn); swatches.append(btn);
-  }
-  const pick = e => { const r=wheel.getBoundingClientRect(), dx=(e.clientX-r.left)/r.width*128-63.5, dy=(e.clientY-r.top)/r.height*128-63.5;
-    const hue=(Math.atan2(dy,dx)/(2*Math.PI)+1)%1, sat=Math.min(1,Math.hypot(dx,dy)/62);
-    apply(selectedColor, rampaHexDe(hsvParaRgb(hue,sat,Number(value.value)/100))); };
-  wheel.addEventListener('pointerdown', e => { e.preventDefault(); e.stopPropagation(); wheel.setPointerCapture(e.pointerId); pick(e); });
-  wheel.addEventListener('pointermove', e => { if (wheel.hasPointerCapture(e.pointerId)) pick(e); });
-  wheel.addEventListener('pointerup', e => { if (wheel.hasPointerCapture(e.pointerId)) { wheel.releasePointerCapture(e.pointerId); commit(); } });
-  value.addEventListener('input', () => { const hsv=rgbParaHsv(...hexRGB(n.params['c'+(selectedColor+1)])); apply(selectedColor,rampaHexDe(hsvParaRgb(hsv[0],hsv[1],Number(value.value)/100))); });
-  value.addEventListener('change', () => commit());
-  const importFile = async f => { if (!f) return; if (f.size > 1048576) { setStatus('Paleta maior que 1 MB.', true); return; }
-    try { const colors=sprayParsePalette(await f.text()); if (colors.length < 2) throw new Error('Use pelo menos duas cores.');
-      colors.forEach((c,i) => { n.params['c'+(i+1)] = c; }); n.params.zones=colors.length; n.params.preset='custom'; refreshNodeControls(n); markDirty(n.id); requestRender(); redraw(); commit(); setStatus('Paleta importada: '+colors.length+' cores.');
-    } catch (e) { setStatus('Paleta inválida: '+e.message, true); } };
-  load.addEventListener('click', () => file.click()); file.addEventListener('change', () => { importFile(file.files[0]); file.value=''; });
-  panel.addEventListener('dragover', e => { if (e.dataTransfer.types.includes('Files')) { e.preventDefault(); e.stopPropagation(); } });
-  panel.addEventListener('drop', e => { if (e.dataTransfer.files.length) { e.preventDefault(); e.stopPropagation(); importFile(e.dataTransfer.files[0]); } });
-  random.addEventListener('click', () => { const p=NODE_TYPES.spraydelic.params.find(q=>q.key==='seed'); setParam(n,p,Math.floor(Math.random()*101)); commit(); });
-  for (let i = 1; i <= 6; i++) { const key='c'+i, prev=n.ui[key]; n.ui[key]=() => { if (prev) prev(); redraw(); }; }
-  redraw();
+  svg.addEventListener('pointermove',e=>{if(drag<0)return;const mousePoint=svg.createSVGPoint();mousePoint.x=e.clientX;mousePoint.y=e.clientY;const point=mousePoint.matrixTransform(svg.getScreenCTM().inverse());let t=Math.atan2(160-point.y,160-point.x)/Math.PI;t=Math.max(0,Math.min(1,t));const zones=Math.max(2,Math.min(6,Math.round(Number(n.params.zones)||3)));const lo=drag===0?1:Number(n.params['vandalStop'+drag])+1,hi=drag>=zones-2?99:Number(n.params['vandalStop'+(drag+2)])-1;n.params['vandalStop'+(drag+1)]=Math.round(Math.max(lo,Math.min(hi,t*100)));n.params.paletteCast=100;if(n.ui.paletteCast)n.ui.paletteCast();markDirty(n.id);requestRender();redraw();});
+  svg.addEventListener('pointerup',e=>{if(drag>=0){drag=-1;if(svg.hasPointerCapture(e.pointerId))svg.releasePointerCapture(e.pointerId);commit();}});
+  svg.addEventListener('pointercancel',()=>{if(drag>=0){drag=-1;commit();}});
+  for(const key of ['c1','c2','c3','c4','c5','c6','zones','vandalSoft']){const prev=n.ui[key];n.ui[key]=()=>{if(prev)prev();redraw();};}
+  redraw();tabs.querySelector('button').click();return {panel,sections};
 }
 
 /* Conversão local: alpha é preferido quando existe transparência; para imagens
    opacas, a borda determina se a tinta é mais escura ou mais clara que o fundo. */
-function sprayDetectMaskMode(pixels, w, h) {
+function vandalDetectMaskMode(pixels, w, h) {
   for (let i = 3; i < pixels.length; i += 4) if (pixels[i] !== 255) return 'alpha';
   let sum = 0, count = 0;
   const sample = (x,y) => { const i=(y*w+x)*4; sum += pixels[i]*0.2126+pixels[i+1]*0.7152+pixels[i+2]*0.0722; count++; };
@@ -9819,7 +9882,7 @@ function sprayDetectMaskMode(pixels, w, h) {
   return sum / count >= 128 ? 'dark' : 'light';
 }
 // Escreve branco opaco para a tinta e preto transparente para o fundo.
-function sprayBinaryChunk(pixels, start, end, threshold, mode, invert) {
+function vandalBinaryChunk(pixels, start, end, threshold, mode, invert) {
   for (let i=start; i<end; i+=4) {
     const v = mode === 'alpha' ? pixels[i+3] : pixels[i]*0.2126+pixels[i+1]*0.7152+pixels[i+2]*0.0722;
     let ink = mode === 'dark' ? v < threshold : v >= threshold;
@@ -9829,7 +9892,7 @@ function sprayBinaryChunk(pixels, start, end, threshold, mode, invert) {
   }
 }
 // Textura de trabalho menor para a GPU; o PNG salvo mantém a resolução original.
-function sprayUploadLocalMask(n, canvas) {
+function vandalUploadLocalMask(n, canvas) {
   const small = document.createElement('canvas'); small.width=small.height=256;
   const ctx=small.getContext('2d'); ctx.imageSmoothingEnabled=false;
   const k=Math.min(256/canvas.width,256/canvas.height), w=Math.max(1,Math.round(canvas.width*k)), h=Math.max(1,Math.round(canvas.height*k));
@@ -9845,11 +9908,11 @@ function sprayUploadLocalMask(n, canvas) {
   gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MIN_FILTER,gl.NEAREST); gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MAG_FILTER,gl.NEAREST);
   gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_S,gl.CLAMP_TO_EDGE); gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_T,gl.CLAMP_TO_EDGE);
   gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,1024,256,0,gl.RGBA,gl.UNSIGNED_BYTE,atlas);
-  if (n.runtime.sprayLocalTex) gl.deleteTexture(n.runtime.sprayLocalTex);
-  n.runtime.sprayLocalTex=texture;
+  if (n.runtime.vandalLocalTex) gl.deleteTexture(n.runtime.vandalLocalTex);
+  n.runtime.vandalLocalTex=texture;
 }
 
-function sprayLocalMaskUI(n, body) {
+function vandalLocalMaskUI(n, body) {
   const panel=E('div','spray-local-mask');
   panel.style.cssText='border:1px solid var(--line3);border-radius:6px;padding:6px;display:flex;flex-direction:column;gap:6px';
   panel.addEventListener('pointerdown',e=>e.stopPropagation()); panel.addEventListener('click',e=>e.stopPropagation());
@@ -9872,7 +9935,7 @@ function sprayLocalMaskUI(n, body) {
   const save=E('button','stk-btn','Baixar PNG');save.type='button';
   const clear=E('button','stk-btn','Usar máscaras internas');clear.type='button';
   actions.append(use,save,clear); panel.append(title,choose,input,nav,status,mode,thresholdLabel,threshold,invLabel,convert,preview,actions);
-  body.insertBefore(panel, body.querySelector('.spray-palette').nextSibling);
+  body.append(panel);
   let files=[], index=0, result=null, generation=0;
   const update=()=>{ name.textContent=files.length ? `${index+1}/${files.length} · ${files[index].name}` : 'Nenhuma imagem'; previous.disabled=!files.length||index===0; next.disabled=!files.length||index===files.length-1; convert.disabled=!files.length; use.disabled=save.disabled=!result; };
   const change=()=>{ generation++;result=null;preview.getContext('2d').clearRect(0,0,128,128);status.textContent='Escolha o limiar e processe a imagem.';update(); };
@@ -9894,11 +9957,11 @@ function sprayLocalMaskUI(n, body) {
       const ctx=canvas.getContext('2d',{willReadFrequently:true}); if(!ctx)throw new Error('Canvas indisponível.');
       ctx.drawImage(bitmap,0,0); if(bitmap.close){bitmap.close();bitmap=null;}
       const image=ctx.getImageData(0,0,w,h), pixels=image.data;
-      const chosen=requestedMode==='auto' ? sprayDetectMaskMode(pixels,w,h) : requestedMode;
+      const chosen=requestedMode==='auto' ? vandalDetectMaskMode(pixels,w,h) : requestedMode;
       // Processa em blocos para que a UI continue responsiva.
       for(let i=0;i<pixels.length;i+=4*250000){
         if(run!==generation)return;
-        sprayBinaryChunk(pixels,i,Math.min(pixels.length,i+4*250000),limit,chosen,isInverted);
+        vandalBinaryChunk(pixels,i,Math.min(pixels.length,i+4*250000),limit,chosen,isInverted);
         await new Promise(resolve=>setTimeout(resolve,0));
       }
       if(run!==generation || nodes.get(n.id)!==n)return;
@@ -9908,24 +9971,27 @@ function sprayLocalMaskUI(n, body) {
     } catch(e) { if(run===generation){status.textContent='Erro: '+e.message;update();} }
     finally {if(bitmap&&bitmap.close)bitmap.close();if(url)URL.revokeObjectURL(url);}
   });
-  use.addEventListener('click',()=>{if(!result)return;try{sprayUploadLocalMask(n,result.canvas);if(!Number(n.params.density)){n.params.density=60;refreshNodeControls(n);commit();}markDirty(n.id);requestRender();status.textContent='Máscara aplicada só nesta sessão; salve o PNG para reutilizar.';}catch(e){status.textContent='Erro: '+e.message;}});
+  use.addEventListener('click',()=>{if(!result)return;try{vandalUploadLocalMask(n,result.canvas);n.params.decalAsset='local';if(n.ui.decalAsset)n.ui.decalAsset();if(n.params.vandalMode==='classic' && !Number(n.params.density)){n.params.density=60;refreshNodeControls(n);commit();}markDirty(n.id);requestRender();status.textContent='Máscara aplicada só nesta sessão; salve o PNG para reutilizar.';}catch(e){status.textContent='Erro: '+e.message;}});
   save.addEventListener('click',()=>{if(!result)return;const {canvas,name}=result;canvas.toBlob(blob=>{if(blob){downloadBlob(blob,name.replace(/\.[^.]+$/,'')+'-mask.png');setStatus('Máscara PNG salva.');}else setStatus('Não foi possível salvar a máscara.',true);},'image/png');});
-  clear.addEventListener('click',()=>{generation++;if(n.runtime.sprayLocalTex)gl.deleteTexture(n.runtime.sprayLocalTex);n.runtime.sprayLocalTex=null;markDirty(n.id);requestRender();status.textContent='Usando as máscaras internas.';update();});
+  clear.addEventListener('click',()=>{generation++;if(n.runtime.vandalLocalTex)gl.deleteTexture(n.runtime.vandalLocalTex);n.runtime.vandalLocalTex=null;if(n.params.decalAsset==='local'){n.params.decalAsset='1';if(n.ui.decalAsset)n.ui.decalAsset();commit();}markDirty(n.id);requestRender();status.textContent='Usando as máscaras internas.';update();});
   update();
 }
 
-function sprayPanel(n, body) {
-  sprayPaletteUI(n, body);
-  sprayLocalMaskUI(n, body);
-  const nodeEl = body.closest('.node');
-  if (nodeEl && Number(n.params.spW)) nodeEl.style.width = Number(n.params.spW) + 'px';
-  if (nodeEl) addPanelResize(n, nodeEl, 'spW');
-  for (const el of body.children) {
-    if (el.dataset && el.dataset.pkey === 'preset') {
-      const sel = el.querySelector('select');
-      if (sel) sel.addEventListener('change', () => applySprayPreset(n));
-    }
-  }
+function vandalPanel(n, body) {
+  const nodeEl=body.closest('.node');
+  if(nodeEl && Number(n.params.spW)) nodeEl.style.width=Number(n.params.spW)+'px';
+  if(nodeEl) addPanelResize(n,nodeEl,'spW');
+  const {panel,sections}=vandalPaletteUI(n,body);
+  const palette=new Set(['preset','c1','c2','c3','c4','c5','c6','zones','vandalSoft','paletteCast']);
+  const placement=new Set(['vandalMode','decalAsset','decalX','decalY','decalScale','decalColor','decalOpacity']);
+  const controls=Array.from(body.querySelectorAll('[data-pkey]')).filter(e=>!panel.contains(e));
+  for(const el of controls){const key=el.dataset.pkey;sections[palette.has(key)?0:placement.has(key)?1:2].append(el);}
+  body.querySelectorAll('.ctl-sec').forEach(el=>{if(!el.querySelector('[data-pkey]'))el.remove();});
+  const place=E('button','stk-btn','Posicionar na prévia');place.type='button';
+  place.addEventListener('click',()=>{previewId=n.id;if(document.body.classList.contains('mobile'))document.getElementById('mGoPreview').click();requestRender();setStatus('Arraste o quadro do asset na prévia; use a alça para redimensionar.');});
+  sections[1].prepend(place);
+  vandalLocalMaskUI(n,sections[2]);
+  const sel=sections[0].querySelector('[data-pkey="preset"] select');if(sel)sel.addEventListener('change',()=>applyVandalPreset(n));
 }
 
 function addPanelResize(n, el, key) {
@@ -23403,11 +23469,44 @@ const RUN = {
     for (const t of tmp) if (t !== out) t.busy = false;
     return mkRes(out);
   },
-  spraydelic: (n, [a]) => {
+  topog: (n, [a]) => {
+    if (!a) return null;
+    const p = n.params, W = a.w, H = a.h;
+    let smooth = a, temp = null;
+    const sigma = Math.max(0, Number(p.blur) || 0);
+    if (sigma > 0.01) {
+      temp = acquire(W, H); const b = acquire(W, H);
+      draw('blur', temp, { uSrc: a.tex }, { uDir: [1/W, 0], uSigma: sigma });
+      draw('blur', b, { uSrc: temp.tex }, { uDir: [0, 1/H], uSigma: sigma });
+      temp.busy = false; smooth = mkRes(b);
+    }
+    const out = acquire(W, H);
+    draw('topog', out, { uSrc: a.tex, uSmooth: smooth.tex }, {
+      uRes: [W, H], uLevels: Number(p.levels), uWidth: Number(p.width),
+      uIntensity: Number(p.intensity)/100, uContrast: Math.max(0.1,Number(p.contrast)/100),
+      uLineColor: hexRGB(p.lineColor), uMix: Number(p.mix)/100, uLinesOnly: p.outputMode === 'lines' ? 1 : 0,
+    });
+    if (smooth !== a && smooth.pooled) smooth.pooled.busy = false;
+    return mkRes(out);
+  },
+  vandal: (n, [a]) => {
     if (!a) return null;
     const p = n.params;
+    if (p.vandalMode !== 'classic') {
+      const e = acquire(a.w, a.h);
+      const local = p.decalAsset === 'local' && n.runtime.vandalLocalTex;
+      draw('vandalDecal', e, { uSrc: a.tex, uAtlas: local || vandalAtlasTexture() }, {
+        uRes: [a.w, a.h], uPosition: [Number(p.decalX)/100, Number(p.decalY)/100],
+        uScale: Number(p.decalScale)/100, uAsset: local ? 0 : Math.max(0,Math.min(3,(Number(p.decalAsset)||1)-1)),
+        uInk: hexRGB(p.decalColor), uOpacity: Number(p.decalOpacity)/100, uCast: Number(p.paletteCast)/100,
+        uZones: Number(p.zones), uSoftness: Number(p.vandalSoft)/100, uStop1: Number(p.vandalStop1)/100, uStop2: Number(p.vandalStop2)/100,
+        uStop3: Number(p.vandalStop3)/100, uStop4: Number(p.vandalStop4)/100, uStop5: Number(p.vandalStop5)/100,
+        uPal0: hexRGB(p.c1), uPal1: hexRGB(p.c2), uPal2: hexRGB(p.c3), uPal3: hexRGB(p.c4), uPal4: hexRGB(p.c5), uPal5: hexRGB(p.c6),
+      });
+      return mkRes(e);
+    }
     const e = acquire(a.w, a.h);
-    draw('spray', e, { uSrc: a.tex, uSprayAtlas: n.runtime.sprayLocalTex || sprayAtlasTexture() }, {
+    draw('vandalLegacy', e, { uSrc: a.tex, uSprayAtlas: n.runtime.vandalLocalTex || vandalAtlasTexture() }, {
       uRes: [a.w, a.h],
       uPal0: hexRGB(p.c1), uPal1: hexRGB(p.c2), uPal2: hexRGB(p.c3), uPal3: hexRGB(p.c4), uPal4: hexRGB(p.c5), uPal5: hexRGB(p.c6),
       uZones: p.zones, uBlack: p.black / 100, uWhite: p.white / 100, uCurve: p.curve / 100,
@@ -24010,6 +24109,8 @@ const grpMenu = $('#grpMenu');
 let previewId = null;
 
 function createNode(type, x, y, opts = {}) {
+  const oldVandal = type === 'spraydelic';
+  if (oldVandal) type = 'vandal';
   if (type === 'halftone') type = 'halfmode';   // 2.9.57: o efeito foi renomeado; o nome antigo continua abrindo
   const def = NODE_TYPES[type];
   const id = opts.id ?? nextId++;
@@ -24020,6 +24121,7 @@ function createNode(type, x, y, opts = {}) {
   n.animOpen = !!opts.animOpen;
   if (type === 'image') n.params.file = 'Pattern (generated)';
   if (opts.params) Object.assign(n.params, opts.params);
+  if (oldVandal && !(opts.params && 'vandalMode' in opts.params)) n.params.vandalMode = 'classic';
   if (type === 'fractureEffect' && opts.params && !('fractureEngine' in opts.params)) n.params.fractureEngine = 'classic';
   if (type === 'transform' && opts.params && !('unit' in opts.params)) n.params.unit = 'pct';   // old project: X/Y were in %
   if (type === 'fill' && opts.params && !('gX1' in opts.params)) fillMigraLegado(n);   // old Fill: centred line from the angle
@@ -24039,7 +24141,7 @@ function releaseNode(n) {
   n.cache = undefined;
   if (n.runtime.tex) { gl.deleteTexture(n.runtime.tex); n.runtime.tex = null; }
   if (n.runtime.maskTex) { gl.deleteTexture(n.runtime.maskTex); n.runtime.maskTex = null; n.runtime.maskId = null; }
-  if (n.runtime.sprayLocalTex) { gl.deleteTexture(n.runtime.sprayLocalTex); n.runtime.sprayLocalTex = null; }
+  if (n.runtime.vandalLocalTex) { gl.deleteTexture(n.runtime.vandalLocalTex); n.runtime.vandalLocalTex = null; }
   if (n.runtime.fractureMaps) { for (const m of n.runtime.fractureMaps) gl.deleteTexture(m.tex); n.runtime.fractureMaps = null; }
 }
 
@@ -24252,6 +24354,29 @@ function readResult(res) {
 /* =========================================================
    Rendering the preview
    ========================================================= */
+// Controle de posicionamento do único decal na imagem de prévia.
+var vandalOv = null, vandalBox = null, vandalDrag = null;
+function vandalUpdateOverlay(res) {
+  const n=previewNode();
+  if(!res || !n || n.type!=='vandal' || n.id!==previewId || n.params.vandalMode==='classic') { if(vandalOv)vandalOv.style.display='none'; return; }
+  if(!vandalOv){
+    const par=glCanvas.parentElement;if(getComputedStyle(par).position==='static')par.style.position='relative';
+    vandalOv=E('div','vandal-overlay');vandalOv.style.cssText='position:absolute;inset:0;pointer-events:none;z-index:9';
+    vandalBox=E('div','vandal-box');vandalBox.style.cssText='position:absolute;border:1px dashed #ffd479;box-sizing:border-box;pointer-events:auto;touch-action:none;cursor:move';
+    const knob=E('div','vandal-resize');knob.setAttribute('aria-label','Redimensionar asset');knob.style.cssText='position:absolute;right:-7px;bottom:-7px;width:14px;height:14px;border:2px solid #201909;background:#ffd479;border-radius:50%;cursor:nwse-resize;touch-action:none';
+    vandalBox.append(knob);vandalOv.append(vandalBox);par.append(vandalOv);
+    vandalBox.addEventListener('pointerdown',e=>{if(e.button>0)return;const g=vandalBox._geo;if(!g)return;e.preventDefault();e.stopPropagation();vandalBox.setPointerCapture(e.pointerId);vandalDrag={g,mode:e.target===knob?'scale':'move',x:e.clientX,y:e.clientY,px:Number(g.n.params.decalX),py:Number(g.n.params.decalY),scale:Number(g.n.params.decalScale)};});
+    vandalBox.addEventListener('pointermove',e=>{if(!vandalDrag)return;const d=vandalDrag,g=d.g,n=g.n;if(d.mode==='move'){n.params.decalX=Math.max(0,Math.min(100,d.px+(e.clientX-d.x)/g.dw*100));n.params.decalY=Math.max(0,Math.min(100,d.py+(e.clientY-d.y)/g.dh*100));if(n.ui.decalX)n.ui.decalX();if(n.ui.decalY)n.ui.decalY();}else{n.params.decalScale=Math.max(1,Math.min(200,d.scale+(e.clientX-d.x)*200/g.minDim));if(n.ui.decalScale)n.ui.decalScale();}markDirty(n.id);requestRender();});
+    const finish=e=>{if(!vandalDrag)return;vandalDrag=null;if(vandalBox.hasPointerCapture(e.pointerId))vandalBox.releasePointerCapture(e.pointerId);commit();};
+    vandalBox.addEventListener('pointerup',finish);vandalBox.addEventListener('pointercancel',finish);
+  }
+  const cv=glCanvas.getBoundingClientRect(),par=glCanvas.parentElement.getBoundingClientRect(),s=Math.min(cv.width/res.w,cv.height/res.h)*pv.zoom;
+  const dw=res.w*s,dh=res.h*s,ox=cv.left+cv.width/2+pv.panX-dw/2,oy=cv.top+cv.height/2+pv.panY-dh/2;
+  const side=Math.min(dw,dh)*Number(n.params.decalScale)/100,x=ox+dw*Number(n.params.decalX)/100,y=oy+dh*Number(n.params.decalY)/100;
+  Object.assign(vandalBox.style,{left:(x-side/2-par.left)+'px',top:(y-side/2-par.top)+'px',width:side+'px',height:side+'px'});
+  vandalBox._geo={n,dw,dh,minDim:Math.min(dw,dh)};vandalOv.style.display='';
+}
+
 function drawPreview(res, cheio) {          // 2.9.25: cheio = Output in full screen
   const dpr = Math.min(window.devicePixelRatio || 1, 2);
   const rect = glCanvas.getBoundingClientRect();
@@ -24287,11 +24412,13 @@ function drawPreview(res, cheio) {          // 2.9.25: cheio = Output in full sc
     if (xfOv) xfOv.style.display = 'none';
     if (csOv) csOv.style.display = 'none';
     if (fgOv) fgOv.style.display = 'none';
+    if (vandalOv) vandalOv.style.display = 'none';
   } else {
     updateXformOverlay(res);
     updateCloneOverlay(res);
     updateFillOverlay(res);
     updateFieldOverlay(res);
+    vandalUpdateOverlay(res);
   }
 }
 
@@ -24485,7 +24612,8 @@ function buildNodeEl(n) {
 
   const head = E('div', 'nhead');
   head.style.background = cat.color;
-  head.append(E('span', 'ttl', def.title));
+  if(n.type === 'vandal') { const title=E('span','ttl'); title.append(vandalLogo()); head.append(title); }
+  else head.append(E('span', 'ttl', def.title));
   const fold = E('button', 'fold', n.collapsed ? '▸' : '▾');
   fold.title = 'Collapse / expand this node';
   fold.addEventListener('click', e => { e.stopPropagation(); setNodeCollapsed(n, !n.collapsed); });
@@ -24521,7 +24649,7 @@ function buildNodeEl(n) {
   if (n.type === 'image') mediaMontaControles(n, body);   // mode/speed/start (GIF and video only)
   if (n.type === 'halfmode') halfModePanelVertical(n, body);   // 2.9.64: vertical in all builds; height follows the linked inks
   if (n.type === 'distressor') { if (EE_DOCK_H) distressDocker(n, body); else panelVerticalLargura(n, body, 'dsW'); }   // web: horizontal · APK: vertical
-  if (n.type === 'spraydelic') sprayPanel(n, body);   // docker vertical nativo (2.9.60)
+  if (n.type === 'vandal') vandalPanel(n, body);   // docker vertical nativo (2.9.60)
   buildAnimPanel(n, body);
 
   if (def.outs) {
@@ -25828,6 +25956,7 @@ function layerSnap(P, g) {
 }
 function updateXformOverlay(res) {
   const pn = previewNode();
+  if (pn && pn.type === 'vandal' && pn.id === previewId && pn.params.vandalMode !== 'classic') { if (xfOv) xfOv.style.display='none'; return; }
   const sel = pn && pn.type === 'layers' && pn.id === previewId && pn.ui.layerSel != null ? pn.ui.layerSel : null;
   const L = sel != null ? linkTo(pn.id, sel) : null;
   const lr = L && res ? evalSource(L) : null;
@@ -31448,6 +31577,7 @@ function restoreGraph(data) {
   links = rawLinks.map(linkFromData);
   previewId = data.previewId ?? null;
   for (const nd of data.nodes || []) {
+    if (nd.type === 'spraydelic') { nd.type = 'vandal'; nd.params = { ...nd.params, vandalMode: 'classic' }; }
     if (nd.type === 'halftone') nd.type = 'halfmode';   // 2.9.57: old name of HalfMode
     if (!NODE_TYPES[nd.type]) continue;
     createNode(nd.type, nd.x, nd.y, { id: nd.id, params: nd.params, imgId: nd.imgId, collapsed: nd.collapsed, tf: nd.tf, animOpen: nd.animOpen });
