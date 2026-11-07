@@ -437,7 +437,7 @@ html, body{overscroll-behavior:none;-webkit-tap-highlight-color:transparent}/* 1
 
 /* Versão do editor — o arquivo VERSION na raiz é a fonte da verdade
    (o build do APK usa o mesmo número no versionName e falha se divergir). */
-const APP_VERSION = '3.16.0';
+const APP_VERSION = '3.17.0';
 /* sem a telinha, a versão aparece no tooltip da marca (e o título da aba segue curto) */
 {
   const marca = document.getElementById('brandBtn');
@@ -3146,18 +3146,18 @@ const NODE_TYPES = {
   vandal: {
     title: 'Vandal', cat: 'style', inputs: ['Image'], kw: 'vandal spray tinta zonas stencil grafite psychedelic',
     params: [
-      ENUM('vandalMode', 'Modo', [['combined', 'Spray + asset'], ['decal', 'Somente asset (legado)'], ['classic', 'Spray clássico']], 'combined'),
-      ENUM('decalAsset', 'Asset', [['1', 'Splash 1'], ['2', 'Splash 2'], ['3', 'Splash 3'], ['4', 'Splash 4'], ['local', 'Máscara local']], '1'),
-      NUM('decalX', 'Posição X', 0, 100, 50, 0.1), NUM('decalY', 'Posição Y', 0, 100, 50, 0.1),
-      NUM('decalScale', 'Escala', 1, 200, 40, 0.5), COL('decalColor', 'Cor do asset', '#ffb000'),
-      NUM('decalOpacity', 'Opacidade do asset', 0, 100, 100), NUM('paletteCast', 'Aplicar paleta', 0, 100, 0),
-      { ...NUM('vandalSoft', 'Soften legado', 0, 100, 0), hidden:true },
+      ENUM('vandalMode', 'Mode', [['combined', 'Spray + Asset'], ['decal', 'Single Asset (Legacy)'], ['classic', 'Classic Spray']], 'combined'),
+      ENUM('decalAsset', 'Asset', [['1', 'Splash 1'], ['2', 'Splash 2'], ['3', 'Splash 3'], ['4', 'Splash 4'], ...Array.from({length:200},(_,i)=>['texture-'+String(i+1).padStart(3,'0'),'Texture '+String(i+1).padStart(3,'0')]), ['local', 'Local Mask']], '1'),
+      NUM('decalX', 'Position X', 0, 100, 50, 0.1), NUM('decalY', 'Position Y', 0, 100, 50, 0.1),
+      NUM('decalScale', 'Scale', 1, 200, 40, 0.5), NUM('decalRotation', 'Rotation (°)', 0, 360, 0, 1), COL('decalColor', 'Asset Color', '#ffb000'),
+      NUM('decalOpacity', 'Asset Opacity', 0, 100, 100), NUM('paletteCast', 'Apply Palette', 0, 100, 0),
+      { ...NUM('vandalSoft', 'Legacy Soften', 0, 100, 0), hidden:true },
       ...[1,2,3,4,5].map(i => ({ ...NUM('vandalSoft'+i, 'Soften '+i, 0, 100, 0), hidden:true })),
       { key:'vandalMasks', type:'data', def:[], hidden:true },
-      ...[17, 33, 50, 67, 83].map((v, i) => ({ ...NUM('vandalStop' + (i+1), 'Limite ' + (i+1), 1, 99, v, 1), hidden: true })),
+      ...[17, 33, 50, 67, 83].map((v, i) => ({ ...NUM('vandalStop' + (i+1), 'Boundary ' + (i+1), 1, 99, v, 1), hidden: true })),
       ENUM('preset', 'Preset', [['custom', 'Custom'], ['bomb', 'Bomb (spray poster)'], ['acido', 'Acid'], ['neon', 'Urban neon'], ['sunset', 'Sunset'], ['serigrafia', 'Screen print'], ['toxico', 'Toxic'], ['algodao', 'Cotton candy'], ['stencil', 'B&W stencil']], 'bomb'),
-      COL('c1', 'Zone 1 (shadows)', '#0A0A0A'), COL('c2', 'Zona 2', '#D90452'), COL('c3', 'Zona 3', '#00B7EB'),
-      COL('c4', 'Zona 4', '#F5F0E6'), COL('c5', 'Zona 5', '#F5F0E6'), COL('c6', 'Zone 6 (highlights)', '#F5F0E6'),
+      COL('c1', 'Zone 1 (shadows)', '#0A0A0A'), COL('c2', 'Zone 2', '#D90452'), COL('c3', 'Zone 3', '#00B7EB'),
+      COL('c4', 'Zone 4', '#F5F0E6'), COL('c5', 'Zone 5', '#F5F0E6'), COL('c6', 'Zone 6 (highlights)', '#F5F0E6'),
       NUM('zones', 'Color zones', 2, 6, 3),
       NUM('black', 'Black point', 0, 90, 4), NUM('white', 'White point', 20, 100, 92),
       NUM('curve', 'Zone curve', 30, 300, 100), NUM('soft', 'Zone softness', 0, 100, 30),
@@ -3165,7 +3165,7 @@ const NODE_TYPES = {
       NUM('splatter', 'Splatter', 0, 100, 30), NUM('mist', 'Mist (overspray)', 0, 100, 35),
       NUM('thresh', 'Stencil threshold', 0, 85, 5), NUM('crush', 'Crush tones', 0, 100, 30),
       NUM('hue', 'Psychedelic hue spin', -180, 180, 0), NUM('grain', 'Grain', 0, 60, 14),
-      SEC('sp_scatter', 'Spray scatter', 'Máscaras originais geradas proceduralmente'),
+      SEC('sp_scatter', 'Spray scatter', 'Original procedurally generated masks'),
       NUM('density', 'Splatter density', 0, 100, 0), NUM('particles', 'Particle count', 1, 4, 1), NUM('radius', 'Spray radius', 8, 160, 45),
       ENUM('maskStyle', 'Spray mask', [['auto', 'Random'], ['1', 'Splash 1'], ['2', 'Splash 2'], ['3', 'Splash 3'], ['4', 'Splash 4']], 'auto'),
       NUM('jitter', 'Jitter', 0, 100, 60), NUM('variance', 'Size variance', 0, 100, 50),
@@ -8281,7 +8281,7 @@ void main() {
 /* Vandal: apenas uma instância; fora do retângulo o pixel é intocado. */
 SHADERS.vandalDecal = `
 uniform sampler2D uSrc, uAtlas;
-uniform vec2 uRes, uPosition;
+uniform vec2 uRes, uPosition, uRotation;
 uniform vec3 uInk, uPal0, uPal1, uPal2, uPal3, uPal4, uPal5;
 uniform float uScale, uAsset, uOpacity, uCast, uZones, uSoft1, uSoft2, uSoft3, uSoft4, uSoft5;
 uniform float uStop1, uStop2, uStop3, uStop4, uStop5;
@@ -8313,9 +8313,10 @@ void main() {
   vec4 src=texture(uSrc,vUv);
   vec2 pos=vec2(vUv.x,1.0-vUv.y)*uRes;
   float size=max(1.0,min(uRes.x,uRes.y)*uScale);
-  vec2 m=(pos-uPosition*uRes)/size+0.5;
+  vec2 d=pos-uPosition*uRes;
+  vec2 m=vec2(uRotation.x*d.x+uRotation.y*d.y,-uRotation.y*d.x+uRotation.x*d.y)/size+0.5;
   if(any(lessThan(m,vec2(0.0)))||any(greaterThanEqual(m,vec2(1.0)))){outColor=src;return;}
-  float a=texture(uAtlas,vec2((uAsset+m.x)*0.25,1.0-m.y)).r*uOpacity;
+  float a=texture(uAtlas,vec2((uAsset+m.x)*0.25,m.y)).r*uOpacity;
   float l=dot(src.rgb,vec3(0.2126,0.7152,0.0722));
   vec3 ink=mix(uInk,vandalSoftColor(l),uCast);
   float alpha=a+src.a*(1.0-a);
@@ -9878,42 +9879,42 @@ function vandalNormalizeStops(p) {
 function vandalPaletteUI(n, body) {
   const panel=E('div','vandal-panel');panel.style.cssText='background:#090909;color:#eee;border:1px solid #47443c;padding:7px;border-radius:5px;display:flex;flex-direction:column;gap:5px;position:relative';
   panel.addEventListener('pointerdown',e=>e.stopPropagation());panel.addEventListener('click',e=>e.stopPropagation());
-  const svg=document.createElementNS(SVGNS,'svg');svg.setAttribute('viewBox','0 0 320 190');svg.style.cssText='width:100%;height:auto;touch-action:none;overflow:visible';svg.setAttribute('aria-label','Faixas de cor e limites de luminância');
+  const svg=document.createElementNS(SVGNS,'svg');svg.setAttribute('viewBox','0 0 320 190');svg.style.cssText='width:100%;height:auto;touch-action:none;overflow:visible';svg.setAttribute('aria-label','Color bands and luminance boundaries');
   const detail=E('div','vandal-detail');detail.style.cssText='text-align:center;font-size:11px;color:#bdbdbd';
   const tabs=E('div','vandal-tabs');tabs.style.cssText='display:flex;gap:5px;border-bottom:1px solid #555';
-  const sections=['Paleta','Configurações','Efeitos'].map(()=>{const e=E('div','vandal-section');e.style.cssText='display:flex;flex-direction:column;gap:5px';return e;});
+  const sections=['Palette','Settings','Effects'].map(()=>{const e=E('div','vandal-section');e.style.cssText='display:flex;flex-direction:column;gap:5px';return e;});
   const names=['Palette Warehouse','Render Settings','Paint Effects'];
   names.forEach((name,i)=>{const b=E('button','stk-btn',name);b.type='button';b.style.cssText='flex:1;padding:3px 1px;font-size:9px;background:transparent;border:0;border-bottom:2px solid transparent';b.addEventListener('click',()=>{sections.forEach((v,j)=>v.style.display=i===j?'flex':'none');tabs.querySelectorAll('button').forEach((x,j)=>x.style.borderBottomColor=i===j?'#eee':'transparent');});tabs.append(b);});
-  const softenRow=E('label','vandal-soften','Suavização do limite 1');softenRow.style.cssText='font-size:10px;color:#ccc;display:flex;flex-direction:column;gap:3px';
-  const softenInput=document.createElement('input');softenInput.type='range';softenInput.min='0';softenInput.max='100';softenInput.step='1';softenInput.setAttribute('aria-label','Suavização do limite selecionado');softenRow.append(softenInput);
+  const softenRow=E('label','vandal-soften','Boundary softness 1');softenRow.style.cssText='font-size:10px;color:#ccc;display:flex;flex-direction:column;gap:3px';
+  const softenInput=document.createElement('input');softenInput.type='range';softenInput.min='0';softenInput.max='100';softenInput.step='1';softenInput.setAttribute('aria-label','Selected boundary softness');softenRow.append(softenInput);
   panel.append(svg,detail,softenRow,tabs,...sections);body.insertBefore(panel,body.querySelector('[data-pkey="vandalMode"]') || body.firstChild);
   const buttons=E('div');buttons.style.cssText='display:flex;gap:4px';
   const input=document.createElement('input');input.type='file';input.accept='.gpl,.json,.txt,text/plain,application/json';input.style.display='none';
-  const load=E('button','stk-btn','Importar paleta');load.type='button';load.addEventListener('click',()=>input.click());buttons.append(load,input);sections[0].append(buttons);
-  const importFile=async f=>{if(!f)return;try{if(f.size>1048576)throw Error('Máximo 1 MB');const colors=vandalParsePalette(await f.text());if(colors.length<2)throw Error('Use ao menos duas cores');colors.forEach((c,i)=>n.params['c'+(i+1)]=c);n.params.zones=colors.length;n.params.preset='custom';refreshNodeControls(n);markDirty(n.id);requestRender();redraw();commit();setStatus('Paleta importada: '+colors.length+' cores.');}catch(e){setStatus('Paleta inválida: '+e.message,true);}};
+  const load=E('button','stk-btn','Import Palette');load.type='button';load.addEventListener('click',()=>input.click());buttons.append(load,input);sections[0].append(buttons);
+  const importFile=async f=>{if(!f)return;try{if(f.size>1048576)throw Error('Maximum 1 MB');const colors=vandalParsePalette(await f.text());if(colors.length<2)throw Error('Use at least two colors');colors.forEach((c,i)=>n.params['c'+(i+1)]=c);n.params.zones=colors.length;n.params.preset='custom';refreshNodeControls(n);markDirty(n.id);requestRender();redraw();commit();setStatus('Palette imported: '+colors.length+' colors.');}catch(e){setStatus('Invalid palette: '+e.message,true);}};
   input.addEventListener('change',()=>{importFile(input.files[0]);input.value='';});
   panel.addEventListener('dragover',e=>{if(e.dataTransfer.types.includes('Files')){e.preventDefault();e.stopPropagation();}});
   panel.addEventListener('drop',e=>{if(e.dataTransfer.files.length){e.preventDefault();e.stopPropagation();importFile(e.dataTransfer.files[0]);}});
   const ns=SVGNS, pt=(r,t)=>[160+r*Math.cos(Math.PI-t*Math.PI),160-r*Math.sin(Math.PI-t*Math.PI)];
   const path=(r1,r2,a,b)=>{const p=pt(r1,a),q=pt(r1,b),r=pt(r2,b),s=pt(r2,a);return `M${p} A${r1} ${r1} 0 0 1 ${q} L${r} A${r2} ${r2} 0 0 0 ${s} Z`;};
   let drag=-1, active=0, boundary=0, pickerKey=null;
-  const syncSoft=()=>{const i=Math.min(boundary,Math.max(0,Number(n.params.zones)-2));boundary=i;softenInput.value=Number(n.params['vandalSoft'+(i+1)])||0;softenRow.firstChild.textContent='Suavização do limite '+(i+1)+': '+softenInput.value;detail.textContent=`Limite ${i+1}: ${Math.round(Number(n.params['vandalStop'+(i+1)])*2.55)} · Soften: ${softenInput.value}`;};
+  const syncSoft=()=>{const i=Math.min(boundary,Math.max(0,Number(n.params.zones)-2));boundary=i;softenInput.value=Number(n.params['vandalSoft'+(i+1)])||0;softenRow.firstChild.textContent='Boundary softness '+(i+1)+': '+softenInput.value;detail.textContent=`Boundary ${i+1}: ${Math.round(Number(n.params['vandalStop'+(i+1)])*2.55)} · Soften: ${softenInput.value}`;};
   softenInput.addEventListener('pointerdown',e=>e.stopPropagation());
   softenInput.addEventListener('input',()=>{n.params['vandalSoft'+(boundary+1)]=Number(softenInput.value);syncSoft();markDirty(n.id);requestRender();});
   softenInput.addEventListener('change',()=>commit());
   const grid=E('div','vandal-swatches');grid.style.cssText='display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:2px;max-height:150px;overflow:auto';
-  grid.setAttribute('aria-label','Cores de fábrica');
+  grid.setAttribute('aria-label','Factory colors');
   for(let i=0;i<96;i++){
     const col=i%3,row=Math.floor(i/3),h=((col*120+Math.floor(row/8)*24)%360)/360,l=0.91-(row%8)*0.085;
     const rgb=hslToRgb(h,0.85,l).map(v=>Math.max(0,Math.min(255,Math.round(v))));
     const color='#'+rgb.map(v=>v.toString(16).padStart(2,'0')).join('');
-    const swatch=E('button','vandal-swatch',String(i+1).padStart(3,'0'));swatch.type='button';swatch.title=color;swatch.setAttribute('aria-label','Cor '+String(i+1).padStart(3,'0')+' '+color);swatch.style.cssText='background:'+color+';color:'+(l>0.55?'#111':'#fff')+';border:0;border-radius:2px;font-size:10px;text-align:left;min-height:17px';
+    const swatch=E('button','vandal-swatch',String(i+1).padStart(3,'0'));swatch.type='button';swatch.title=color;swatch.setAttribute('aria-label','Color '+String(i+1).padStart(3,'0')+' '+color);swatch.style.cssText='background:'+color+';color:'+(l>0.55?'#111':'#fff')+';border:0;border-radius:2px;font-size:10px;text-align:left;min-height:17px';
     swatch.addEventListener('click',()=>{const key='c'+(active+1);n.params[key]=color;n.params.preset='custom';if(n.ui[key])n.ui[key]();if(n.ui.preset)n.ui.preset();markDirty(n.id);requestRender();commit();});grid.append(swatch);
   }
   sections[0].prepend(grid);
   // O seletor permanece disponível mesmo com a aba de paleta fechada.
   const picker=document.createElement('input');picker.type='color';picker.className='vandal-wheel-picker';
-  picker.setAttribute('aria-label','Cor da faixa selecionada');
+  picker.setAttribute('aria-label','Selected band color');
   picker.style.cssText='position:absolute;width:1px;height:1px;opacity:0;pointer-events:none';panel.append(picker);
   picker.addEventListener('input',()=>{if(!pickerKey)return;n.params[pickerKey]=picker.value;if(n.ui[pickerKey])n.ui[pickerKey]();markDirty(n.id);requestRender();});
   picker.addEventListener('change',()=>{if(pickerKey)commit();});
@@ -9921,12 +9922,12 @@ function vandalPaletteUI(n, body) {
     vandalNormalizeStops(n.params);svg.replaceChildren();const zones=Math.max(2,Math.min(6,Math.round(Number(n.params.zones)||3)));
     const vals=[0,...Array.from({length:zones-1},(_,i)=>Number(n.params['vandalStop'+(i+1)])/100),1];
     for(let i=0;i<zones;i++){
-      const slice=document.createElementNS(ns,'path');slice.setAttribute('d',path(145,54,vals[i],vals[i+1]));slice.setAttribute('fill',n.params['c'+(i+1)]);slice.setAttribute('stroke',i===active?'#fff':'#161616');slice.setAttribute('stroke-width','1');slice.style.cursor='pointer';slice.setAttribute('aria-label','Cor da zona '+(i+1));
+      const slice=document.createElementNS(ns,'path');slice.setAttribute('d',path(145,54,vals[i],vals[i+1]));slice.setAttribute('fill',n.params['c'+(i+1)]);slice.setAttribute('stroke',i===active?'#fff':'#161616');slice.setAttribute('stroke-width','1');slice.style.cursor='pointer';slice.setAttribute('aria-label','Zone color '+(i+1));
       slice.addEventListener('pointerdown',e=>{e.stopPropagation();active=i;svg.querySelectorAll('path').forEach((el,j)=>el.setAttribute('stroke',j===i?'#fff':'#161616'));syncSoft();});
       slice.addEventListener('dblclick',e=>{e.preventDefault();e.stopPropagation();pickerKey='c'+(i+1);picker.value=n.params[pickerKey];const rect=panel.getBoundingClientRect();picker.style.left=(e.clientX-rect.left)+'px';picker.style.top=(e.clientY-rect.top)+'px';if(typeof picker.showPicker==='function')picker.showPicker();else picker.click();});svg.append(slice);
     }
     for(let i=0;i<zones-1;i++){
-      const [x,y]=pt(150,vals[i+1]), circle=document.createElementNS(ns,'circle');circle.setAttribute('cx',x);circle.setAttribute('cy',y);circle.setAttribute('r','9');circle.setAttribute('fill','#050505');circle.setAttribute('stroke','#777');circle.setAttribute('stroke-width','2');circle.setAttribute('aria-label','Limite '+(i+1));circle.style.cursor='grab';circle.style.touchAction='none';
+      const [x,y]=pt(150,vals[i+1]), circle=document.createElementNS(ns,'circle');circle.setAttribute('cx',x);circle.setAttribute('cy',y);circle.setAttribute('r','9');circle.setAttribute('fill','#050505');circle.setAttribute('stroke','#777');circle.setAttribute('stroke-width','2');circle.setAttribute('aria-label','Boundary '+(i+1));circle.style.cursor='grab';circle.style.touchAction='none';
       circle.addEventListener('pointerdown',e=>{e.preventDefault();e.stopPropagation();drag=i;boundary=i;syncSoft();svg.setPointerCapture(e.pointerId);});svg.append(circle);
     }
     syncSoft();
@@ -9972,12 +9973,30 @@ function vandalMakeMaskTexture(canvas) {
     for (let t=0;t<4;t++) { const k=(y*1024+t*256+x)*4; atlas[k]=atlas[k+1]=atlas[k+2]=c; atlas[k+3]=255; }
   }
   const texture=gl.createTexture();
-  if (!texture) throw new Error('Não foi possível criar a textura.');
+  if (!texture) throw new Error('Could not create the texture.');
   gl.bindTexture(gl.TEXTURE_2D, texture);
   gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MIN_FILTER,gl.NEAREST); gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MAG_FILTER,gl.NEAREST);
   gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_S,gl.CLAMP_TO_EDGE); gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_T,gl.CLAMP_TO_EDGE);
   gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,1024,256,0,gl.RGBA,gl.UNSIGNED_BYTE,atlas);
   return texture;
+}
+// Default assets are bundled as same-origin PNGs for both the web and the APK.
+// Only the selected texture is decoded and uploaded per node.
+function vandalDefaultTexture(n, id) {
+  if (!/^texture-(?:0[0-9]{2}|1[0-9]{2}|200)$/.test(id)) return null;
+  const existing=n.runtime.vandalDefault;
+  if(existing && existing.id===id) return existing.tex || null;
+  if(existing && existing.tex)gl.deleteTexture(existing.tex);
+  const entry={id,tex:null};n.runtime.vandalDefault=entry;
+  const img=new Image();
+  img.onload=()=>{
+    if(nodes.get(n.id)!==n || n.runtime.vandalDefault!==entry || n.params.decalAsset!==id)return;
+    try{entry.tex=vandalMakeMaskTexture(img);markDirty(n.id);requestRender();}
+    catch(e){setStatus('Could not load default texture: '+e.message,true);}
+  };
+  img.onerror=()=>{if(nodes.get(n.id)===n && n.runtime.vandalDefault===entry)setStatus('Default texture could not be loaded: '+id,true);};
+  img.src='assets/vandal/'+id.slice(8)+'.png';
+  return null;
 }
 function vandalMaskThumbnail(canvas) {
   const small=document.createElement('canvas');small.width=small.height=256;
@@ -9994,8 +10013,8 @@ function vandalEnsureMaskTextures(n) {
     const img=new Image();img.onload=()=>{
       if(nodes.get(n.id)!==n || textures[mask.id]!==entry || !n.params.vandalMasks.includes(mask))return;
       try{entry.tex=vandalMakeMaskTexture(img);entry.loading=false;markDirty(n.id);requestRender();}
-      catch(e){entry.loading=false;setStatus('Erro ao carregar máscara: '+e.message,true);}
-    };img.onerror=()=>{entry.loading=false;setStatus('Não foi possível abrir uma máscara local.',true);};img.src=mask.data;
+      catch(e){entry.loading=false;setStatus('Error loading mask: '+e.message,true);}
+    };img.onerror=()=>{entry.loading=false;setStatus('Could not open a local mask.',true);};img.src=mask.data;
   }
 }
 
@@ -10003,45 +10022,45 @@ function vandalLocalMaskUI(n, body) {
   const panel=E('div','spray-local-mask');
   panel.style.cssText='border:1px solid var(--line3);border-radius:6px;padding:6px;display:flex;flex-direction:column;gap:6px';
   panel.addEventListener('pointerdown',e=>e.stopPropagation()); panel.addEventListener('click',e=>e.stopPropagation());
-  const title=E('div','plbl','Máscara local · sem envio à internet');
-  const choose=E('button','stk-btn','Escolher imagens'); choose.type='button';
+  const title=E('div','plbl','Local Mask · no internet upload');
+  const choose=E('button','stk-btn','Choose Images'); choose.type='button';
   const input=document.createElement('input'); input.type='file'; input.accept='image/png,image/jpeg,image/webp'; input.multiple=true; input.style.display='none';
-  const status=E('div','plbl','Descompacte o ZIP e escolha PNG, JPG ou WebP.');
+  const status=E('div','plbl','Unzip the archive and choose PNG, JPG or WebP.');
   const nav=E('div'); nav.style.cssText='display:flex;gap:4px';
-  const previous=E('button','stk-btn','‹'); previous.type='button'; previous.setAttribute('aria-label','Imagem anterior');
-  const next=E('button','stk-btn','›'); next.type='button'; next.setAttribute('aria-label','Próxima imagem');
-  const name=E('div','plbl','Nenhuma imagem'); name.style.flex='1'; nav.append(previous,name,next);
-  const mode=document.createElement('select'); mode.className='psel'; mode.setAttribute('aria-label','Origem da máscara');
-  for(const [v,l] of [['auto','Automático'],['alpha','Transparência'],['dark','Tinta escura'],['light','Tinta clara']]) {const o=document.createElement('option');o.value=v;o.textContent=l;mode.append(o);}
-  const thresholdLabel=E('label','plbl','Limiar: 128'); const threshold=document.createElement('input'); threshold.type='range'; threshold.min='1';threshold.max='255';threshold.value='128';threshold.setAttribute('aria-label','Limiar da máscara');
-  const invLabel=E('label','plbl',' Inverter'); const invert=document.createElement('input');invert.type='checkbox';invLabel.prepend(invert);
-  const convert=E('button','stk-btn','Processar máscara');convert.type='button';
-  const preview=document.createElement('canvas'); preview.width=preview.height=128; preview.setAttribute('aria-label','Prévia da máscara'); preview.style.cssText='width:100%;height:80px;object-fit:contain;background:#222;border-radius:4px';
+  const previous=E('button','stk-btn','‹'); previous.type='button'; previous.setAttribute('aria-label','Previous image');
+  const next=E('button','stk-btn','›'); next.type='button'; next.setAttribute('aria-label','Next image');
+  const name=E('div','plbl','No image'); name.style.flex='1'; nav.append(previous,name,next);
+  const mode=document.createElement('select'); mode.className='psel'; mode.setAttribute('aria-label','Mask source');
+  for(const [v,l] of [['auto','Automatic'],['alpha','Transparency'],['dark','Dark ink'],['light','Light ink']]) {const o=document.createElement('option');o.value=v;o.textContent=l;mode.append(o);}
+  const thresholdLabel=E('label','plbl','Threshold: 128'); const threshold=document.createElement('input'); threshold.type='range'; threshold.min='1';threshold.max='255';threshold.value='128';threshold.setAttribute('aria-label','Mask threshold');
+  const invLabel=E('label','plbl',' Invert'); const invert=document.createElement('input');invert.type='checkbox';invLabel.prepend(invert);
+  const convert=E('button','stk-btn','Process Mask');convert.type='button';
+  const preview=document.createElement('canvas'); preview.width=preview.height=128; preview.setAttribute('aria-label','Mask preview'); preview.style.cssText='width:100%;height:80px;object-fit:contain;background:#222;border-radius:4px';
   const actions=E('div'); actions.style.cssText='display:flex;gap:4px;flex-wrap:wrap';
-  const use=E('button','stk-btn','Adicionar máscara local');use.type='button';
-  const save=E('button','stk-btn','Baixar PNG');save.type='button';
-  const clear=E('button','stk-btn','Voltar ao splash');clear.type='button';
+  const use=E('button','stk-btn','Add Local Mask');use.type='button';
+  const save=E('button','stk-btn','Download PNG');save.type='button';
+  const clear=E('button','stk-btn','Use Splash');clear.type='button';
   actions.append(use,save,clear); panel.append(title,choose,input,nav,status,mode,thresholdLabel,threshold,invLabel,convert,preview,actions);
   body.append(panel);
   let files=[], index=0, result=null, generation=0;
-  const update=()=>{ name.textContent=files.length ? `${index+1}/${files.length} · ${files[index].name}` : 'Nenhuma imagem'; previous.disabled=!files.length||index===0; next.disabled=!files.length||index===files.length-1; convert.disabled=!files.length; use.disabled=save.disabled=!result; };
-  const change=()=>{ generation++;result=null;preview.getContext('2d').clearRect(0,0,128,128);status.textContent='Escolha o limiar e processe a imagem.';update(); };
+  const update=()=>{ name.textContent=files.length ? `${index+1}/${files.length} · ${files[index].name}` : 'No image'; previous.disabled=!files.length||index===0; next.disabled=!files.length||index===files.length-1; convert.disabled=!files.length; use.disabled=save.disabled=!result; };
+  const change=()=>{ generation++;result=null;preview.getContext('2d').clearRect(0,0,128,128);status.textContent='Choose a threshold and process the image.';update(); };
   choose.addEventListener('click',()=>input.click()); input.addEventListener('change',()=>{files=Array.from(input.files||[]);index=0;input.value='';change();});
   previous.addEventListener('click',()=>{if(index>0){index--;change();}}); next.addEventListener('click',()=>{if(index<files.length-1){index++;change();}});
-  threshold.addEventListener('input',()=>{thresholdLabel.textContent='Limiar: '+threshold.value;});
-  for(const el of [threshold,mode,invert]) el.addEventListener('change',()=>{generation++;result=null;status.textContent='Configuração alterada. Processe novamente.';update();});
+  threshold.addEventListener('input',()=>{thresholdLabel.textContent='Threshold: '+threshold.value;});
+  for(const el of [threshold,mode,invert]) el.addEventListener('change',()=>{generation++;result=null;status.textContent='Settings changed. Process the image again.';update();});
   convert.addEventListener('click', async()=>{
     if(!files.length)return;
-    const current=files[index], run=++generation, limit=Number(threshold.value), isInverted=invert.checked, requestedMode=mode.value; result=null;update();convert.disabled=true;status.textContent='Processando localmente…';
+    const current=files[index], run=++generation, limit=Number(threshold.value), isInverted=invert.checked, requestedMode=mode.value; result=null;update();convert.disabled=true;status.textContent='Processing locally…';
     let bitmap=null, url=null;
     try {
-      if (current.size > 100*1024*1024) throw new Error('Arquivo excede 100 MB.');
+      if (current.size > 100*1024*1024) throw new Error('File exceeds 100 MB.');
       if (typeof createImageBitmap === 'function') bitmap=await createImageBitmap(current);
-      else { url=URL.createObjectURL(current); bitmap=await new Promise((resolve,reject)=>{const img=new Image();img.onload=()=>resolve(img);img.onerror=()=>reject(new Error('Imagem inválida.'));img.src=url;}); }
+      else { url=URL.createObjectURL(current); bitmap=await new Promise((resolve,reject)=>{const img=new Image();img.onload=()=>resolve(img);img.onerror=()=>reject(new Error('Invalid image.'));img.src=url;}); }
       const w=bitmap.width,h=bitmap.height;
-      if (!w||!h||w*h>25000000) throw new Error('Imagem inválida ou acima de 25 megapixels.');
+      if (!w||!h||w*h>25000000) throw new Error('Invalid image or over 25 megapixels.');
       const canvas=document.createElement('canvas');canvas.width=w;canvas.height=h;
-      const ctx=canvas.getContext('2d',{willReadFrequently:true}); if(!ctx)throw new Error('Canvas indisponível.');
+      const ctx=canvas.getContext('2d',{willReadFrequently:true}); if(!ctx)throw new Error('Canvas unavailable.');
       ctx.drawImage(bitmap,0,0); if(bitmap.close){bitmap.close();bitmap=null;}
       const image=ctx.getImageData(0,0,w,h), pixels=image.data;
       const chosen=requestedMode==='auto' ? vandalDetectMaskMode(pixels,w,h) : requestedMode;
@@ -10054,34 +10073,47 @@ function vandalLocalMaskUI(n, body) {
       if(run!==generation || nodes.get(n.id)!==n)return;
       ctx.putImageData(image,0,0);result={canvas,name:current.name};
       const g=preview.getContext('2d');g.clearRect(0,0,128,128);g.imageSmoothingEnabled=false;g.drawImage(canvas,0,0,128,128);
-      status.textContent=`Pronta: ${w} × ${h} · ${chosen} · PNG binário`;update();
-    } catch(e) { if(run===generation){status.textContent='Erro: '+e.message;update();} }
+      status.textContent=`Ready: ${w} × ${h} · ${chosen} · binary PNG`;update();
+    } catch(e) { if(run===generation){status.textContent='Error: '+e.message;update();} }
     finally {if(bitmap&&bitmap.close)bitmap.close();if(url)URL.revokeObjectURL(url);}
   });
-  const maskSelect=document.createElement('select');maskSelect.className='psel';maskSelect.setAttribute('aria-label','Máscara local selecionada');
+  const maskList=E('div','vandal-mask-list');maskList.setAttribute('aria-label','Mask manager');maskList.style.cssText='display:flex;flex-direction:column;gap:3px;max-height:180px;overflow:auto';
   const maskFields=E('div','vandal-mask-fields');maskFields.style.cssText='display:flex;flex-direction:column;gap:3px';
-  const edits={};for(const [key,label,min,max,step] of [['x','X',0,100,0.1],['y','Y',0,100,0.1],['scale','Escala',1,200,0.5],['opacity','Opacidade',0,100,1]]){
-    const row=E('label','plbl',label+' '),field=document.createElement('input');field.type='number';field.min=min;field.max=max;field.step=step;field.style.cssText='width:70px';field.setAttribute('aria-label',label+' da máscara local');row.append(field);maskFields.append(row);edits[key]=field;
-    field.addEventListener('change',()=>{const m=selectedMask();if(!m)return;const v=Number(field.value);if(!Number.isFinite(v))return; m[key]=Math.max(min,Math.min(max,v));field.value=m[key];markDirty(n.id);requestRender();commit();});
+  const edits={};for(const [key,label,min,max,step] of [['x','X',0,100,0.1],['y','Y',0,100,0.1],['scale','Scale',1,200,0.5],['rotation','Rotation (°)',0,360,1],['opacity','Opacity',0,100,1]]){
+    const row=E('label','plbl',label+' '),field=document.createElement('input');field.type='number';field.min=min;field.max=max;field.step=step;field.style.cssText='width:70px';field.setAttribute('aria-label',label+' of local mask');row.append(field);maskFields.append(row);edits[key]=field;
+    field.addEventListener('change',()=>{const m=selectedMask();if(!m)return;const v=Number(field.value);if(!Number.isFinite(v))return; m[key]=Math.max(min,Math.min(max,v));field.value=m[key];if(key==='rotation')rotationRange.value=m.rotation;markDirty(n.id);requestRender();commit();});
   }
-  const colorRow=E('label','plbl','Cor '),color=document.createElement('input');color.type='color';color.setAttribute('aria-label','Cor da máscara local');colorRow.append(color);maskFields.append(colorRow);
+  const rotationRange=document.createElement('input');rotationRange.type='range';rotationRange.min='0';rotationRange.max='360';rotationRange.step='1';rotationRange.setAttribute('aria-label','Local mask rotation');maskFields.append(rotationRange);rotationRange.addEventListener('pointerdown',e=>e.stopPropagation());rotationRange.addEventListener('input',()=>{const m=selectedMask();if(m){m.rotation=Number(rotationRange.value);edits.rotation.value=m.rotation;markDirty(n.id);requestRender();}});rotationRange.addEventListener('change',()=>commit());
+  const colorRow=E('label','plbl','Color '),color=document.createElement('input');color.type='color';color.setAttribute('aria-label','Color of local mask');colorRow.append(color);maskFields.append(colorRow);
   color.addEventListener('input',()=>{const m=selectedMask();if(m){m.color=color.value;markDirty(n.id);requestRender();}});color.addEventListener('change',()=>commit());
-  const remove=E('button','stk-btn','Remover máscara selecionada');remove.type='button';
   const selectedMask=()=>n.params.vandalMasks.find(m=>m.id===n.runtime.vandalSelectedMask);
-  const updateMaskPosition=()=>{const m=selectedMask();if(m){for(const key in edits)edits[key].value=m[key];color.value=m.color;}};
-  const updateMasks=()=>{const masks=n.params.vandalMasks;if(!masks.some(m=>m.id===n.runtime.vandalSelectedMask))n.runtime.vandalSelectedMask=masks[0]?.id||null;maskSelect.replaceChildren();for(const m of masks){const o=document.createElement('option');o.value=m.id;o.textContent=m.name;maskSelect.append(o);}maskSelect.value=n.runtime.vandalSelectedMask||'';const m=selectedMask();maskFields.style.display=m?'flex':'none';remove.disabled=!m;maskSelect.disabled=!m;updateMaskPosition();};
-  maskSelect.addEventListener('change',()=>{n.runtime.vandalSelectedMask=maskSelect.value;n.params.decalAsset='local';if(n.ui.decalAsset)n.ui.decalAsset();updateMasks();markDirty(n.id);requestRender();commit();});
-  remove.addEventListener('click',()=>{const m=selectedMask();if(!m)return;const entry=n.runtime.vandalMaskTextures&&n.runtime.vandalMaskTextures[m.id];if(entry&&entry.tex)gl.deleteTexture(entry.tex);if(n.runtime.vandalMaskTextures)delete n.runtime.vandalMaskTextures[m.id];n.params.vandalMasks=n.params.vandalMasks.filter(x=>x!==m);updateMasks();markDirty(n.id);requestRender();commit();});
-  panel.append(maskSelect,maskFields,remove);n.ui.vandalMasks=updateMasks;n.ui.vandalMaskPosition=updateMaskPosition;updateMasks();vandalEnsureMaskTextures(n);
+  const updateMaskPosition=()=>{const m=selectedMask();if(m){for(const key in edits)edits[key].value=m[key] ?? (key==='rotation'?0:'');color.value=m.color;rotationRange.value=m.rotation||0;}};
+  const updateMasks=()=>{
+    const masks=n.params.vandalMasks;if(!masks.some(m=>m.id===n.runtime.vandalSelectedMask))n.runtime.vandalSelectedMask=masks[0]?.id||null;
+    maskList.replaceChildren();
+    for(const m of masks){
+      const row=E('div','vandal-mask-row');row.style.cssText='display:flex;gap:3px;align-items:center';
+      const select=E('button','stk-btn vandal-mask-select',m.name);select.type='button';select.style.cssText='flex:1;text-align:left;overflow:hidden;text-overflow:ellipsis';select.setAttribute('aria-pressed',String(m.id===n.runtime.vandalSelectedMask));
+      if(m.id===n.runtime.vandalSelectedMask)select.style.outline='1px solid #e5b44f';
+      select.addEventListener('click',()=>{n.runtime.vandalSelectedMask=m.id;n.params.decalAsset='local';if(n.ui.decalAsset)n.ui.decalAsset();updateMasks();markDirty(n.id);requestRender();commit();});
+      const eye=E('button','stk-btn vandal-mask-visibility',m.visible===false?'◌':'◉');eye.type='button';eye.title=m.visible===false?'Show mask':'Hide mask';eye.setAttribute('aria-label',eye.title+' '+m.name);eye.setAttribute('aria-pressed',String(m.visible!==false));
+      eye.addEventListener('click',()=>{m.visible=m.visible===false;updateMasks();markDirty(n.id);requestRender();commit();});
+      const del=E('button','stk-btn vandal-mask-delete','✕');del.type='button';del.title='Delete mask';del.setAttribute('aria-label','Delete mask '+m.name);
+      del.addEventListener('click',()=>{const entry=n.runtime.vandalMaskTextures&&n.runtime.vandalMaskTextures[m.id];if(entry&&entry.tex)gl.deleteTexture(entry.tex);if(n.runtime.vandalMaskTextures)delete n.runtime.vandalMaskTextures[m.id];n.params.vandalMasks=n.params.vandalMasks.filter(x=>x!==m);updateMasks();markDirty(n.id);requestRender();commit();});
+      row.append(select,eye,del);maskList.append(row);
+    }
+    maskFields.style.display=selectedMask()?'flex':'none';updateMaskPosition();
+  };
+  panel.append(maskList,maskFields);n.ui.vandalMasks=updateMasks;n.ui.vandalMaskPosition=updateMaskPosition;updateMasks();vandalEnsureMaskTextures(n);
   use.addEventListener('click',()=>{if(!result)return;try{
-    if(n.params.vandalMasks.length>=12)throw Error('Máximo de 12 máscaras por nó.');
+    if(n.params.vandalMasks.length>=12)throw Error('Maximum 12 masks per node.');
     const thumb=vandalMaskThumbnail(result.canvas),id='mask-'+Date.now().toString(36)+'-'+Math.random().toString(36).slice(2,9);
-    const m={id,name:result.name,x:50,y:50,scale:40,color:n.params.decalColor,opacity:100,data:thumb.toDataURL('image/png')};
+    const m={id,name:result.name,x:50,y:50,scale:40,color:n.params.decalColor,opacity:100,rotation:0,visible:true,data:thumb.toDataURL('image/png')};
     const tex=vandalMakeMaskTexture(thumb);(n.runtime.vandalMaskTextures||(n.runtime.vandalMaskTextures={}))[id]={tex};n.params.vandalMasks.push(m);n.runtime.vandalSelectedMask=id;
-    n.params.decalAsset='local';if(n.params.vandalMode==='classic')n.params.vandalMode='combined';if(n.ui.vandalMode)n.ui.vandalMode();if(n.ui.decalAsset)n.ui.decalAsset();updateMasks();markDirty(n.id);requestRender();commit();status.textContent='Máscara adicionada. A miniatura é salva no projeto local.';
-  }catch(e){status.textContent='Erro: '+e.message;}});
-  save.addEventListener('click',()=>{if(!result)return;const {canvas,name}=result;canvas.toBlob(blob=>{if(blob){downloadBlob(blob,name.replace(/\.[^.]+$/,'')+'-mask.png');setStatus('Máscara PNG salva.');}else setStatus('Não foi possível salvar a máscara.',true);},'image/png');});
-  clear.addEventListener('click',()=>{generation++;if(n.runtime.vandalLocalTex)gl.deleteTexture(n.runtime.vandalLocalTex);n.runtime.vandalLocalTex=null;if(n.params.decalAsset==='local'){n.params.decalAsset='1';if(n.ui.decalAsset)n.ui.decalAsset();commit();}markDirty(n.id);requestRender();status.textContent='Splash selecionado; máscaras adicionadas continuam visíveis.';update();});
+    n.params.decalAsset='local';if(n.params.vandalMode==='classic')n.params.vandalMode='combined';if(n.ui.vandalMode)n.ui.vandalMode();if(n.ui.decalAsset)n.ui.decalAsset();updateMasks();markDirty(n.id);requestRender();commit();status.textContent='Mask added. A thumbnail is saved in the local project.';
+  }catch(e){status.textContent='Error: '+e.message;}});
+  save.addEventListener('click',()=>{if(!result)return;const {canvas,name}=result;canvas.toBlob(blob=>{if(blob){downloadBlob(blob,name.replace(/\.[^.]+$/,'')+'-mask.png');setStatus('Mask PNG saved.');}else setStatus('Could not save the mask.',true);},'image/png');});
+  clear.addEventListener('click',()=>{generation++;if(n.runtime.vandalLocalTex)gl.deleteTexture(n.runtime.vandalLocalTex);n.runtime.vandalLocalTex=null;if(n.params.decalAsset==='local'){n.params.decalAsset='1';if(n.ui.decalAsset)n.ui.decalAsset();commit();}markDirty(n.id);requestRender();status.textContent='Splash selected; added masks remain visible.';update();});
   update();
 }
 
@@ -10091,16 +10123,20 @@ function vandalPanel(n, body) {
   if(nodeEl) addPanelResize(n,nodeEl,'spW');
   const {panel,sections}=vandalPaletteUI(n,body);
   const palette=new Set(['preset','c1','c2','c3','c4','c5','c6','zones','vandalSoft','paletteCast']);
-  const placement=new Set(['vandalMode','decalAsset','decalX','decalY','decalScale','decalColor','decalOpacity']);
+  const placement=new Set(['vandalMode','decalAsset','decalX','decalY','decalScale','decalRotation','decalColor','decalOpacity']);
   const controls=Array.from(body.querySelectorAll('[data-pkey]')).filter(e=>!panel.contains(e));
-  for(const el of controls){const key=el.dataset.pkey;if(/^c[1-6]$/.test(key)){el.remove();continue;}sections[palette.has(key)?0:placement.has(key)?1:2].append(el);}
+  const group=(title,open=false)=>{const d=document.createElement('details');d.className='vandal-group';d.open=open;const summary=E('summary','',title);summary.style.cssText='cursor:pointer;padding:5px;color:#eee';d.append(summary);sections[2].append(d);return d;};
+  const sprayGroup=group('Spray Texture'),scatterGroup=group('Spray Scatter'),blendGroup=group('Blend and Tone');
+  const scatterKeys=new Set(['density','particles','radius','maskStyle','jitter','variance','pressure','drip','bleed','cast']);
+  const blendKeys=new Set(['mixb','mix','black','white','curve','soft','thresh','crush','hue','seed']);
+  for(const el of controls){const key=el.dataset.pkey;if(/^c[1-6]$/.test(key)){el.remove();continue;}if(palette.has(key))sections[0].append(el);else if(placement.has(key))sections[1].append(el);else (scatterKeys.has(key)?scatterGroup:blendKeys.has(key)?blendGroup:sprayGroup).append(el);}
   body.querySelectorAll('.ctl-sec').forEach(el=>{if(!el.querySelector('[data-pkey]'))el.remove();});
   const assetSelect=sections[1].querySelector('[data-pkey="decalAsset"] select');
-  if(assetSelect)assetSelect.addEventListener('change',()=>{if(assetSelect.value==='local'&&!n.params.vandalMasks.length&&!n.runtime.vandalLocalTex)setStatus('Adicione uma máscara local na aba Paint Effects.');});
-  const place=E('button','stk-btn','Posicionar na prévia');place.type='button';
-  place.addEventListener('click',()=>{previewId=n.id;if(document.body.classList.contains('mobile'))document.getElementById('mGoPreview').click();requestRender();setStatus('Arraste o quadro do asset na prévia; use a alça para redimensionar.');});
+  if(assetSelect)assetSelect.addEventListener('change',()=>{if(assetSelect.value==='local'&&!n.params.vandalMasks.length&&!n.runtime.vandalLocalTex)setStatus('Add a local mask in the Paint Effects tab.');});
+  const place=E('button','stk-btn','Position on Preview');place.type='button';
+  place.addEventListener('click',()=>{previewId=n.id;if(document.body.classList.contains('mobile'))document.getElementById('mGoPreview').click();requestRender();setStatus('Drag the asset in the preview; use the handle to resize it.');});
   sections[1].prepend(place);
-  vandalLocalMaskUI(n,sections[2]);
+  const localGroup=group('Local Mask',true);vandalLocalMaskUI(n,localGroup);
   const sel=sections[0].querySelector('[data-pkey="preset"] select');if(sel)sel.addEventListener('change',()=>applyVandalPreset(n));
 }
 
@@ -23624,10 +23660,11 @@ const RUN = {
     }
     // Cada máscara ocupa um passe; o alvo anterior é liberado assim que consumido.
     let owned=base;
-    const applyDecal=(tex,asset,x,y,scale,color,opacity,cast)=>{
+    const applyDecal=(tex,asset,x,y,scale,color,opacity,cast,rotation)=>{
+      const angle=(Number(rotation)||0)*Math.PI/180;
       const e=acquire(a.w,a.h);
       draw('vandalDecal', e, { uSrc: source.tex, uAtlas: tex }, {
-        uRes: [a.w, a.h], uPosition: [Number(x)/100, Number(y)/100],
+        uRes: [a.w, a.h], uPosition: [Number(x)/100, Number(y)/100], uRotation: [Math.cos(angle),Math.sin(angle)],
         uScale: Number(scale)/100, uAsset: asset,
         uInk: hexRGB(color), uOpacity: Number(opacity)/100, uCast: Number(cast)/100,
         uZones: Number(p.zones), uSoft1: Number(p.vandalSoft1)/100, uSoft2: Number(p.vandalSoft2)/100, uSoft3: Number(p.vandalSoft3)/100, uSoft4: Number(p.vandalSoft4)/100, uSoft5: Number(p.vandalSoft5)/100, uStop1: Number(p.vandalStop1)/100, uStop2: Number(p.vandalStop2)/100,
@@ -23636,10 +23673,13 @@ const RUN = {
       });
       if(owned)owned.busy=false;owned=e;source=mkRes(e);
     };
-    if(p.decalAsset!=='local') applyDecal(vandalAtlasTexture(),Math.max(0,Math.min(3,(Number(p.decalAsset)||1)-1)),p.decalX,p.decalY,p.decalScale,p.decalColor,p.decalOpacity,p.paletteCast);
-    else if(n.runtime.vandalLocalTex && !p.vandalMasks.length) applyDecal(n.runtime.vandalLocalTex,0,p.decalX,p.decalY,p.decalScale,p.decalColor,p.decalOpacity,p.paletteCast);
+    const isDefault=String(p.decalAsset).startsWith('texture-');
+    if(!isDefault && n.runtime.vandalDefault){if(n.runtime.vandalDefault.tex)gl.deleteTexture(n.runtime.vandalDefault.tex);n.runtime.vandalDefault=null;}
+    if(isDefault){const tex=vandalDefaultTexture(n,p.decalAsset);if(tex)applyDecal(tex,0,p.decalX,p.decalY,p.decalScale,p.decalColor,p.decalOpacity,p.paletteCast,p.decalRotation);}
+    else if(p.decalAsset!=='local') applyDecal(vandalAtlasTexture(),Math.max(0,Math.min(3,(Number(p.decalAsset)||1)-1)),p.decalX,p.decalY,p.decalScale,p.decalColor,p.decalOpacity,p.paletteCast,p.decalRotation);
+    else if(n.runtime.vandalLocalTex && !p.vandalMasks.length) applyDecal(n.runtime.vandalLocalTex,0,p.decalX,p.decalY,p.decalScale,p.decalColor,p.decalOpacity,p.paletteCast,p.decalRotation);
     const textures=n.runtime.vandalMaskTextures||{};
-    for(const m of p.vandalMasks.slice(0,12)){const item=textures[m.id];if(item&&item.tex)applyDecal(item.tex,0,m.x,m.y,m.scale,m.color,m.opacity,0);}
+    for(const m of p.vandalMasks.slice(0,12)){const item=textures[m.id];if(m.visible!==false&&item&&item.tex)applyDecal(item.tex,0,m.x,m.y,m.scale,m.color,m.opacity,0,m.rotation);}
     return owned ? mkRes(owned) : ptRes(a);
   },
   distressor: (n, [a]) => {
@@ -24267,6 +24307,7 @@ function releaseNode(n) {
   if (n.runtime.tex) { gl.deleteTexture(n.runtime.tex); n.runtime.tex = null; }
   if (n.runtime.maskTex) { gl.deleteTexture(n.runtime.maskTex); n.runtime.maskTex = null; n.runtime.maskId = null; }
   if (n.runtime.vandalLocalTex) { gl.deleteTexture(n.runtime.vandalLocalTex); n.runtime.vandalLocalTex = null; }
+  if (n.runtime.vandalDefault) { if(n.runtime.vandalDefault.tex)gl.deleteTexture(n.runtime.vandalDefault.tex); n.runtime.vandalDefault=null; }
   if (n.runtime.vandalMaskTextures) { for (const item of Object.values(n.runtime.vandalMaskTextures)) if(item.tex) gl.deleteTexture(item.tex); n.runtime.vandalMaskTextures=null; }
   if (n.runtime.fractureMaps) { for (const m of n.runtime.fractureMaps) gl.deleteTexture(m.tex); n.runtime.fractureMaps = null; }
 }
@@ -24492,17 +24533,17 @@ function vandalUpdateOverlay(res) {
     const par=glCanvas.parentElement;if(getComputedStyle(par).position==='static')par.style.position='relative';
     vandalOv=E('div','vandal-overlay');vandalOv.style.cssText='position:absolute;inset:0;pointer-events:none;z-index:9';
     vandalBox=E('div','vandal-box');vandalBox.style.cssText='position:absolute;border:1px dashed #ffd479;box-sizing:border-box;pointer-events:auto;touch-action:none;cursor:move';
-    const knob=E('div','vandal-resize');knob.setAttribute('aria-label','Redimensionar asset');knob.style.cssText='position:absolute;right:-7px;bottom:-7px;width:14px;height:14px;border:2px solid #201909;background:#ffd479;border-radius:50%;cursor:nwse-resize;touch-action:none';
+    const knob=E('div','vandal-resize');knob.setAttribute('aria-label','Resize asset');knob.style.cssText='position:absolute;right:-7px;bottom:-7px;width:14px;height:14px;border:2px solid #201909;background:#ffd479;border-radius:50%;cursor:nwse-resize;touch-action:none';
     vandalBox.append(knob);vandalOv.append(vandalBox);par.append(vandalOv);
-    vandalBox.addEventListener('pointerdown',e=>{if(e.button>0)return;const g=vandalBox._geo;if(!g)return;e.preventDefault();e.stopPropagation();vandalBox.setPointerCapture(e.pointerId);vandalDrag={g,mode:e.target===knob?'scale':'move',x:e.clientX,y:e.clientY,px:Number(g.mask?g.mask.x:g.n.params.decalX),py:Number(g.mask?g.mask.y:g.n.params.decalY),scale:Number(g.mask?g.mask.scale:g.n.params.decalScale)};});
-    vandalBox.addEventListener('pointermove',e=>{if(!vandalDrag)return;const d=vandalDrag,g=d.g,n=g.n;if(d.mode==='move'){const x=Math.max(0,Math.min(100,d.px+(e.clientX-d.x)/g.dw*100)),y=Math.max(0,Math.min(100,d.py+(e.clientY-d.y)/g.dh*100));if(g.mask){g.mask.x=x;g.mask.y=y;if(n.ui.vandalMaskPosition)n.ui.vandalMaskPosition();}else{n.params.decalX=x;n.params.decalY=y;if(n.ui.decalX)n.ui.decalX();if(n.ui.decalY)n.ui.decalY();}}else{const scale=Math.max(1,Math.min(200,d.scale+(e.clientX-d.x)*200/g.minDim));if(g.mask){g.mask.scale=scale;if(n.ui.vandalMaskPosition)n.ui.vandalMaskPosition();}else{n.params.decalScale=scale;if(n.ui.decalScale)n.ui.decalScale();}}markDirty(n.id);requestRender();});
+    vandalBox.addEventListener('pointerdown',e=>{if(e.button>0)return;const g=vandalBox._geo;if(!g)return;e.preventDefault();e.stopPropagation();vandalBox.setPointerCapture(e.pointerId);vandalDrag={g,mode:e.target===knob?'scale':'move',x:e.clientX,y:e.clientY,px:Number(g.mask?g.mask.x:g.n.params.decalX),py:Number(g.mask?g.mask.y:g.n.params.decalY),scale:Number(g.mask?g.mask.scale:g.n.params.decalScale),angle:Number(g.mask?g.mask.rotation||0:g.n.params.decalRotation||0)*Math.PI/180};});
+    vandalBox.addEventListener('pointermove',e=>{if(!vandalDrag)return;const d=vandalDrag,g=d.g,n=g.n;if(d.mode==='move'){const x=Math.max(0,Math.min(100,d.px+(e.clientX-d.x)/g.dw*100)),y=Math.max(0,Math.min(100,d.py+(e.clientY-d.y)/g.dh*100));if(g.mask){g.mask.x=x;g.mask.y=y;if(n.ui.vandalMaskPosition)n.ui.vandalMaskPosition();}else{n.params.decalX=x;n.params.decalY=y;if(n.ui.decalX)n.ui.decalX();if(n.ui.decalY)n.ui.decalY();}}else{const scale=Math.max(1,Math.min(200,d.scale+((e.clientX-d.x)*Math.cos(d.angle)+(e.clientY-d.y)*Math.sin(d.angle))*200/g.minDim));if(g.mask){g.mask.scale=scale;if(n.ui.vandalMaskPosition)n.ui.vandalMaskPosition();}else{n.params.decalScale=scale;if(n.ui.decalScale)n.ui.decalScale();}}markDirty(n.id);requestRender();});
     const finish=e=>{if(!vandalDrag)return;vandalDrag=null;if(vandalBox.hasPointerCapture(e.pointerId))vandalBox.releasePointerCapture(e.pointerId);commit();};
     vandalBox.addEventListener('pointerup',finish);vandalBox.addEventListener('pointercancel',finish);
   }
   const cv=glCanvas.getBoundingClientRect(),par=glCanvas.parentElement.getBoundingClientRect(),s=Math.min(cv.width/res.w,cv.height/res.h)*pv.zoom;
   const dw=res.w*s,dh=res.h*s,ox=cv.left+cv.width/2+pv.panX-dw/2,oy=cv.top+cv.height/2+pv.panY-dh/2;
   const side=Math.min(dw,dh)*Number(mask?mask.scale:n.params.decalScale)/100,x=ox+dw*Number(mask?mask.x:n.params.decalX)/100,y=oy+dh*Number(mask?mask.y:n.params.decalY)/100;
-  Object.assign(vandalBox.style,{left:(x-side/2-par.left)+'px',top:(y-side/2-par.top)+'px',width:side+'px',height:side+'px'});
+  Object.assign(vandalBox.style,{left:(x-side/2-par.left)+'px',top:(y-side/2-par.top)+'px',width:side+'px',height:side+'px',transform:'rotate('+Number(mask?mask.rotation||0:n.params.decalRotation||0)+'deg)'});
   vandalBox._geo={n,mask,dw,dh,minDim:Math.min(dw,dh)};vandalOv.style.display='';
 }
 

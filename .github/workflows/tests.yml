@@ -4,6 +4,7 @@ on:
   push:
     paths:
       - 'index.html'
+      - 'assets/**'
       - 'tests/**'
       - '.github/workflows/tests.yml'
   pull_request:
