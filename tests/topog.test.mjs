@@ -1,0 +1,16 @@
+import fs from 'node:fs';
+import vm from 'node:vm';
+import assert from 'node:assert/strict';
+const h=fs.readFileSync(new URL('../index.html',import.meta.url),'utf8');
+const def=h.slice(h.indexOf('  topog: {'),h.indexOf('  vandal: {'));
+for(const k of ['blur','levels','width','intensity','contrast','lineColor','outputMode','mix']) assert(def.includes("'"+k+"'"),k);
+assert(def.includes("NUM('levels', 'Níveis de posterização', 2, 24, 4, 1)"));
+const sh=h.slice(h.indexOf('SHADERS.topog = `'),h.indexOf('const PROGS = {};'));
+assert(sh.includes('topoLevel') && sh.includes('uSmooth') && sh.includes('src.a'));
+const start=h.indexOf('  topog: (n, [a]) => {'),end=h.indexOf('  vandal: (n, [a]) => {',start);
+const calls=[];let targets=[];const c=vm.createContext({Number,Math,acquire:(w,h)=>{const t={w,h,tex:{},busy:true};targets.push(t);return t},draw:(name)=>calls.push(name),mkRes:t=>({w:t.w,h:t.h,tex:t.tex,pooled:t}),hexRGB:()=>[1,1,1]});
+vm.runInContext('this.run = ({'+h.slice(start,end)+'}).topog',c);
+const n={params:{blur:4,levels:4,width:1,intensity:100,contrast:100,lineColor:'#ffffff',mix:100,outputMode:'screen'}},a={w:16,h:16,tex:{}};
+assert.equal(c.run(n,[null]),null);const out=c.run(n,[a]);assert.deepEqual(calls,['blur','blur','topog']);assert(out.pooled.busy);assert.equal(targets.filter(t=>t.busy).length,1);
+calls.length=0;n.params.blur=0;c.run(n,[a]);assert.deepEqual(calls,['topog']);
+console.log('Topog: parâmetros, GLSL e passes de render OK');
