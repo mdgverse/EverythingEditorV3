@@ -15,7 +15,7 @@
 <script>try{var __t=localStorage.getItem("everything-editor:theme");if(__t)document.documentElement.setAttribute("data-theme",__t);if(__t==="custom"){var __c=JSON.parse(localStorage.getItem("everything-editor:theme-custom")||"null");if(__c)for(var __k in __c)document.documentElement.style.setProperty(__k,__c[__k])}}catch(e){}</script>
 <style>/* ---- themes: colour variables (the default is Dark) ---- */
 :root{--bg:#1b1b1b;--bar:#232323;--view:#242424;--grid:#3c3c3c;--node:#3d3d3d;--dock:#161616;--edge:#111;--outline:#878787;--line:#3a3a3a;--line2:#3d3d3d;--line3:#555;--panel:#262626;--panel2:#2b2b2b;--panel3:#1f1f1f;--btn:#2a2a2a;--btn2:#4a4a4a;--hover:#3a3a3a;--field:#171717;--field2:#1d1d1d;--field3:#1e1e1e;--card:#202025;--item:#333;--text:#d9d9d9;--text-strong:#eee;--text-muted:#9a9a9a;--text-dim:#959595;--text-accent:#9fb6d9;--accent:#4772b3;--accent-hover:#4670b0;--on-accent:#fff;--sel:#ff8c00;--brand:#ff9c3a;--brand2:#e07b1f;--link:#c7c729;--zip:#f5c542;--ss-bg:rgba(14,14,16,.97);color-scheme:dark}html[data-theme="light"]{--bg:#eeeeee;--bar:#e2e2e2;--view:#f7f7f7;--grid:#d4d4d4;--node:#ffffff;--dock:#dcdcdc;--edge:#b5b5b5;--outline:#8f8f8f;--line:#c9c9c9;--line2:#bdbdbd;--line3:#a8a8a8;--panel:#f0f0f0;--panel2:#f5f5f5;--panel3:#ffffff;--btn:#e4e4e4;--btn2:#d6d6d6;--hover:#d5d5d5;--field:#ffffff;--field2:#ffffff;--field3:#f4f4f4;--card:#ffffff;--item:#fafafa;--text:#222222;--text-strong:#000000;--text-muted:#666666;--text-dim:#6b6b6b;--text-accent:#1f4f9c;--accent:#2f6fd6;--accent-hover:#2a64c4;--on-accent:#ffffff;--sel:#e0701a;--brand:#c4561a;--brand2:#d9661a;--link:#003366;--zip:#b45309;--ss-bg:rgba(240,240,242,.97);color-scheme:light}html[data-theme="night"]{--bg:#0b1220;--bar:#0f1a2e;--view:#0d1728;--grid:#22324f;--node:#1b2a46;--dock:#0a1222;--edge:#050a14;--outline:#737373;--line:#22324f;--line2:#2e4268;--line3:#3a5282;--panel:#111d33;--panel2:#15233d;--panel3:#0b1526;--btn:#1b2b48;--btn2:#243755;--hover:#2a3f63;--field:#0a1424;--field2:#0a1424;--field3:#0d1830;--card:#13203a;--item:#1a2944;--text:#cbd9f0;--text-strong:#eef4ff;--text-muted:#8ea3c4;--text-dim:#8397bb;--text-accent:#9cc3ff;--accent:#2563eb;--accent-hover:#1d4ed8;--on-accent:#ffffff;--sel:#38bdf8;--brand:#7dd3fc;--brand2:#38bdf8;--link:#e6d55a;--zip:#ffd000;--ss-bg:rgba(8,14,26,.97);color-scheme:dark}html[data-theme="contrast"]{--bg:#000000;--bar:#000000;--view:#000000;--grid:#2a2a2a;--node:#111111;--dock:#000000;--edge:#ffffff;--line:#7a7a7a;--line2:#9a9a9a;--line3:#bdbdbd;--panel:#0a0a0a;--panel2:#0f0f0f;--panel3:#000000;--btn:#1a1a1a;--btn2:#2a2a2a;--hover:#333333;--field:#000000;--field2:#000000;--field3:#000000;--card:#0a0a0a;--item:#141414;--text:#ffffff;--text-strong:#ffffff;--text-muted:#cfcfcf;--text-dim:#bdbdbd;--text-accent:#ffe066;--accent:#ffb000;--accent-hover:#ffc233;--on-accent:#000000;--sel:#ffff00;--brand:#ffd000;--brand2:#ffb000;--link:#00ffff;--zip:#ffd000;--ss-bg:rgba(0,0,0,.98);color-scheme:dark}html[data-theme="purple"]{--bg:#17121f;--bar:#1e1729;--view:#1a1424;--grid:#35294a;--node:#2c2140;--dock:#120d19;--edge:#0c0812;--outline:#707070;--line:#3a2d52;--line2:#4a3a66;--line3:#5c4a7d;--panel:#21192f;--panel2:#271e38;--panel3:#181224;--btn:#2e2440;--btn2:#3a2d52;--hover:#3f3157;--field:#130e1c;--field2:#130e1c;--field3:#161025;--card:#221a33;--item:#2a2040;--text:#e3d9f2;--text-strong:#f7f2ff;--text-muted:#a897c2;--text-dim:#9d8cba;--text-accent:#d8b4fe;--accent:#7c3aed;--accent-hover:#6229c4;--on-accent:#ffffff;--sel:#f472b6;--brand:#e879f9;--brand2:#d946ef;--link:#fde047;--zip:#f5c542;--ss-bg:rgba(16,10,26,.97);color-scheme:dark}/* 2.9.85: Custom theme dialog */
-.tcdlg{max-height:86vh;overflow:auto}.tc-base{display:flex;align-items:center;gap:8px;margin:6px 0 10px}.tc-base label{flex:1;font-size:12px}.tc-row{display:flex;align-items:center;gap:8px;margin:6px 0}.tc-row label{flex:1;font-size:12px}.tc-swatch{width:38px;height:30px;flex:none;padding:0;border:1px solid var(--line2,#888);border-radius:6px;cursor:pointer;box-shadow:inset 0 0 0 2px rgba(255,255,255,.18)}.tc-hex{width:78px;text-transform:uppercase;background:var(--field);border:1px solid var(--line2,#888);border-radius:6px;padding:4px 6px;color:var(--text);font:inherit}.tc-presets{margin-top:12px;border-top:1px solid var(--line,#444);padding-top:10px}.tc-presets h4{margin:0 0 8px;font-size:12px;font-weight:600;color:var(--text-muted)}.tc-prow{display:flex;gap:6px;align-items:center}.tc-prow input{flex:1;min-width:0;background:var(--field);border:1px solid var(--line2,#888);border-radius:6px;padding:5px 7px;color:var(--text);font:inherit}.tc-plist{margin-top:8px;display:flex;flex-direction:column;gap:6px}.tc-pitem{display:flex;align-items:center;gap:8px;background:var(--field);border:1px solid var(--line2,#888);border-radius:6px;padding:5px 7px;cursor:pointer}.tc-pdots{display:flex;gap:2px;flex:none}.tc-pdots i{display:block;width:11px;height:11px;border-radius:3px;border:1px solid rgba(0,0,0,.4)}.tc-pname{flex:1;font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.tc-pdel{flex:none;width:24px;height:24px;padding:0;border:1px solid var(--line2,#888);background:var(--btn,#2a2a2a);color:var(--text);border-radius:5px;cursor:pointer}.tc-pvazio{font-size:11px;color:var(--text-dim)}.tcpick-back{position:fixed;inset:0;background:rgba(0,0,0,.55);display:flex;align-items:center;justify-content:center;z-index:9600;padding:16px;box-sizing:border-box}.tcpick{background:var(--panel2);color:var(--text-strong);border:1px solid var(--line2);border-radius:8px;width:min(300px,100%);box-sizing:border-box;padding:14px;box-shadow:0 10px 40px rgba(0,0,0,.5);max-height:92vh;overflow:auto}.tcpick h3{margin:0 0 10px;font-size:14px;font-weight:600}.tcp-sv{position:relative;width:100%;aspect-ratio:1/1;border-radius:6px;border:1px solid var(--line2,#888);cursor:crosshair;touch-action:none}.tcp-dot{position:absolute;width:16px;height:16px;border:2px solid #fff;border-radius:50%;box-shadow:0 0 3px rgba(0,0,0,.75);transform:translate(-50%,-50%);pointer-events:none}.tcp-hue{position:relative;height:16px;margin-top:10px;border-radius:8px;border:1px solid var(--line2,#888);cursor:pointer;touch-action:none;background:linear-gradient(to right,#f00,#ff0,#0f0,#0ff,#00f,#f0f,#f00)}.tcp-hue .tcp-dot{top:50%}.tcp-swatches{display:grid;grid-template-columns:repeat(8,1fr);gap:5px;margin-top:10px}.tcp-sw{height:22px;padding:0;border-radius:4px;border:1px solid rgba(0,0,0,.4);cursor:pointer}.tcp-prow2{display:flex;align-items:center;gap:8px;margin-top:10px}.tcp-prev{width:34px;height:34px;flex:none;border-radius:6px;border:1px solid var(--line2,#888)}.tcpick .xrow{display:flex;gap:6px;margin-top:12px}.tcpick .xrow button{flex:1}*{box-sizing:border-box}html, body{height:100%;margin:0}body{background:var(--bg);color:var(--text);font:12px/1.3 "Segoe UI",Inter,system-ui,-apple-system,Roboto,Arial,sans-serif;overflow:hidden;user-select:none;-webkit-user-select:none}button, select, input{font:inherit;color:inherit}.vandal-tabs button:focus:not(:focus-visible){outline:none}/* ---------- Layout ---------- */
+.tcdlg{max-height:86vh;overflow:auto}.tc-base{display:flex;align-items:center;gap:8px;margin:6px 0 10px}.tc-base label{flex:1;font-size:12px}.tc-row{display:flex;align-items:center;gap:8px;margin:6px 0}.tc-row label{flex:1;font-size:12px}.tc-swatch{width:38px;height:30px;flex:none;padding:0;border:1px solid var(--line2,#888);border-radius:6px;cursor:pointer;box-shadow:inset 0 0 0 2px rgba(255,255,255,.18)}.tc-hex{width:78px;text-transform:uppercase;background:var(--field);border:1px solid var(--line2,#888);border-radius:6px;padding:4px 6px;color:var(--text);font:inherit}.tc-presets{margin-top:12px;border-top:1px solid var(--line,#444);padding-top:10px}.tc-presets h4{margin:0 0 8px;font-size:12px;font-weight:600;color:var(--text-muted)}.tc-prow{display:flex;gap:6px;align-items:center}.tc-prow input{flex:1;min-width:0;background:var(--field);border:1px solid var(--line2,#888);border-radius:6px;padding:5px 7px;color:var(--text);font:inherit}.tc-plist{margin-top:8px;display:flex;flex-direction:column;gap:6px}.tc-pitem{display:flex;align-items:center;gap:8px;background:var(--field);border:1px solid var(--line2,#888);border-radius:6px;padding:5px 7px;cursor:pointer}.tc-pdots{display:flex;gap:2px;flex:none}.tc-pdots i{display:block;width:11px;height:11px;border-radius:3px;border:1px solid rgba(0,0,0,.4)}.tc-pname{flex:1;font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.tc-pdel{flex:none;width:24px;height:24px;padding:0;border:1px solid var(--line2,#888);background:var(--btn,#2a2a2a);color:var(--text);border-radius:5px;cursor:pointer}.tc-pvazio{font-size:11px;color:var(--text-dim)}.tcpick-back{position:fixed;inset:0;background:rgba(0,0,0,.55);display:flex;align-items:center;justify-content:center;z-index:9600;padding:16px;box-sizing:border-box}.tcpick{background:var(--panel2);color:var(--text-strong);border:1px solid var(--line2);border-radius:8px;width:min(300px,100%);box-sizing:border-box;padding:14px;box-shadow:0 10px 40px rgba(0,0,0,.5);max-height:92vh;overflow:auto}.tcpick h3{margin:0 0 10px;font-size:14px;font-weight:600}.tcp-sv{position:relative;width:100%;aspect-ratio:1/1;border-radius:6px;border:1px solid var(--line2,#888);cursor:crosshair;touch-action:none}.tcp-dot{position:absolute;width:16px;height:16px;border:2px solid #fff;border-radius:50%;box-shadow:0 0 3px rgba(0,0,0,.75);transform:translate(-50%,-50%);pointer-events:none}.tcp-hue{position:relative;height:16px;margin-top:10px;border-radius:8px;border:1px solid var(--line2,#888);cursor:pointer;touch-action:none;background:linear-gradient(to right,#f00,#ff0,#0f0,#0ff,#00f,#f0f,#f00)}.tcp-hue .tcp-dot{top:50%}.tcp-swatches{display:grid;grid-template-columns:repeat(8,1fr);gap:5px;margin-top:10px}.tcp-sw{height:22px;padding:0;border-radius:4px;border:1px solid rgba(0,0,0,.4);cursor:pointer}.tcp-prow2{display:flex;align-items:center;gap:8px;margin-top:10px}.tcp-prev{width:34px;height:34px;flex:none;border-radius:6px;border:1px solid var(--line2,#888)}.tcpick .xrow{display:flex;gap:6px;margin-top:12px}.tcpick .xrow button{flex:1}*{box-sizing:border-box}html, body{height:100%;margin:0}body{background:var(--bg);color:var(--text);font:12px/1.3 "Segoe UI",Inter,system-ui,-apple-system,Roboto,Arial,sans-serif;overflow:hidden;user-select:none;-webkit-user-select:none}button, select, input{font:inherit;color:inherit}.vandal-tabs button:focus:not(:focus-visible){outline:none}@media(pointer:coarse){.vandal-box>div{transform:scale(1.5)}}/* ---------- Layout ---------- */
 .app{display:grid;grid-template-rows:34px auto 1fr;height:100vh}.topbar{display:flex;align-items:center;gap:2px;background:var(--bar);border-bottom:1px solid var(--outline);padding:0 6px;min-width:0}.brand{font-weight:700;color:var(--brand);margin-right:10px;letter-spacing:.3px;white-space:nowrap}.tbtn{background:transparent;border:1px solid transparent;border-radius:4px;padding:5px 9px;cursor:pointer;color:var(--text);white-space:nowrap}.tbtn:hover{background:var(--hover)}.tbtn:active{background:var(--panel2)}.tbtn.accent{background:var(--accent);color:var(--on-accent)}.tbtn.accent:hover{background:var(--accent-hover)}.sep{width:1px;height:18px;background:var(--line);margin:0 6px}.spacer{flex:1}#status{color:var(--text-muted);font-size:11px;padding-right:8px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:40vw}#status.err{color:#ff7a7a}.main{display:grid;grid-template-columns:minmax(0,1fr) 6px var(--pv-w,36vw);min-height:0}.splitter{cursor:col-resize;background:var(--dock);position:relative;touch-action:none}.splitter::after{content:'';position:absolute;left:2px;top:50%;width:2px;height:40px;transform:translateY(-50%);background:var(--line);border-radius:2px}.splitter:hover, .splitter.drag{background:#2c3e5a}.splitter:hover::after, .splitter.drag::after{background:#6f8fc4}/* ---------- Node editor ---------- */
 .node-view{position:relative;overflow:hidden;background-color:var(--view);
   background-image:radial-gradient(circle,var(--grid) 1.1px,transparent 1.5px);background-size:40px 40px;background-position:0 0}.node-view.panning{cursor:grabbing}#world{position:absolute;left:0;top:0;width:0;height:0;transform-origin:0 0}#links{position:absolute;left:0;top:0;width:1px;height:1px;overflow:visible;pointer-events:none}#zipLayer{position:absolute;left:0;top:0;width:1px;height:1px;overflow:visible;pointer-events:none}.brand{cursor:pointer;user-select:none;-webkit-user-select:none;-webkit-tap-highlight-color:transparent;display:inline-flex;align-items:center;gap:6px;min-height:44px;padding:0 8px;border-radius:8px}.brand:hover, .brand[aria-expanded="true"]{background:rgba(255,255,255,.07)}.brand:focus-visible{outline:2px solid var(--link);outline-offset:2px}.brand-caret{font-size:11px;opacity:.7;transition:transform .16s ease}/* marca: infinito branco sobre fundo preto */
@@ -437,7 +437,7 @@ html, body{overscroll-behavior:none;-webkit-tap-highlight-color:transparent}/* 1
 
 /* Versão do editor — o arquivo VERSION na raiz é a fonte da verdade
    (o build do APK usa o mesmo número no versionName e falha se divergir). */
-const APP_VERSION = '3.17.1';
+const APP_VERSION = '3.17.2';
 /* sem a telinha, a versão aparece no tooltip da marca (e o título da aba segue curto) */
 {
   const marca = document.getElementById('brandBtn');
@@ -3149,7 +3149,7 @@ const NODE_TYPES = {
       ENUM('vandalMode', 'Mode', [['combined', 'Spray + Asset'], ['decal', 'Single Asset (Legacy)'], ['classic', 'Classic Spray']], 'combined'),
       ENUM('decalAsset', 'Asset', [['1', 'Splash 1'], ['2', 'Splash 2'], ['3', 'Splash 3'], ['4', 'Splash 4'], ...Array.from({length:200},(_,i)=>['texture-'+String(i+1).padStart(3,'0'),'Texture '+String(i+1).padStart(3,'0')]), ['local', 'Local Mask']], '1'),
       NUM('decalX', 'Position X', 0, 100, 50, 0.1), NUM('decalY', 'Position Y', 0, 100, 50, 0.1),
-      NUM('decalScale', 'Scale', 1, 200, 40, 0.5), NUM('decalRotation', 'Rotation (°)', 0, 360, 0, 1), COL('decalColor', 'Asset Color', '#ffb000'),
+      NUM('decalScale', 'Scale', 1, 200, 40, 0.5), NUM('decalStretchX', 'Width (%)', 10, 400, 100, 1), NUM('decalStretchY', 'Height (%)', 10, 400, 100, 1), NUM('decalRotation', 'Rotation (°)', 0, 360, 0, 1), COL('decalColor', 'Asset Color', '#ffb000'),
       NUM('decalOpacity', 'Asset Opacity', 0, 100, 100), NUM('paletteCast', 'Apply Palette', 0, 100, 0),
       { ...NUM('vandalSoft', 'Legacy Soften', 0, 100, 0), hidden:true },
       ...[1,2,3,4,5].map(i => ({ ...NUM('vandalSoft'+i, 'Soften '+i, 0, 100, 0), hidden:true })),
@@ -8281,7 +8281,7 @@ void main() {
 /* Vandal: apenas uma instância; fora do retângulo o pixel é intocado. */
 SHADERS.vandalDecal = `
 uniform sampler2D uSrc, uAtlas;
-uniform vec2 uRes, uPosition, uRotation;
+uniform vec2 uRes, uPosition, uRotation, uStretch;
 uniform vec3 uInk, uPal0, uPal1, uPal2, uPal3, uPal4, uPal5;
 uniform float uScale, uAsset, uOpacity, uCast, uZones, uSoft1, uSoft2, uSoft3, uSoft4, uSoft5;
 uniform float uStop1, uStop2, uStop3, uStop4, uStop5;
@@ -8314,7 +8314,7 @@ void main() {
   vec2 pos=vec2(vUv.x,1.0-vUv.y)*uRes;
   float size=max(1.0,min(uRes.x,uRes.y)*uScale);
   vec2 d=pos-uPosition*uRes;
-  vec2 m=vec2(uRotation.x*d.x+uRotation.y*d.y,-uRotation.y*d.x+uRotation.x*d.y)/size+0.5;
+  vec2 m=vec2(uRotation.x*d.x+uRotation.y*d.y,-uRotation.y*d.x+uRotation.x*d.y)/(size*uStretch)+0.5;
   if(any(lessThan(m,vec2(0.0)))||any(greaterThanEqual(m,vec2(1.0)))){outColor=src;return;}
   float a=texture(uAtlas,vec2((uAsset+m.x)*0.25,m.y)).r*uOpacity;
   float l=dot(src.rgb,vec3(0.2126,0.7152,0.0722));
@@ -10009,13 +10009,16 @@ function vandalMaskThumbnail(canvas) {
 function vandalEnsureMaskTextures(n) {
   const textures=n.runtime.vandalMaskTextures||(n.runtime.vandalMaskTextures={});
   for(const mask of (Array.isArray(n.params.vandalMasks)?n.params.vandalMasks:[]).slice(0,12)) {
-    if(!mask || !mask.id || textures[mask.id] || typeof mask.data!=='string' || !mask.data.startsWith('data:image/png;base64,'))continue;
+    if(!mask || !mask.id || textures[mask.id])continue;
+    const isAsset=/^texture-(?:0[0-9]{2}|1[0-9]{2}|200)$/.test(mask.asset||'') && mask.asset!=='texture-000';
+    const src=isAsset?'assets/vandal/'+mask.asset.slice(8)+'.png':(typeof mask.data==='string' && mask.data.startsWith('data:image/png;base64,')?mask.data:null);
+    if(!src)continue;
     const entry={loading:true};textures[mask.id]=entry;
     const img=new Image();img.onload=()=>{
       if(nodes.get(n.id)!==n || textures[mask.id]!==entry || !n.params.vandalMasks.includes(mask))return;
       try{entry.tex=vandalMakeMaskTexture(img);entry.loading=false;markDirty(n.id);requestRender();}
       catch(e){entry.loading=false;setStatus('Error loading mask: '+e.message,true);}
-    };img.onerror=()=>{entry.loading=false;setStatus('Could not open a local mask.',true);};img.src=mask.data;
+    };img.onerror=()=>{if(textures[mask.id]===entry)delete textures[mask.id];setStatus('Could not open mask: '+mask.name,true);};img.src=src;
   }
 }
 
@@ -10080,7 +10083,7 @@ function vandalLocalMaskUI(n, body) {
   });
   const maskList=E('div','vandal-mask-list');maskList.setAttribute('aria-label','Mask manager');maskList.style.cssText='display:flex;flex-direction:column;gap:3px;max-height:180px;overflow:auto';
   const maskFields=E('div','vandal-mask-fields');maskFields.style.cssText='display:flex;flex-direction:column;gap:3px';
-  const edits={};for(const [key,label,min,max,step] of [['x','X',0,100,0.1],['y','Y',0,100,0.1],['scale','Scale',1,200,0.5],['rotation','Rotation (°)',0,360,1],['opacity','Opacity',0,100,1]]){
+  const edits={};for(const [key,label,min,max,step] of [['x','X',0,100,0.1],['y','Y',0,100,0.1],['scale','Scale',1,200,0.5],['stretchX','Width (%)',10,400,1],['stretchY','Height (%)',10,400,1],['rotation','Rotation (°)',0,360,1],['opacity','Opacity',0,100,1]]){
     const row=E('label','plbl',label+' '),field=document.createElement('input');field.type='number';field.min=min;field.max=max;field.step=step;field.style.cssText='width:70px';field.setAttribute('aria-label',label+' of local mask');row.append(field);maskFields.append(row);edits[key]=field;
     field.addEventListener('change',()=>{const m=selectedMask();if(!m)return;const v=Number(field.value);if(!Number.isFinite(v))return; m[key]=Math.max(min,Math.min(max,v));field.value=m[key];if(key==='rotation')rotationRange.value=m.rotation;markDirty(n.id);requestRender();commit();});
   }
@@ -10088,11 +10091,11 @@ function vandalLocalMaskUI(n, body) {
   const colorRow=E('label','plbl','Color '),color=document.createElement('input');color.type='color';color.setAttribute('aria-label','Color of local mask');colorRow.append(color);maskFields.append(colorRow);
   color.addEventListener('input',()=>{const m=selectedMask();if(m){m.color=color.value;markDirty(n.id);requestRender();}});color.addEventListener('change',()=>commit());
   const selectedMask=()=>n.params.vandalMasks.find(m=>m.id===n.runtime.vandalSelectedMask);
-  const updateMaskPosition=()=>{const m=selectedMask();if(m){for(const key in edits)edits[key].value=m[key] ?? (key==='rotation'?0:'');color.value=m.color;rotationRange.value=m.rotation||0;}};
+  const updateMaskPosition=()=>{const m=selectedMask();if(m){for(const key in edits)edits[key].value=m[key] ?? (key==='rotation'?0:(key==='stretchX'||key==='stretchY'?100:''));color.value=m.color;rotationRange.value=m.rotation||0;}};
   const updateMasks=()=>{
     const masks=n.params.vandalMasks;if(!masks.some(m=>m.id===n.runtime.vandalSelectedMask))n.runtime.vandalSelectedMask=masks[0]?.id||null;
     maskList.replaceChildren();
-    for(const m of masks){
+    for(const [index,m] of masks.entries()){
       const row=E('div','vandal-mask-row');row.style.cssText='display:flex;gap:3px;align-items:center';
       const select=E('button','stk-btn vandal-mask-select',m.name);select.type='button';select.style.cssText='flex:1;text-align:left;overflow:hidden;text-overflow:ellipsis';select.setAttribute('aria-pressed',String(m.id===n.runtime.vandalSelectedMask));
       if(m.id===n.runtime.vandalSelectedMask)select.style.outline='1px solid #e5b44f';
@@ -10101,11 +10104,19 @@ function vandalLocalMaskUI(n, body) {
       eye.addEventListener('click',()=>{m.visible=m.visible===false;updateMasks();markDirty(n.id);requestRender();commit();});
       const del=E('button','stk-btn vandal-mask-delete','✕');del.type='button';del.title='Delete mask';del.setAttribute('aria-label','Delete mask '+m.name);
       del.addEventListener('click',()=>{const entry=n.runtime.vandalMaskTextures&&n.runtime.vandalMaskTextures[m.id];if(entry&&entry.tex)gl.deleteTexture(entry.tex);if(n.runtime.vandalMaskTextures)delete n.runtime.vandalMaskTextures[m.id];n.params.vandalMasks=n.params.vandalMasks.filter(x=>x!==m);updateMasks();markDirty(n.id);requestRender();commit();});
-      row.append(select,eye,del);maskList.append(row);
+      const move=(delta)=>{const next=index+delta;if(next<0||next>=masks.length)return;[masks[index],masks[next]]=[masks[next],masks[index]];updateMasks();markDirty(n.id);requestRender();commit();};
+      const up=E('button','stk-btn','↑'),down=E('button','stk-btn','↓');up.type=down.type='button';up.setAttribute('aria-label','Move '+m.name+' up');down.setAttribute('aria-label','Move '+m.name+' down');up.disabled=index===0;down.disabled=index===masks.length-1;up.addEventListener('click',()=>move(-1));down.addEventListener('click',()=>move(1));
+      row.append(select,up,down,eye,del);maskList.append(row);
     }
     maskFields.style.display=selectedMask()?'flex':'none';updateMaskPosition();
   };
-  panel.append(maskList,maskFields);n.ui.vandalMasks=updateMasks;n.ui.vandalMaskPosition=updateMaskPosition;updateMasks();vandalEnsureMaskTextures(n);
+  const layers=E('div','vandal-layers');layers.style.cssText='display:flex;flex-direction:column;gap:5px';
+  const heading=E('div','plbl','Asset Layers · up to 12');
+  const editPreview=E('button','stk-btn','Edit Selected on Preview');editPreview.type='button';
+  editPreview.addEventListener('click',()=>{previewId=n.id;if(document.body.classList.contains('mobile'))document.getElementById('mGoPreview').click();requestRender();setStatus('Drag to move, use the handles to resize, stretch or rotate.');});
+  const handleHint=E('div','plbl','Preview: drag to move · ⤢ scale · ↔ ↕ stretch · ↻ rotate');handleHint.style.cssText='white-space:normal;line-height:1.3';
+  layers.append(heading,maskList,maskFields,editPreview,handleHint);body.insertBefore(layers,panel);
+  n.ui.vandalMasks=updateMasks;n.ui.vandalMaskPosition=updateMaskPosition;updateMasks();vandalEnsureMaskTextures(n);
   use.addEventListener('click',()=>{if(!result)return;try{
     if(n.params.vandalMasks.length>=12)throw Error('Maximum 12 masks per node.');
     const thumb=vandalMaskThumbnail(result.canvas),id='mask-'+Date.now().toString(36)+'-'+Math.random().toString(36).slice(2,9);
@@ -10122,7 +10133,7 @@ function vandalLocalMaskUI(n, body) {
 function vandalLibrary(n, container) {
   const wrap=E('div','vandal-library');
   const summary=E('div','','Mask Library · 200');summary.style.cssText='padding:4px;color:#eee;font-size:11px';wrap.append(summary);
-  const hint=E('div','vandal-library-status','Select a mask below. Connect an image to see it.');hint.style.cssText='font-size:10px;color:#bbb';wrap.append(hint);
+  const hint=E('div','vandal-library-status','Tap a texture to add a layer. Connect an image to see it.');hint.style.cssText='font-size:10px;color:#bbb';wrap.append(hint);
   n.ui.vandalLibraryStatus=message=>{hint.textContent=message;};
   const grid=E('div','vandal-library-grid');grid.style.cssText='display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:3px';wrap.append(grid);
   const nav=E('div','vandal-library-nav');nav.style.cssText='display:flex;align-items:center;gap:4px';
@@ -10132,16 +10143,25 @@ function vandalLibrary(n, container) {
     grid.replaceChildren();
     for(let i=page*pageSize;i<Math.min(200,(page+1)*pageSize);i++){
       const label=String(i+1).padStart(3,'0'),id='texture-'+label;
-      const button=E('button','vandal-mask-thumbnail');button.type='button';button.title='Texture '+label;button.setAttribute('aria-label','Select Texture '+label);button.setAttribute('aria-pressed',String(n.params.decalAsset===id));
-      button.style.cssText='background:#222;border:1px solid '+(n.params.decalAsset===id?'#ffd479':'#555')+';padding:2px;color:#ddd;min-width:0;cursor:pointer';
+      const button=E('button','vandal-mask-thumbnail');button.type='button';button.title='Texture '+label;button.setAttribute('aria-label','Select Texture '+label);const selected=n.params.vandalMasks.find(m=>m.id===n.runtime.vandalSelectedMask);const active=selected ? selected.asset===id : n.params.decalAsset===id;button.setAttribute('aria-pressed',String(active));
+      button.style.cssText='background:#222;border:1px solid '+(active?'#ffd479':'#555')+';padding:2px;color:#ddd;min-width:0;cursor:pointer';
       const image=document.createElement('img');image.src='assets/vandal/'+label+'.png';image.alt='';image.draggable=false;image.style.cssText='display:block;width:100%;aspect-ratio:1;object-fit:contain';
       const text=E('span','',label);text.style.cssText='font-size:9px';button.append(image,text);
-      button.addEventListener('click',e=>{e.stopPropagation();n.params.decalAsset=id;if(n.params.vandalMode==='classic')n.params.vandalMode='combined';if(n.ui.vandalMode)n.ui.vandalMode();if(n.ui.decalAsset)n.ui.decalAsset();hint.textContent='Selected Texture '+label+'; connect an image to see it.';markDirty(n.id);requestRender();commit();render();});grid.append(button);
+      button.addEventListener('click',e=>{e.stopPropagation();
+        const old=String(n.params.decalAsset), migrate=/^texture-(?:0[0-9]{2}|1[0-9]{2}|200)$/.test(old)&&old!=='texture-000';
+        if(n.params.vandalMasks.length+(migrate?2:1)>12){hint.textContent='Maximum 12 layers per node.';return;}
+        const makeId=()=> 'mask-'+Date.now().toString(36)+'-'+Math.random().toString(36).slice(2,9);
+        if(migrate)n.params.vandalMasks.push({id:makeId(),name:'Texture '+old.slice(8),asset:old,x:n.params.decalX,y:n.params.decalY,scale:n.params.decalScale,rotation:n.params.decalRotation,stretchX:n.params.decalStretchX,stretchY:n.params.decalStretchY,color:n.params.decalColor,opacity:n.params.decalOpacity,cast:n.params.paletteCast,visible:true});
+        const m={id:makeId(),name:'Texture '+label,asset:id,x:50,y:50,scale:40,rotation:0,stretchX:100,stretchY:100,color:n.params.decalColor,opacity:100,visible:true};
+        n.params.vandalMasks.push(m);n.runtime.vandalSelectedMask=m.id;n.params.decalAsset='local';
+        if(n.params.vandalMode==='classic')n.params.vandalMode='combined';if(n.ui.vandalMode)n.ui.vandalMode();if(n.ui.decalAsset)n.ui.decalAsset();
+        if(n.ui.vandalMasks)n.ui.vandalMasks();vandalEnsureMaskTextures(n);hint.textContent='Added Texture '+label+' as a layer.';markDirty(n.id);requestRender();commit();render();
+      });grid.append(button);
     }
     pageLabel.textContent='Page '+(page+1)+' / '+pages;previous.disabled=page===0;next.disabled=page===pages-1;
   }
   previous.addEventListener('click',()=>{if(page>0){page--;render();}});next.addEventListener('click',()=>{if(page<pages-1){page++;render();}});
-  function sync(){const match=/^texture-(\d{3})$/.exec(String(n.params.decalAsset));if(match)page=Math.max(0,Math.min(pages-1,Math.floor((Number(match[1])-1)/pageSize)));render();}
+  function sync(){const selected=n.params.vandalMasks.find(m=>m.id===n.runtime.vandalSelectedMask);const match=/^texture-(\d{3})$/.exec(String(selected?.asset||n.params.decalAsset));if(match)page=Math.max(0,Math.min(pages-1,Math.floor((Number(match[1])-1)/pageSize)));render();}
   const prev=n.ui.decalAsset;n.ui.decalAsset=()=>{if(prev)prev();sync();};
   sync();container.append(wrap);return sync;
 }
@@ -10152,7 +10172,7 @@ function vandalPanel(n, body) {
   if(nodeEl) addPanelResize(n,nodeEl,'spW');
   const {panel,sections}=vandalPaletteUI(n,body);
   const palette=new Set(['preset','c1','c2','c3','c4','c5','c6','zones','vandalSoft','paletteCast']);
-  const placement=new Set(['vandalMode','decalAsset','decalX','decalY','decalScale','decalRotation','decalColor','decalOpacity']);
+  const placement=new Set(['vandalMode','decalAsset','decalX','decalY','decalScale','decalStretchX','decalStretchY','decalRotation','decalColor','decalOpacity']);
   const controls=Array.from(body.querySelectorAll('[data-pkey]')).filter(e=>!panel.contains(e));
   const group=(title,open=false)=>{const d=document.createElement('details');d.className='vandal-group';d.open=open;const summary=E('summary','',title);summary.style.cssText='cursor:pointer;padding:5px;color:#eee';d.append(summary);sections[2].append(d);return d;};
   const sprayGroup=group('Spray Texture'),scatterGroup=group('Spray Scatter'),blendGroup=group('Blend and Tone');
@@ -23691,12 +23711,12 @@ const RUN = {
     }
     // Cada máscara ocupa um passe; o alvo anterior é liberado assim que consumido.
     let owned=base;
-    const applyDecal=(tex,asset,x,y,scale,color,opacity,cast,rotation)=>{
+    const applyDecal=(tex,asset,x,y,scale,color,opacity,cast,rotation,stretchX=100,stretchY=100)=>{
       const angle=(Number(rotation)||0)*Math.PI/180;
       const e=acquire(a.w,a.h);
       draw('vandalDecal', e, { uSrc: source.tex, uAtlas: tex }, {
         uRes: [a.w, a.h], uPosition: [Number(x)/100, Number(y)/100], uRotation: [Math.cos(angle),Math.sin(angle)],
-        uScale: Number(scale)/100, uAsset: asset,
+        uScale: Number(scale)/100, uStretch:[Math.max(.1,Math.min(400,Number(stretchX)||100)/100),Math.max(.1,Math.min(400,Number(stretchY)||100)/100)], uAsset: asset,
         uInk: hexRGB(color), uOpacity: Number(opacity)/100, uCast: Number(cast)/100,
         uZones: Number(p.zones), uSoft1: Number(p.vandalSoft1)/100, uSoft2: Number(p.vandalSoft2)/100, uSoft3: Number(p.vandalSoft3)/100, uSoft4: Number(p.vandalSoft4)/100, uSoft5: Number(p.vandalSoft5)/100, uStop1: Number(p.vandalStop1)/100, uStop2: Number(p.vandalStop2)/100,
         uStop3: Number(p.vandalStop3)/100, uStop4: Number(p.vandalStop4)/100, uStop5: Number(p.vandalStop5)/100,
@@ -23706,11 +23726,11 @@ const RUN = {
     };
     const isDefault=String(p.decalAsset).startsWith('texture-');
     if(!isDefault && n.runtime.vandalDefault){if(n.runtime.vandalDefault.tex)gl.deleteTexture(n.runtime.vandalDefault.tex);n.runtime.vandalDefault=null;}
-    if(isDefault){const tex=vandalDefaultTexture(n,p.decalAsset);if(tex)applyDecal(tex,0,p.decalX,p.decalY,p.decalScale,p.decalColor,p.decalOpacity,p.paletteCast,p.decalRotation);}
-    else if(p.decalAsset!=='local') applyDecal(vandalAtlasTexture(),Math.max(0,Math.min(3,(Number(p.decalAsset)||1)-1)),p.decalX,p.decalY,p.decalScale,p.decalColor,p.decalOpacity,p.paletteCast,p.decalRotation);
-    else if(n.runtime.vandalLocalTex && !p.vandalMasks.length) applyDecal(n.runtime.vandalLocalTex,0,p.decalX,p.decalY,p.decalScale,p.decalColor,p.decalOpacity,p.paletteCast,p.decalRotation);
+    if(isDefault){const tex=vandalDefaultTexture(n,p.decalAsset);if(tex)applyDecal(tex,0,p.decalX,p.decalY,p.decalScale,p.decalColor,p.decalOpacity,p.paletteCast,p.decalRotation,p.decalStretchX,p.decalStretchY);}
+    else if(p.decalAsset!=='local') applyDecal(vandalAtlasTexture(),Math.max(0,Math.min(3,(Number(p.decalAsset)||1)-1)),p.decalX,p.decalY,p.decalScale,p.decalColor,p.decalOpacity,p.paletteCast,p.decalRotation,p.decalStretchX,p.decalStretchY);
+    else if(n.runtime.vandalLocalTex && !p.vandalMasks.length) applyDecal(n.runtime.vandalLocalTex,0,p.decalX,p.decalY,p.decalScale,p.decalColor,p.decalOpacity,p.paletteCast,p.decalRotation,p.decalStretchX,p.decalStretchY);
     const textures=n.runtime.vandalMaskTextures||{};
-    for(const m of p.vandalMasks.slice(0,12)){const item=textures[m.id];if(m.visible!==false&&item&&item.tex)applyDecal(item.tex,0,m.x,m.y,m.scale,m.color,m.opacity,0,m.rotation);}
+    for(const m of p.vandalMasks.slice(0,12)){const item=textures[m.id];if(m.visible!==false&&item&&item.tex)applyDecal(item.tex,0,m.x,m.y,m.scale,m.color,m.opacity,m.cast||0,m.rotation,m.stretchX,m.stretchY);}
     return owned ? mkRes(owned) : ptRes(a);
   },
   distressor: (n, [a]) => {
@@ -24564,17 +24584,32 @@ function vandalUpdateOverlay(res) {
     const par=glCanvas.parentElement;if(getComputedStyle(par).position==='static')par.style.position='relative';
     vandalOv=E('div','vandal-overlay');vandalOv.style.cssText='position:absolute;inset:0;pointer-events:none;z-index:9';
     vandalBox=E('div','vandal-box');vandalBox.style.cssText='position:absolute;border:1px dashed #ffd479;box-sizing:border-box;pointer-events:auto;touch-action:none;cursor:move';
-    const knob=E('div','vandal-resize');knob.setAttribute('aria-label','Resize asset');knob.style.cssText='position:absolute;right:-7px;bottom:-7px;width:14px;height:14px;border:2px solid #201909;background:#ffd479;border-radius:50%;cursor:nwse-resize;touch-action:none';
-    vandalBox.append(knob);vandalOv.append(vandalBox);par.append(vandalOv);
-    vandalBox.addEventListener('pointerdown',e=>{if(e.button>0)return;const g=vandalBox._geo;if(!g)return;e.preventDefault();e.stopPropagation();vandalBox.setPointerCapture(e.pointerId);vandalDrag={g,mode:e.target===knob?'scale':'move',x:e.clientX,y:e.clientY,px:Number(g.mask?g.mask.x:g.n.params.decalX),py:Number(g.mask?g.mask.y:g.n.params.decalY),scale:Number(g.mask?g.mask.scale:g.n.params.decalScale),angle:Number(g.mask?g.mask.rotation||0:g.n.params.decalRotation||0)*Math.PI/180};});
-    vandalBox.addEventListener('pointermove',e=>{if(!vandalDrag)return;const d=vandalDrag,g=d.g,n=g.n;if(d.mode==='move'){const x=Math.max(0,Math.min(100,d.px+(e.clientX-d.x)/g.dw*100)),y=Math.max(0,Math.min(100,d.py+(e.clientY-d.y)/g.dh*100));if(g.mask){g.mask.x=x;g.mask.y=y;if(n.ui.vandalMaskPosition)n.ui.vandalMaskPosition();}else{n.params.decalX=x;n.params.decalY=y;if(n.ui.decalX)n.ui.decalX();if(n.ui.decalY)n.ui.decalY();}}else{const scale=Math.max(1,Math.min(200,d.scale+((e.clientX-d.x)*Math.cos(d.angle)+(e.clientY-d.y)*Math.sin(d.angle))*200/g.minDim));if(g.mask){g.mask.scale=scale;if(n.ui.vandalMaskPosition)n.ui.vandalMaskPosition();}else{n.params.decalScale=scale;if(n.ui.decalScale)n.ui.decalScale();}}markDirty(n.id);requestRender();});
+    const handle=(cls,label,position,cursor,glyph)=>{const el=E('div',cls,glyph);el.setAttribute('aria-label',label);el.title=label;el.style.cssText='position:absolute;width:16px;height:16px;border:2px solid #201909;background:#ffd479;border-radius:50%;touch-action:none;color:#201909;font:bold 13px/14px sans-serif;text-align:center;'+position+';cursor:'+cursor;vandalBox.append(el);return el;};
+    const knob=handle('vandal-resize','Resize asset','right:-8px;bottom:-8px','nwse-resize','⤢');
+    const wide=handle('vandal-stretch-x','Stretch width','right:-8px;top:calc(50% - 8px)','ew-resize','↔');
+    const high=handle('vandal-stretch-y','Stretch height','bottom:-8px;left:calc(50% - 8px)','ns-resize','↕');
+    const rotate=handle('vandal-rotate','Rotate asset','top:-25px;left:calc(50% - 8px)','grab','↻');
+    vandalOv.append(vandalBox);par.append(vandalOv);
+    vandalBox.addEventListener('pointerdown',e=>{if(e.button>0)return;const g=vandalBox._geo;if(!g)return;e.preventDefault();e.stopPropagation();vandalBox.setPointerCapture(e.pointerId);
+      const r=vandalBox.getBoundingClientRect(), cx=r.left+r.width/2,cy=r.top+r.height/2,mask=g.mask,p=g.n.params;
+      vandalDrag={g,mode:e.target===knob?'scale':e.target===wide?'width':e.target===high?'height':e.target===rotate?'rotate':'move',x:e.clientX,y:e.clientY,px:Number(mask?mask.x:p.decalX),py:Number(mask?mask.y:p.decalY),scale:Number(mask?mask.scale:p.decalScale),sx:Number((mask?mask.stretchX:p.decalStretchX)??100),sy:Number((mask?mask.stretchY:p.decalStretchY)??100),angle:Number((mask?mask.rotation:p.decalRotation)||0)*Math.PI/180,cx,cy,startAngle:Math.atan2(e.clientY-cy,e.clientX-cx)};
+    });
+    vandalBox.addEventListener('pointermove',e=>{if(!vandalDrag)return;const d=vandalDrag,g=d.g,n=g.n,m=g.mask,dx=e.clientX-d.x,dy=e.clientY-d.y;
+      const set=(key,primary,value)=>{if(m)m[key]=value;else{n.params[primary]=value;if(n.ui[primary])n.ui[primary]();}};
+      if(d.mode==='move'){set('x','decalX',Math.max(0,Math.min(100,d.px+dx/g.dw*100)));set('y','decalY',Math.max(0,Math.min(100,d.py+dy/g.dh*100)));}
+      else if(d.mode==='rotate'){const degrees=((d.angle+(Math.atan2(e.clientY-d.cy,e.clientX-d.cx)-d.startAngle))*180/Math.PI%360+360)%360;set('rotation','decalRotation',degrees);}
+      else if(d.mode==='width'||d.mode==='height'){const along=d.mode==='width'?dx*Math.cos(d.angle)+dy*Math.sin(d.angle):-dx*Math.sin(d.angle)+dy*Math.cos(d.angle);const v=Math.max(10,Math.min(400,(d.mode==='width'?d.sx:d.sy)+along*200/(g.minDim*d.scale/100)));if(d.mode==='width')set('stretchX','decalStretchX',v);else set('stretchY','decalStretchY',v);}
+      else{const scale=Math.max(1,Math.min(200,d.scale+(dx*Math.cos(d.angle)+dy*Math.sin(d.angle))*200/g.minDim));set('scale','decalScale',scale);}
+      if(m&&n.ui.vandalMaskPosition)n.ui.vandalMaskPosition();markDirty(n.id);requestRender();
+    });
     const finish=e=>{if(!vandalDrag)return;vandalDrag=null;if(vandalBox.hasPointerCapture(e.pointerId))vandalBox.releasePointerCapture(e.pointerId);commit();};
     vandalBox.addEventListener('pointerup',finish);vandalBox.addEventListener('pointercancel',finish);
   }
   const cv=glCanvas.getBoundingClientRect(),par=glCanvas.parentElement.getBoundingClientRect(),s=Math.min(cv.width/res.w,cv.height/res.h)*pv.zoom;
   const dw=res.w*s,dh=res.h*s,ox=cv.left+cv.width/2+pv.panX-dw/2,oy=cv.top+cv.height/2+pv.panY-dh/2;
   const side=Math.min(dw,dh)*Number(mask?mask.scale:n.params.decalScale)/100,x=ox+dw*Number(mask?mask.x:n.params.decalX)/100,y=oy+dh*Number(mask?mask.y:n.params.decalY)/100;
-  Object.assign(vandalBox.style,{left:(x-side/2-par.left)+'px',top:(y-side/2-par.top)+'px',width:side+'px',height:side+'px',transform:'rotate('+Number(mask?mask.rotation||0:n.params.decalRotation||0)+'deg)'});
+  const width=side*Number((mask?mask.stretchX:n.params.decalStretchX)??100)/100,height=side*Number((mask?mask.stretchY:n.params.decalStretchY)??100)/100;
+  Object.assign(vandalBox.style,{left:(x-width/2-par.left)+'px',top:(y-height/2-par.top)+'px',width:width+'px',height:height+'px',transform:'rotate('+Number(mask?mask.rotation||0:n.params.decalRotation||0)+'deg)'});
   vandalBox._geo={n,mask,dw,dh,minDim:Math.min(dw,dh)};vandalOv.style.display='';
 }
 

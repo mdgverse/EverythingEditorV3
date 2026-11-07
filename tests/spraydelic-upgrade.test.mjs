@@ -128,3 +128,17 @@ assert(panelSource.includes('vandalLibrary(n,localGroup)'));
 assert(panelSource.includes('vandalLocalMaskUI(n,localGroup)'));
 assert(html.includes('white-space:normal;overflow-wrap:anywhere'));
 console.log('Vandal: biblioteca em Local Mask e abas adaptáveis OK');
+
+// Bundled textures and imported images are independent layers, with legacy
+// defaults preserving the old square appearance when stretch is absent.
+params.vandalMasks=[{id:'a',asset:'texture-001',x:20,y:30,scale:40,stretchX:175,stretchY:65,color:'#ff0000',opacity:100},
+  {id:'b',data:'data:image/png;base64,test',x:80,y:70,scale:20,color:'#00ff00',opacity:50}];
+node.runtime.vandalMaskTextures={a:{tex:'texture-a'},b:{tex:'texture-b'}};
+calls.length=0;runtime.run(node,[source]);
+assert.deepEqual(Array.from(calls[1].uniforms.uStretch),[1.75,.65]);
+assert.deepEqual(Array.from(calls[2].uniforms.uStretch),[1,1]);
+assert(html.includes("mask.asset.slice(8)+'.png'"));
+assert(html.includes("body.insertBefore(layers,panel)"));
+assert(html.includes("n.params.vandalMasks.push(m);n.runtime.vandalSelectedMask=m.id"));
+assert(html.includes("'Stretch width'"));assert(html.includes("'Stretch height'"));assert(html.includes("'Rotate asset'"));
+console.log('Vandal: camadas de assets e esticamento independente compatíveis com projetos antigos OK');
