@@ -104,3 +104,27 @@ assert(html.includes('n.runtime.vandalDefault=entry'));
 assert(fs.readFileSync(new URL('../android/app/build.gradle',import.meta.url),'utf8').includes('from("${rootProject.projectDir}/../assets")'));
 assert(fs.readFileSync(new URL('../.github/workflows/deploy-pages.yml',import.meta.url),'utf8').includes('cp -R assets _site/assets'));
 console.log('Vandal: 200 máscaras locais e empacotamento Web/Android OK');
+
+// Loads can finish after a rapid selection change: stale loads must not block retry.
+const loaderStart=html.indexOf('function vandalDefaultTexture('),loaderEnd=html.indexOf('function vandalMaskThumbnail(',loaderStart);
+const images=[],dirty=[];let deleted=0;
+class FakeImage { constructor(){images.push(this);} }
+const target={id:8,params:{decalAsset:'texture-001'},runtime:{},ui:{}};
+const loader=vm.createContext({Image:FakeImage,nodes:new Map([[8,target]]),gl:{deleteTexture:()=>deleted++},
+  vandalMakeMaskTexture:()=>({}),markDirty:id=>dirty.push(id),requestRender:()=>{},setStatus:()=>{}});
+vm.runInContext(html.slice(loaderStart,loaderEnd)+'\nthis.load=vandalDefaultTexture;',loader);
+assert.equal(loader.load(target,'texture-001'),null);assert.equal(images[0].src,'assets/vandal/001.png');
+target.params.decalAsset='texture-002';images[0].onload();assert.equal(target.runtime.vandalDefault,null);
+target.params.decalAsset='texture-001';loader.load(target,'texture-001');images[1].onload();assert(target.runtime.vandalDefault.tex);assert.deepEqual(dirty,[8]);
+target.params.decalAsset='texture-002';loader.load(target,'texture-002');assert.equal(deleted,1);images[2].onerror();assert.equal(target.runtime.vandalDefault,null);
+assert(html.includes('function vandalLibrary('));assert(html.includes("p.key === 'decalAsset' && n.params.vandalMode === 'classic'"));
+console.log('Vandal: biblioteca visível e carregamento recuperável OK');
+
+// The bundled library belongs in Paint Effects / Local Mask, next to imports.
+const panelStart=html.indexOf('function vandalPanel('),panelEnd=html.indexOf('function addPanelResize(',panelStart);
+const panelSource=html.slice(panelStart,panelEnd);
+assert(panelSource.includes("const localGroup=group('Local Mask',true)"));
+assert(panelSource.includes('vandalLibrary(n,localGroup)'));
+assert(panelSource.includes('vandalLocalMaskUI(n,localGroup)'));
+assert(html.includes('white-space:normal;overflow-wrap:anywhere'));
+console.log('Vandal: biblioteca em Local Mask e abas adaptáveis OK');
