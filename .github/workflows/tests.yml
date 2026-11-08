@@ -41,6 +41,8 @@ jobs:
         run: node tests/spray-local-mask.test.mjs
       - name: Spraydelic (máscaras, paletas e controles)
         run: node tests/spraydelic-upgrade.test.mjs
+      - name: HalfMode (limites tonais e compatibilidade)
+        run: node tests/halfmode-bands.test.mjs
       - name: HalfMode (painel compacto e inks)
         run: node tests/halfmode-panel.test.mjs
       - name: Topog
