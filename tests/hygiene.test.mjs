@@ -77,7 +77,8 @@ ok(!existe('reference'), 'pasta reference/ apagada (1,3 MB que ia para o site)')
 ok(!existe('.github/workflows/fetch-reference.yml'), 'workflow que baixava a referência apagado');
 ok(existe('index.html') && existe('tests') && existe('android'), 'o que é usado continua no lugar');
 ok(existe('.nojekyll'), '.nojekyll preservado (o Pages precisa dele)');
-ok(fs.readFileSync(new URL('../README.md', import.meta.url), 'utf8').trim() === '', 'README continua vazio');
+const readme = fs.readFileSync(new URL('../README.md', import.meta.url), 'utf8');
+ok(readme.includes('https://mdgverse.github.io/EverythingEditorV3/') && readme.includes('https://github.com/mdgverse/EverythingEditorV3/releases/download/apk-latest/EverythingEditor.apk'), 'README destaca o site e o APK');
 
 /* ---------- todo teste do projeto roda no CI, e nada de workflow sobrando ---------- */
 {
