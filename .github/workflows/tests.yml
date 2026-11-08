@@ -41,6 +41,8 @@ jobs:
         run: node tests/spray-local-mask.test.mjs
       - name: Spraydelic (máscaras, paletas e controles)
         run: node tests/spraydelic-upgrade.test.mjs
+      - name: HalfMode (painel compacto e inks)
+        run: node tests/halfmode-panel.test.mjs
       - name: Topog
         run: node tests/topog.test.mjs
       - name: Glass fracture (mapa, deslocamento, freeze e blur)
