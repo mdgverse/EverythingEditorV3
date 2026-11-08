@@ -1,14 +1,13 @@
 {
   "version": 1,
-  "updated": "2026-11-08T06:08:19.715Z",
+  "updated": "2026-11-08T13:30:02.735Z",
   "tags": [
     "everythingeditor",
     "EverythingEditor"
   ],
   "total": 4,
   "notices": [
-    "instagram: sem IG_TOKEN/IG_USER_ID",
-    "tumblr everythingeditor: 429 Too Many Requests — https://api.tumblr.com/v2/tagged"
+    "instagram: sem IG_TOKEN/IG_USER_ID"
   ],
   "items": [
     {
