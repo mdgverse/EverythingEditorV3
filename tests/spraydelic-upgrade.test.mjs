@@ -142,3 +142,8 @@ assert(html.includes("body.insertBefore(layers,panel)"));
 assert(html.includes("n.params.vandalMasks.push(m);n.runtime.vandalSelectedMask=m.id"));
 assert(html.includes("'Stretch width'"));assert(html.includes("'Stretch height'"));assert(html.includes("'Rotate asset'"));
 console.log('Vandal: camadas de assets e esticamento independente compatíveis com projetos antigos OK');
+
+// O painel tem display inline, portanto a regra comum de recolhimento não o
+// escondia. A exceção do sheet móvel mantém os controles acessíveis no celular.
+assert(html.includes('.node.collapsed:not(.in-sheet) .nbody>.vandal-panel{display:none!important}'));
+console.log('Vandal: recolhimento esconde o painel sem afetar o sheet móvel OK');
