@@ -36,7 +36,7 @@
 .grp-layer{position:absolute;left:0;top:0;width:0;height:0;pointer-events:none}.grp{position:absolute;box-sizing:border-box;border:1.5px solid var(--text-dim);border-radius:10px;pointer-events:none}.grp.sel{box-shadow:0 0 0 1px var(--sel)}.grp.drop{box-shadow:0 0 0 2px #fff}.grp-eye, .grp-fold{flex:none}.grp-head{position:absolute;left:-1.5px;right:-1.5px;top:-1.5px;height:26px;display:flex;align-items:center;gap:8px;padding:0 9px;border-radius:9px 9px 0 0;color:var(--edge);font-size:12px;font-weight:700;pointer-events:auto;cursor:move;user-select:none;-webkit-user-select:none;white-space:nowrap;overflow:hidden}.grp-t{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis}.grp-n{font-weight:500;font-size:11px;opacity:.7}.grp-head input{flex:1;min-width:0;font:inherit;font-size:12px;padding:1px 4px;border-radius:4px;border:1px solid var(--outline);background:#fff;color:var(--edge);cursor:text}.grp-menu{width:240px}.grp-k{float:right;opacity:.6;font-size:11px;margin-left:12px}.grp-sep{height:1px;background:#4a4a52;margin:4px 6px}.grp-lbl{font-size:11px;opacity:.7;padding:4px 9px 0}.grp-sw{display:flex;gap:4px;padding:4px 9px 6px}.grp-sw button{width:20px;height:20px;border-radius:50%;border:2px solid #222;padding:0;cursor:pointer}.grp-sw button:hover{outline:2px solid #fff}.add-item:disabled, .add-item:disabled:hover{opacity:.4;cursor:default;background:none;color:var(--text)}/* ---------- Timeline (animation) ---------- */
 .app{grid-template-rows:34px auto minmax(0,1fr) auto}/* explicit position: without the project bar, auto-positioning put the timeline in the 1fr track */
 .app>.main{grid-row:3}.app>#tlPanel, .app>#tlShow{grid-row:4}.proj-tabs{display:flex;gap:4px;align-items:flex-end;background:var(--panel3);border-bottom:1px solid var(--outline);padding:4px 8px 0;overflow-x:auto;overflow-y:hidden;scrollbar-width:thin}.ptab{display:flex;align-items:center;gap:7px;flex:none;max-width:230px;padding:5px 6px 5px 11px;border:1px solid var(--outline);border-bottom:none;border-radius:8px 8px 0 0;background:transparent;color:var(--text);font:inherit;font-size:12px;cursor:pointer;opacity:.72}.ptab:hover{opacity:1}.ptab.on{background:var(--panel);opacity:1;font-weight:600;box-shadow:inset 0 2px 0 var(--acc,#4da3ff)}.ptab-nm{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.ptab-x{flex:none;width:20px;height:20px;border:none;border-radius:50%;background:transparent;color:inherit;font-size:13px;line-height:20px;text-align:center;cursor:pointer;padding:0}.ptab-x:hover{background:rgba(127,127,127,.28)}.timeline{position:relative;display:flex;flex-direction:column;height:var(--tl-h,208px);background:var(--panel3);border-top:1px solid var(--outline);min-height:0;min-width:0;overflow:hidden}.timeline.folded{height:auto}.timeline.hidden{display:none}.tlShow{flex:none;width:100%;height:24px;border:0;border-top:1px solid var(--outline);background:var(--bar);color:inherit;font:600 12px system-ui,sans-serif;cursor:pointer;padding:0}.tlShow:hover{background:#2c3e5a}.tlShow[hidden]{display:none}body.mobile .tlShow{height:32px;font-size:13px}.timeline.folded .tlBody, .timeline.folded .tlHint{display:none}.tlResize{height:6px;flex:none;cursor:row-resize;background:var(--dock);position:relative;touch-action:none}.tlResize::after{content:'';position:absolute;left:50%;top:2px;width:46px;height:2px;transform:translateX(-50%);background:var(--line);border-radius:2px}.tlResize:hover, .tlResize.drag{background:#2c3e5a}.tlBar{display:flex;align-items:center;gap:3px;height:30px;padding:0 6px;background:var(--bar);border-bottom:1px solid var(--outline);flex:none;min-width:0;overflow:hidden}.tlBrand{font-weight:700;color:var(--brand);margin:0 6px 0 2px;white-space:nowrap;font-size:11.5px}.tlFld{flex:none;display:inline-flex;align-items:center;gap:3px;font-size:11px;color:var(--text-muted);white-space:nowrap}.tlFld input{width:50px;height:20px;background:var(--field);border:1px solid var(--line);border-radius:3px;color:var(--text-strong);padding:0 3px;font-size:11px}.tlFld select{height:20px;background:var(--field);border:1px solid var(--line);border-radius:3px;color:var(--text-strong);font-size:11px;padding:0 2px}.tlChk{flex:none;display:inline-flex;align-items:center;gap:3px;font-size:11px;color:var(--text-muted);white-space:nowrap}.tlInfo{flex:1 1 40px;min-width:0;text-align:right;padding-right:6px;font-size:11px;color:var(--text-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.tbtn.on{background:var(--sel);color:#000;border-color:var(--sel)}.tlBody{position:relative;flex:1;min-height:0;min-width:0;overflow:hidden}.tlBody canvas{position:absolute;left:0;top:0;display:block;touch-action:none}.tlEmpty{position:absolute;left:0;right:0;top:32px;text-align:center;color:var(--text-dim);font-size:12px;pointer-events:none}.tlEmpty[hidden]{display:none}.tlHint{flex:none;min-width:0;font-size:10.5px;color:var(--text-dim);padding:2px 8px 3px;border-top:1px solid var(--line);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.tlMenu{position:fixed;z-index:9500;min-width:160px;max-width:320px;background:var(--card);border:1px solid var(--line3);border-radius:5px;padding:3px;box-shadow:0 8px 24px rgba(0,0,0,.55)}.tlMenu[hidden]{display:none}.tlitem{padding:4px 8px;font-size:11.5px;color:var(--text);cursor:pointer;border-radius:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.tlitem:hover{background:var(--accent);color:var(--on-accent)}.tlitem.off{opacity:.45;cursor:default}.tlsep{height:1px;background:var(--line);margin:3px 2px}/* key button (◆) next to the sliders and transform rows */
-.keybtn{flex:none;width:16px;height:17px;line-height:15px;padding:0;font-size:10px;text-align:center;background:transparent;border:1px solid transparent;border-radius:3px;color:var(--sel);opacity:.3;cursor:pointer}.keybtn:hover{opacity:.85;background:var(--hover)}.keybtn.some{opacity:.75;border-color:var(--sel)}.keybtn.at{opacity:1;background:var(--sel);color:#000;border-color:var(--sel)}.ctrlrow{display:flex;align-items:center;gap:2px}.hmv-ink{display:flex;flex-direction:column;gap:2px;border-top:1px solid var(--line);margin-top:5px;padding-top:4px}.hmv-ink.off{opacity:.68}.dsdock{display:flex;flex-wrap:wrap;gap:5px;margin:6px 2px 2px}.dsdock>.prow, .dsdock>.ctrlrow{flex:1 1 80px;min-width:76px}.dsdock .prow{flex-direction:column;align-items:stretch;gap:2px;min-height:0}.dsdock .plbl{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:9.5px}.dsdock .psel{width:100%}.dsdock .ctrl .txt{font-size:9.5px}.dssec{flex:1 0 100%;font-size:9px;letter-spacing:.12em;color:var(--accent);text-transform:uppercase;margin-top:3px}.dshead{display:flex;gap:5px;flex:1 0 100%;align-items:flex-start}.dshead>.prow{flex:1 1 auto;min-width:0}.hm-resize{position:absolute;right:1px;bottom:1px;width:26px;height:26px;cursor:nwse-resize;touch-action:none;z-index:3;display:flex;align-items:center;justify-content:center;font-size:15px;color:rgba(255,255,255,.8);text-shadow:0 1px 2px rgba(0,0,0,.65);user-select:none;-webkit-user-select:none}.hm-resize:hover{color:#fff}.node.in-sheet .hm-resize{display:none}.ctrlrow .ctrl{flex:1;min-width:0}/* Animation section inside the nodes */
+.keybtn{flex:none;width:16px;height:17px;line-height:15px;padding:0;font-size:10px;text-align:center;background:transparent;border:1px solid transparent;border-radius:3px;color:var(--sel);opacity:.3;cursor:pointer}.keybtn:hover{opacity:.85;background:var(--hover)}.keybtn.some{opacity:.75;border-color:var(--sel)}.keybtn.at{opacity:1;background:var(--sel);color:#000;border-color:var(--sel)}.ctrlrow{display:flex;align-items:center;gap:2px}.dsdock{display:flex;flex-wrap:wrap;gap:5px;margin:6px 2px 2px}.dsdock>.prow, .dsdock>.ctrlrow{flex:1 1 80px;min-width:76px}.dsdock .prow{flex-direction:column;align-items:stretch;gap:2px;min-height:0}.dsdock .plbl{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:9.5px}.dsdock .psel{width:100%}.dsdock .ctrl .txt{font-size:9.5px}.dssec{flex:1 0 100%;font-size:9px;letter-spacing:.12em;color:var(--accent);text-transform:uppercase;margin-top:3px}.dshead{display:flex;gap:5px;flex:1 0 100%;align-items:flex-start}.dshead>.prow{flex:1 1 auto;min-width:0}.hm-resize{position:absolute;right:1px;bottom:1px;width:26px;height:26px;cursor:nwse-resize;touch-action:none;z-index:3;display:flex;align-items:center;justify-content:center;font-size:15px;color:rgba(255,255,255,.8);text-shadow:0 1px 2px rgba(0,0,0,.65);user-select:none;-webkit-user-select:none}.hm-resize:hover{color:#fff}.node.in-sheet .hm-resize{display:none}.ctrlrow .ctrl{flex:1;min-width:0}/* Animation section inside the nodes */
 .animbox{margin-top:2px;border-top:1px solid var(--line);padding-top:3px}.animhead{display:flex;align-items:center;gap:4px;cursor:pointer;color:var(--text-muted);font-size:11px;padding:1px 1px;border-radius:3px}.animhead:hover{color:var(--text-strong);background:var(--hover)}.animtri{font-size:9px;color:var(--brand)}.animttl{flex:1}.animdot{font-size:9px;opacity:.22}.animdot.keyed{opacity:.75}.animdot.on{opacity:1;color:var(--sel)}.animb{display:none;flex-direction:column;gap:3px;margin-top:3px}.animbox.open .animb{display:flex}.animgrp{display:flex;flex-direction:column;gap:2px}.animgrphead{display:flex;align-items:center;gap:4px}.animgrplab{flex:1;font-size:10px;color:var(--text-dim)}.animfields{display:flex;align-items:center;gap:3px}.anumwrap{display:flex;align-items:center;gap:2px;flex:1;min-width:0}.anaxis{font-size:9.5px;color:var(--text-dim)}.anum{position:relative;flex:1;min-width:0;height:16px;background:var(--panel2);border:1px solid var(--view);border-radius:3px;cursor:ew-resize;overflow:hidden}.anum:hover{border-color:var(--line3)}.anum.keyed{border-color:var(--sel)}.anum.atkey{background:var(--sel)}.anum.atkey .anumedit{color:var(--edge)}.anumedit{position:absolute;inset:0;width:100%;background:transparent;border:0;outline:none;color:var(--text-strong);font:10.5px "Segoe UI",Inter,system-ui,sans-serif;text-align:center;padding:0;cursor:ew-resize}.anumedit:focus{cursor:text;background:var(--panel3)}/* diálogo: renderizar animação */
 .tldlgback{position:fixed;inset:0;background:rgba(0,0,0,.55);display:flex;align-items:center;justify-content:center;z-index:9600;padding:12px}.tldlg{width:min(470px,100%);background:var(--panel3);border:1px solid var(--accent);border-radius:8px;padding:14px;box-shadow:0 10px 40px rgba(0,0,0,.6);max-height:calc(100vh - 24px);overflow:auto}.tldlgt{font-size:14px;font-weight:600;color:var(--text-strong);margin-bottom:8px}.tldlgrow{display:flex;align-items:center;gap:8px;margin:6px 0}.tldlglab{flex:0 0 118px;font-size:11.5px;color:var(--text-muted)}.tldlgin{flex:1;min-width:0;height:24px;background:var(--field);border:1px solid var(--line);border-radius:4px;color:var(--text-strong);padding:0 5px;font-size:12px}.tldlgin.num{max-width:96px;flex:0 0 96px}.tldlghint{font-size:10.5px;color:var(--text-dim)}.tldlgtarget{flex:1;min-width:0;font-size:12px;color:var(--text-strong);font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.tldlgsz{display:block;font-size:11px;font-weight:600;color:var(--text-muted);white-space:nowrap}#tlRenderTarget{white-space:normal;text-align:right;line-height:1.3}.tldlgnote{font-size:11px;color:var(--text-dim);margin:8px 0;line-height:1.4}.tlprogwrap{height:8px;background:var(--field);border-radius:4px;overflow:hidden;margin:6px 0}.tlprog{height:100%;width:0;background:var(--accent);transition:width .1s linear}.tldlgmsg{font-size:11.5px;color:var(--text-muted);min-height:16px}.tldlgbtns{display:flex;justify-content:flex-end;gap:8px;margin-top:10px}.tldlgbtn{background:var(--btn2);color:var(--text-strong);border:1px solid var(--btn);border-radius:4px;padding:6px 12px;font-size:12px;cursor:pointer}.tldlgbtn:hover{background:var(--line3)}.tldlgbtn.primary{background:var(--accent);border-color:var(--accent);color:var(--on-accent)}.tldlgbtn.primary:hover{background:var(--accent-hover)}.tldlgbtn:disabled{opacity:.5;cursor:default}
 
@@ -437,7 +437,7 @@ html, body{overscroll-behavior:none;-webkit-tap-highlight-color:transparent}/* 1
 
 /* Versão do editor — o arquivo VERSION na raiz é a fonte da verdade
    (o build do APK usa o mesmo número no versionName e falha se divergir). */
-const APP_VERSION = '3.17.2';
+const APP_VERSION = '3.18.0';
 /* sem a telinha, a versão aparece no tooltip da marca (e o título da aba segue curto) */
 {
   const marca = document.getElementById('brandBtn');
@@ -9710,20 +9710,13 @@ function panelVerticalLargura(n, body, key) {
   addPanelResize(n, nodeEl, key);
 }
 
-/* 2.9.64: HalfMode vertical in all builds. Each ink becomes a block;
-   ink switched off shows only On/Off and the other controls disappear,
-   so the node height follows the number of colours/inks chosen. */
+// Compact HalfMode panel: keep every original control and its listeners, but
+// group the settings and show only enabled inks in the palette and ink details.
 function halfModeAplicaVis(raiz, params) {
   if (!raiz || !raiz.querySelectorAll) return;
-  const p = params || {};
   for (let i = 1; i <= 4; i++) {
-    const on = p['useInk' + i] !== 'no';
-    const box = raiz.querySelector('.hmv-ink[data-ink="' + i + '"]');
-    if (box) box.classList.toggle('off', !on);
-    for (const base of ['ink', 'pat', 'angle', 'opacity', 'fade', 'offX', 'offY']) {
-      const el = raiz.querySelector('[data-pkey="' + base + i + '"]');
-      if (el) el.style.display = on ? '' : 'none';
-    }
+    const box = raiz.querySelector('.hm-ink-settings[data-ink="' + i + '"]');
+    if (box) box.style.display = params['useInk' + i] === 'no' ? 'none' : '';
   }
 }
 
@@ -9733,18 +9726,53 @@ function halfModePanelVertical(n, body) {
   if (nodeEl && !Number(n.params.hmW)) nodeEl.style.width = '300px';
   const byKey = {};
   for (const el of [...body.children]) if (el.dataset && el.dataset.pkey) byKey[el.dataset.pkey] = el;
-  for (let i = 1; i <= 4; i++) {
-    const first = byKey['useInk' + i];
-    if (!first) continue;
-    const box = E('div', 'hmv-ink');
-    box.dataset.ink = i;
-    body.insertBefore(box, first);
-    for (const base of ['useInk', 'ink', 'pat', 'angle', 'opacity', 'fade', 'offX', 'offY']) {
-      const el = byKey[base + i];
-      if (el) box.append(el);
-    }
+  const palette = E('div', 'hm-palette');
+  palette.style.cssText='background:#090909;color:#eee;border:1px solid #47443c;padding:7px;border-radius:5px;display:flex;flex-direction:column;gap:4px';
+  palette.addEventListener('pointerdown',e=>e.stopPropagation());
+  palette.addEventListener('click',e=>e.stopPropagation());
+  const title=E('div','', 'Ink colors');title.style.cssText='font-size:11px;color:#ddd';
+  const svg=document.createElementNS(SVGNS,'svg');svg.setAttribute('viewBox','0 0 320 180');svg.setAttribute('aria-label','Enabled ink colors');svg.style.cssText='width:100%;height:auto;display:block';
+  const message=E('div','hm-palette-message','Select an ink to edit its color.');message.style.cssText='font-size:10px;color:#bbb;text-align:center';
+  palette.append(title,svg,message);
+  for(let i=1;i<=4;i++)if(byKey['ink'+i])palette.append(byKey['ink'+i]);
+  const first=byKey.theme || Object.values(byKey)[0];if(first)body.insertBefore(palette,first);else body.append(palette);
+  const group=(label,cls='hm-group')=>{const d=document.createElement('details');d.className=cls;const head=E('summary','',label);head.style.cssText='cursor:pointer;padding:5px;color:var(--text-strong);font-size:11px';head.addEventListener('pointerdown',e=>e.stopPropagation());d.addEventListener('toggle',()=>{if(n.el?.isConnected)drawLinks();});d.append(head);body.append(d);return d;};
+  const add=(parent,keys)=>{for(const key of keys)if(byKey[key])parent.append(byKey[key]);};
+  const presets=group('Presets');add(presets,['theme','wadaCombo']);
+  const screen=group('Screen');add(screen,['quality','useOriginal','pattern','scale','distress','contrast','brightness','softness']);
+  const paper=group('Paper and Ink');add(paper,['background','tintMode','opaqueBottom','inkMultiply','inkFade','dust','plateDrift','angleSpread','rotate','autoSort','alphaMode']);
+  const levels=group('Levels and Curves');add(levels,['inBlack','inWhite','gamma','curveSh','curveMid','curveHi']);
+  const inks=group('Inks');
+  for(let i=1;i<=4;i++)if(byKey['useInk'+i])inks.append(byKey['useInk'+i]);
+  for(let i=1;i<=4;i++){
+    const box=document.createElement('details');box.className='hm-ink-settings';box.dataset.ink=i;
+    const head=E('summary','','Ink '+i+' settings');head.style.cssText='cursor:pointer;padding:5px;font-size:11px;color:var(--text-strong)';head.addEventListener('pointerdown',e=>e.stopPropagation());box.addEventListener('toggle',()=>{if(n.el?.isConnected)drawLinks();});box.append(head);
+    add(box,['pat'+i,'angle'+i,'opacity'+i,'fade'+i,'offX'+i,'offY'+i]);inks.append(box);
   }
-  halfModeAplicaVis(body, n.params);
+  // Keep future controls reachable without requiring a change here.
+  const remaining=Object.values(byKey).filter(el=>el.parentElement===body);
+  if(remaining.length){const extra=group('More');for(const el of remaining)extra.append(el);}
+  let active=1;
+  function redraw(){
+    const enabled=[1,2,3,4].filter(i=>n.params['useInk'+i]!=='no');
+    if(!enabled.includes(active))active=enabled[0]||0;
+    halfModeAplicaVis(body,n.params);
+    svg.replaceChildren();
+    message.textContent=enabled.length?'Select an ink to edit its color.':'No inks enabled. Open Inks to enable one.';
+    for(let i=1;i<=4;i++)if(byKey['ink'+i])byKey['ink'+i].style.display=(i===active?'':'none');
+    const pt=(r,t)=>[160+r*Math.cos(Math.PI-t*Math.PI),160-r*Math.sin(Math.PI-t*Math.PI)];
+    const path=(a,b)=>{const p=pt(145,a),q=pt(145,b),r=pt(54,b),s=pt(54,a);return `M${p} A145 145 0 0 1 ${q} L${r} A54 54 0 0 0 ${s} Z`;};
+    enabled.forEach((ink,index)=>{
+      const slice=document.createElementNS(SVGNS,'path');slice.setAttribute('d',path(index/enabled.length,(index+1)/enabled.length));slice.setAttribute('fill',n.params['ink'+ink]);slice.setAttribute('stroke',ink===active?'#fff':'#161616');slice.setAttribute('stroke-width',ink===active?'3':'1');slice.setAttribute('role','button');slice.setAttribute('tabindex','0');slice.setAttribute('aria-label','Select Ink '+ink+' color');slice.setAttribute('aria-pressed',String(ink===active));slice.style.cursor='pointer';
+      const select=()=>{active=ink;redraw();};slice.addEventListener('click',select);slice.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();select();}});svg.append(slice);
+    });
+  }
+  for(let i=1;i<=4;i++){
+    for(const key of ['ink'+i,'useInk'+i]){const previous=n.ui[key];n.ui[key]=()=>{if(previous)previous();redraw();};}
+    const color=byKey['ink'+i];if(color)color.querySelectorAll('input').forEach(el=>{el.addEventListener('input',redraw);el.addEventListener('change',redraw);});
+    const toggle=byKey['useInk'+i];if(toggle)toggle.querySelector('select')?.addEventListener('change',()=>{redraw();if(n.el?.isConnected)drawLinks();});
+  }
+  redraw();
 }
 
 // ===== v6: Dither Labs (marks per cell), ported from v1.6 =====
