@@ -1,13 +1,14 @@
 {
   "version": 1,
-  "updated": "2026-11-04T10:23:00.694Z",
+  "updated": "2026-11-08T06:08:19.715Z",
   "tags": [
     "everythingeditor",
     "EverythingEditor"
   ],
   "total": 4,
   "notices": [
-    "instagram: sem IG_TOKEN/IG_USER_ID"
+    "instagram: sem IG_TOKEN/IG_USER_ID",
+    "tumblr everythingeditor: 429 Too Many Requests — https://api.tumblr.com/v2/tagged"
   ],
   "items": [
     {
@@ -58,5 +59,6 @@
       "tag": "everythingeditor",
       "ts": "1792282661"
     }
-  ]
+  ],
+  "mudou": true
 }
