@@ -14,6 +14,26 @@ const base={asciiMode:'luma',cell:8,asciiCustom:' .#',asciiColor:'gradient',asci
 const first=context.render(src,16,8,base);const cells=first.calls.filter(x=>x[0]==='text');assert.equal(cells.length,2);assert.notEqual(cells[0][1],cells[1][1]);assert.notEqual(cells[0][2],cells[1][2]);
 const edge=context.render(src,16,8,{...base,asciiMode:'edge'});assert.equal(edge.calls.filter(x=>x[0]==='text').length,2);
 const mixed=context.render(src,16,8,{...base,asciiMix:0});assert(mixed.calls.some(x=>x[0]==='image'));
+// The node composes glyphs over the source in Keep original mode, retaining
+// transparent source pixels and partially transparent edges via source-atop.
+const nodeStart=html.indexOf('  ascii: (n, [a]) => {',html.indexOf('const RUN = {'));
+const nodeEnd=html.indexOf('  chromaticSplit:',nodeStart);
+assert(nodeStart>0 && nodeEnd>nodeStart);
+let drawnParams;
+const nodeContext=vm.createContext({Math,Number,ptRes:a=>a,fx7AsciiGpu:()=>null,
+  fx7Canvas:(a,fn)=>fn({getContext:()=>({getImageData:()=>({data:src})})},16,8),
+  fx7Ascii:(pixels,w,h,p)=>{drawnParams=p;return {glyphs:true};},fx7NewCanvas:canvas});
+vm.runInContext('this.run=({'+html.slice(nodeStart,nodeEnd)+'}).ascii;',nodeContext);
+const originalResult=nodeContext.run({params:{asciiMode:'luma',asciiMix:50,asciiBackground:'original'}},[{}]);
+assert.equal(drawnParams.asciiMix,100);
+assert.equal(originalResult.calls.filter(x=>x[0]==='image').length,2);
+assert.equal(originalResult.getContext('2d').globalCompositeOperation,'source-atop');
+assert.equal(originalResult.getContext('2d').globalAlpha,.5);
+const transparentResult=nodeContext.run({params:{asciiMode:'luma',asciiMix:50,asciiBackground:'transparent'}},[{}]);
+assert.equal(transparentResult.glyphs,true);assert.equal(drawnParams.asciiMix,50);
+assert.match(html,/type === 'ascii' && opts.params && !\('asciiBackground' in opts.params\)/);
+assert.match(html,/uKeepOriginal: p\.asciiBackground === 'original' \? 1 : 0/);
+assert.match(html,/mix\(src\.rgb,rgb,mask\*avg\.a\*uMix\),src\.a/);
 assert.match(html,/if \(p\.asciiMode && p\.asciiMode !== 'legacy'\) return fx7AsciiEnhanced/);
 assert.match(html,/frameChanged && n\.type === 'ascii'/);
 assert.match(html,/SHADERS\.asciiFast\s*=/);
