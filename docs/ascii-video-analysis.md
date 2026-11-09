@@ -28,13 +28,13 @@ The SVGs under `assets/ascii-shapes/` are small **original geometric approximati
 | `decorations/pixel-cross.svg` | decorations | enlarged ASCII marks ~0:08 and 7:45 | geometric cross, not a font glyph |
 | `decorations/pixel-diagonal.svg` | decorations | enlarged diagonal marks ~0:08 and 7:45 | simplified stepped stroke |
 
-No shape animation can be asserted from the sampled stills. The future inventory must distinguish graphic design elements from incidental interface controls and identify timestamps, relative proportions, animation and confidence. Do not describe these original approximations as exact source vectors.
+The sampled stills show whole-composition zooms and diagram transitions; they do not establish independent animation for a particular SVG shape. The future inventory must distinguish graphic design elements from incidental interface controls and identify timestamps, relative proportions, animation and confidence. Do not describe these original approximations as exact source vectors.
 
 ## Work in progress
 
 The optional enhanced CPU renderer supports luma/edge output, custom/preset glyphs, source/mono/duotone/five-colour mapping, smooth/stepped/overlap approximations, gamma, thresholds, dimensions, variable density, timeline-based scramble, glow, scanlines, chromatic offset, noise and original mix. `legacy` continues to call the original renderer. The video does not establish the exact mapping for these new options.
 
-Outstanding before release: complete the video examination/inventory to the requested scope, validate visual fidelity and exact character behaviour where actually observable, validate the optional accelerated rendering path on hardware, test mobile interactions and project round trips more thoroughly, verify SVG import in the APK, and complete the requested documentation/presets. No new version or APK should be published until the work is complete.
+Remaining limitations: the video examination and shape inventory are not exhaustive; exact character behaviour and the source plugin’s algorithms are not known. The GPU path was exercised in software-rendered Chromium but not validated on physical graphics hardware. Mobile browser interactions and project round trips were checked; importing in a real Android WebView/APK has not been verified. Versions 3.20.0 and 3.20.1 were published for user validation before the analysis was complete.
 
 ## Additional automated scene pass
 
@@ -57,7 +57,7 @@ Additional standalone approximations: `frames/dotted-corners.svg` and `frames/pa
 
 ## Approximate shape inventory and motion
 
-All proportions are normalized to each SVG's own viewBox. The positions below describe the reference composition, not a fixed requirement for the editor. All assets have transparent backgrounds except their marks; white strokes/fills can be recolored externally. The timeline references are observations from the sampled images, not a claim that every frame has been manually reviewed.
+All proportions are normalized to each SVG's own viewBox. The positions below describe the reference composition, not a fixed requirement for the editor. Most assets have transparent backgrounds except their marks; inverse-dots has an opaque white background and the coloured motifs use fixed fills. White strokes/fills can be recolored externally. The timeline references are observations from the sampled images, not a claim that every frame has been manually reviewed.
 
 | Asset | Observed relative location | Approximate proportion and style | Motion evidence |
 | --- | --- | --- | --- |
@@ -99,3 +99,15 @@ A separate FFmpeg `scale=64:36,showinfo` pass decoded all 19,984 video frames fr
 - At 1:10, the dither sample is irregular rather than a perfect checkerboard. The existing checker and dots remain generic patterns, not exact copies.
 - At 2:17, an enlarged coloured glyph-like mosaic appears; `decorations/pixel-tonal-cell.svg` is a new simplified, independent reconstruction, without the background glow, noise or captions. At 2:18 multiple such blocks form a grid before the horse transition.
 - At 1:55–2:07, the gradient lookup table builds up from dark to light in rows while the image changes colour. Its screenshot colours are not proof of exact numerical plugin parameters.
+
+### Further visual review and additions
+
+The reference was reopened and sampled across its full duration at five-second intervals, alongside full-resolution stills at 0:08, 0:10, 0:14, 1:15, 1:17 and 3:00. This supplements, rather than replaces, the earlier one-second and transition samples.
+
+| Assets | Reference and observed motion | Reconstruction |
+| --- | --- | --- |
+| `glyphs/backslash.svg`, `glyphs/forward-slash.svg` | Stepped diagonals, ~0:10–0:14, among moving cuts and enlargements | White, transparent-background pixel steps in opposing directions. |
+| `decorations/pixel-color-cross.svg`, `pixel-color-stair.svg`, `pixel-color-bars.svg` | Red/orange, yellow, purple and blue composite glyphs, ~0:10–0:14 | Reusable geometric motifs, not extracted original paths or precise colour values. |
+| `patterns/sparse-dots.svg`, `medium-dots.svg`, `dense-dots.svg`, `inverse-dots.svg` | Density illustration ~1:15–1:17, showing five swatches and near/far comparisons | Four independent approximate patterns; spacing and counts are not asserted to match the reference. The inverse pattern has an opaque white background. |
+
+The frames show a progression of dot densities, rather than evidence that each individual dot moves. The introductory coloured glyph compositions change with edits/zoom, while the separate plugin demonstration changes settings and colours; those observations do not establish independently animated SVG paths. The 34 shapes are a practical geometric library, not a complete extraction of every image, letter, logo, UI element or video frame.
