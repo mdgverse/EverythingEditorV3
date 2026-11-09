@@ -31,6 +31,17 @@ assert.equal(originalResult.getContext('2d').globalCompositeOperation,'source-at
 assert.equal(originalResult.getContext('2d').globalAlpha,.5);
 const transparentResult=nodeContext.run({params:{asciiMode:'luma',asciiMix:50,asciiBackground:'transparent'}},[{}]);
 assert.equal(transparentResult.glyphs,true);assert.equal(drawnParams.asciiMix,50);
+const before=contexts.length;
+const solidResult=nodeContext.run({params:{asciiMode:'luma',asciiMix:50,asciiBackground:'solid',asciiBackgroundColor:'#123456'}},[{}]);
+const solidLayer=contexts[before+1];
+assert.equal(solidLayer.getContext('2d').fillStyle,'#123456');
+assert(solidLayer.calls.some(x=>x[0]==='rect'));
+assert.equal(solidResult.getContext('2d').globalCompositeOperation,'lighter');
+assert.equal(solidResult.calls.filter(x=>x[0]==='image').length,2);
+const solidFull=nodeContext.run({params:{asciiMode:'legacy',asciiBackground:'solid',asciiBackgroundColor:'#abcdef'}},[{}]);
+assert.equal(solidFull.calls.filter(x=>x[0]==='image').length,1);
+assert.match(html,/uSolidBackground: p\.asciiBackground === 'solid' \? 1 : 0/);
+assert.match(html,/uBackgroundColor: hexRGB\(p\.asciiBackgroundColor/);
 assert.match(html,/type === 'ascii' && opts.params && !\('asciiBackground' in opts.params\)/);
 assert.match(html,/uKeepOriginal: p\.asciiBackground === 'original' \? 1 : 0/);
 assert.match(html,/mix\(src\.rgb,rgb,mask\*avg\.a\*uMix\),src\.a/);
