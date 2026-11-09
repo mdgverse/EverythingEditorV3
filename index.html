@@ -437,7 +437,7 @@ html, body{overscroll-behavior:none;-webkit-tap-highlight-color:transparent}/* 1
 
 /* Versão do editor — o arquivo VERSION na raiz é a fonte da verdade
    (o build do APK usa o mesmo número no versionName e falha se divergir). */
-const APP_VERSION = '3.24.0';
+const APP_VERSION = '3.24.1';
 /* sem a telinha, a versão aparece no tooltip da marca (e o título da aba segue curto) */
 {
   const marca = document.getElementById('brandBtn');
@@ -27596,26 +27596,73 @@ const TEXT_BASE_FONTS = [['sans-serif', 'Sans-serif (default)'], ['serif', 'Seri
   ['Arial', 'Arial'], ['Georgia', 'Georgia'], ['Times New Roman', 'Times New Roman'], ['Verdana', 'Verdana'],
   ['Trebuchet MS', 'Trebuchet MS'], ['Impact', 'Impact'], ['Courier New', 'Courier New']];
 const TEXT_GENERIC = ['sans-serif', 'serif', 'monospace', 'cursive', 'fantasy', 'system-ui'];
-const TEXT_FONT_STATE = new Map();   // uploaded-file family -> 'loading' | 'ok' | 'fail'
+const TEXT_FONT_STATE = new Map();   // font source + family -> 'loading' | 'ok' | 'fail'
 let localFontNames = null;           // fontes instaladas, preenchidas sob demanda (Local Font Access API)
+const LOCAL_FONT_DATA = new Map();   // family -> FontData[] returned by queryLocalFonts()
+let localFontListPromise = null;
 function textFamilyCss(fam) {
   const f = String(fam || 'sans-serif');
   if (TEXT_GENERIC.includes(f)) return f;
   return '"' + f.replace(/["\\]/g, '') + '", sans-serif';
 }
-// font uploaded as a file: registers it in the document and redraws the text nodes that use it
+function textFontFaceFamily(fam) { return String(fam || 'sans-serif'); }   // FontFace wants the raw family, not quoted CSS
+function textLocalFaceDescriptors(face) {
+  const style = String(face?.style || '').toLowerCase();
+  let weight = 400;
+  if (/thin|hairline/.test(style)) weight = 100;
+  else if (/extra[ -]?light|ultra[ -]?light/.test(style)) weight = 200;
+  else if (/semi[ -]?bold|demi[ -]?bold/.test(style)) weight = 600;
+  else if (/extra[ -]?bold|ultra[ -]?bold/.test(style)) weight = 800;
+  else if (/black|heavy/.test(style)) weight = 900;
+  else if (/bold/.test(style)) weight = 700;
+  else if (/medium/.test(style)) weight = 500;
+  else if (/light/.test(style)) weight = 300;
+  return { style: /italic/.test(style) ? 'italic' : (/oblique/.test(style) ? 'oblique' : 'normal'), weight: String(weight) };
+}
+function textRedrawFontUsers(fam) {
+  for (const m of nodes.values()) if (m.type === 'text' && m.params.font === fam) markDirty(m.id);
+  requestRender();
+}
+// Registers an uploaded file or the FontData blobs behind an installed family.
+// Listing names alone is not enough in Chromium/WebView: Canvas can keep using
+// the sans-serif fallback until the selected faces are in document.fonts.
 function textEnsureFont(n) {
   const fam = n.params.font, data = n.params.fontFile;
-  if (!data || !fam || TEXT_FONT_STATE.has(fam)) return;
-  TEXT_FONT_STATE.set(fam, 'loading');
-  let ff;
-  try { ff = new FontFace(fam, `url(${data})`); } catch (e) { TEXT_FONT_STATE.set(fam, 'fail'); return; }
-  ff.load().then(f => {
-    document.fonts.add(f);
-    TEXT_FONT_STATE.set(fam, 'ok');
-    for (const m of nodes.values()) if (m.type === 'text' && m.params.font === fam) markDirty(m.id);
-    requestRender();
-  }).catch(() => { TEXT_FONT_STATE.set(fam, 'fail'); setStatus('Could not load this font.', true); });
+  if (!fam) return;
+  if (data) {
+    if (TEXT_FONT_STATE.has(fam)) return;
+    TEXT_FONT_STATE.set(fam, 'loading');
+    let ff;
+    try { ff = new FontFace(fam, `url(${data})`); } catch (e) { TEXT_FONT_STATE.set(fam, 'fail'); return; }
+    ff.load().then(f => {
+      document.fonts.add(f);
+      TEXT_FONT_STATE.set(fam, 'ok');
+      textRedrawFontUsers(fam);
+    }).catch(() => { TEXT_FONT_STATE.set(fam, 'fail'); setStatus('Could not load this font.', true); });
+    return;
+  }
+  const faces = LOCAL_FONT_DATA.get(fam);
+  if (!faces?.length) return;
+  const key = 'local:' + fam;
+  if (TEXT_FONT_STATE.has(key)) return;
+  TEXT_FONT_STATE.set(key, 'loading');
+  (async () => {
+    const seen = new Set(), loaded = [];
+    for (const face of faces) {
+      const id = face.postscriptName || face.fullName || face.style || loaded.length;
+      if (seen.has(id)) continue;
+      seen.add(id);
+      try {
+        const source = await (await face.blob()).arrayBuffer();
+        const ff = await new FontFace(textFontFaceFamily(fam), source, textLocalFaceDescriptors(face)).load();
+        document.fonts.add(ff);
+        loaded.push(ff);
+      } catch (e) { /* another face of the same family may still load */ }
+    }
+    if (!loaded.length) throw new Error('no local font face loaded');
+    TEXT_FONT_STATE.set(key, 'ok');
+    textRedrawFontUsers(fam);
+  })().catch(() => { TEXT_FONT_STATE.set(key, 'fail'); setStatus('Could not load the installed font. Try loading its font file instead.', true); });
 }
 function textLineSpecs(p, count) {
   const b = Array.isArray(p.blocks) ? p.blocks : [];
@@ -27841,10 +27888,21 @@ async function fontFromZip(buf) {
 // lists the installed fonts (Chrome/Edge ask for permission; other browsers have no API)
 async function textListLocalFonts() {
   if (!window.queryLocalFonts) throw new Error('unsupported');
-  const list = await window.queryLocalFonts();
-  localFontNames = [...new Set(list.map(f => f.family))].sort((x, y) => x.localeCompare(y));
-  if (!localFontNames.length) throw new Error('empty');   // without permission, the list arrives empty
-  return localFontNames.length;
+  if (!localFontListPromise) {
+    localFontListPromise = (async () => {
+      const list = await window.queryLocalFonts();
+      LOCAL_FONT_DATA.clear();
+      for (const face of list || []) {
+        if (!face?.family || typeof face.blob !== 'function') continue;
+        if (!LOCAL_FONT_DATA.has(face.family)) LOCAL_FONT_DATA.set(face.family, []);
+        LOCAL_FONT_DATA.get(face.family).push(face);
+      }
+      localFontNames = [...LOCAL_FONT_DATA.keys()].sort((x, y) => x.localeCompare(y));
+      if (!localFontNames.length) throw new Error('empty');   // without permission, the list arrives empty
+      return localFontNames.length;
+    })().catch(e => { localFontListPromise = null; throw e; });
+  }
+  return localFontListPromise;
 }
 function makeFont(n, p) {
   const row = E('div', 'prow');
@@ -27882,6 +27940,9 @@ function makeFont(n, p) {
   };
   const apply = (fam, data) => {
     n.params.font = fam; n.params.fontFile = data || '';
+    textEnsureFont(n);
+    if (!data && !TEXT_GENERIC.includes(fam) && !TEXT_BASE_FONTS.some(f => f[0] === fam) && !SESSION_FONTS.has(fam) && !LOCAL_FONT_DATA.has(fam) && window.queryLocalFonts)
+      textListLocalFonts().then(() => { textEnsureFont(n); fill(); }).catch(() => {});
     markDirty(n.id); requestRender(); commit(); fill();
   };
   const stop = e => e.stopPropagation();
@@ -27894,7 +27955,9 @@ function makeFont(n, p) {
     e.stopPropagation();
     try {
       const k = await textListLocalFonts();
-      fill(); setStatus(`${k} fontes instaladas encontradas.`);
+      fill(); textEnsureFont(n);
+      for (const m of nodes.values()) if (m.type === 'text' && m.ui?.font) m.ui.font();
+      setStatus(`${k} fontes instaladas encontradas.`);
     } catch (err) {
       setStatus('Could not list the fonts (permission denied or browser without support). Type the font name.', true);
     }
