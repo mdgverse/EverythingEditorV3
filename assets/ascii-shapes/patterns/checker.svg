@@ -1,0 +1,1 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><pattern id="checker" width="20" height="20" patternUnits="userSpaceOnUse"><path d="M0 0h10v10H0zM10 10h10v10H10z" fill="#fff"/></pattern></defs><path fill="url(#checker)" d="M0 0h100v100H0z"/></svg>
