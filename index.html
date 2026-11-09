@@ -437,7 +437,7 @@ html, body{overscroll-behavior:none;-webkit-tap-highlight-color:transparent}/* 1
 
 /* Versão do editor — o arquivo VERSION na raiz é a fonte da verdade
    (o build do APK usa o mesmo número no versionName e falha se divergir). */
-const APP_VERSION = '3.23.0';
+const APP_VERSION = '3.24.0';
 /* sem a telinha, a versão aparece no tooltip da marca (e o título da aba segue curto) */
 {
   const marca = document.getElementById('brandBtn');
@@ -3210,7 +3210,7 @@ const NODE_TYPES = {
       COL('asciiBackgroundColor', 'Background color', '#000000'),
       ENUM('asciiMode', 'ASCII mode', [['legacy', 'Classic (compatible)'], ['luma', 'Luminance'], ['edge', 'Edges']], 'legacy'),
       ENUM('asciiEngine', 'Enhanced renderer', [['cpu', 'CPU'], ['gpu', 'GPU (CPU fallback for advanced effects)']], 'cpu'),
-      ENUM('asciiPreset', 'Enhanced preset', [['custom', 'Custom'], ['tonal', 'Tonal gradient'], ['circuit', 'Circuit edges'], ['retro', 'Retro display']], 'custom'),
+      ENUM('asciiPreset', 'Enhanced preset', [['custom', 'Custom'], ['tonal', 'Tonal gradient'], ['circuit', 'Circuit edges'], ['retro', 'Retro display'], ['heatmap', 'Tone map · Heat map'], ['ember', 'Tone map · Ember'], ['phosphor', 'Tone map · Phosphor'], ['arcade', 'Tone map · Arcade'], ['cyanotype', 'Tone map · Cyanotype'], ['vaporwave', 'Tone map · Vaporwave'], ['sunset', 'Tone map · Sunset'], ['paperback', 'Tone map · Paperback']], 'custom'),
       { type: 'text', key: 'asciiCustom', label: 'Custom characters (sparse to dense)', def: '' },
       ENUM('asciiColor', 'Enhanced color', [['source', 'Source'], ['mono', 'Monochrome'], ['duotone', 'Duotone'], ['gradient', 'Tonal gradient']], 'source'),
       COL('asciiDark', 'Shadow color', '#211049'), COL('asciiLow', 'Low tone color', '#592094'),
@@ -10940,10 +10940,19 @@ function asciiApplyPreset(n, preset) {
   if (preset === 'custom') return;
   const common = { asciiEngine: 'cpu', asciiMode: 'luma', asciiColor: 'gradient', asciiBands: 'smooth', asciiGamma: 100, asciiThreshold: 0, asciiMix: 100,
     asciiEdge: 100, asciiFill: 35, asciiDensity: 0, asciiScramble: 0, asciiGlow: 0, asciiScan: 0, asciiAberration: 0, asciiNoise: 0 };
+  const toneRanges = { asciiBand1Start: 0, asciiBand1End: 30, asciiBand2Start: 10, asciiBand2End: 50, asciiBand3Start: 30, asciiBand3End: 70, asciiBand4Start: 50, asciiBand4End: 90, asciiBand5Start: 70, asciiBand5End: 100, asciiBandFeather: 10 };
   const configs = {
     tonal: { asciiBands: 'overlap', asciiCustom: ' .~^/}i1YCmwQ@M', asciiDark: '#211049', asciiLow: '#592094', asciiMid: '#ed328d', asciiHigh: '#fa834a', asciiLight: '#ffdf68' },
     circuit: { asciiMode: 'edge', asciiCustom: ' .:+#@', asciiEdge: 180, asciiFill: 15, asciiBands: 'stepped', asciiDark: '#111c3f', asciiLow: '#4046c6', asciiMid: '#e243b7', asciiHigh: '#fa8448', asciiLight: '#fff5db' },
     retro: { asciiColor: 'mono', asciiCustom: ' .:;=+*#%@', asciiLight: '#80ff83', asciiGamma: 100, asciiGlow: 30, asciiScan: 55, asciiNoise: 8 },
+    heatmap: { ...toneRanges, asciiBands: 'ranges', asciiDark: '#160a3d', asciiLow: '#7b2ff7', asciiMid: '#f72f8f', asciiHigh: '#ff8a3d', asciiLight: '#fff3a3' },
+    ember: { ...toneRanges, asciiBands: 'ranges', asciiDark: '#180705', asciiLow: '#641503', asciiMid: '#bc3908', asciiHigh: '#f48c06', asciiLight: '#ffda6a' },
+    phosphor: { ...toneRanges, asciiBands: 'ranges', asciiDark: '#02120a', asciiLow: '#064e2b', asciiMid: '#0f9d58', asciiHigh: '#4ade80', asciiLight: '#d9ffe3' },
+    arcade: { ...toneRanges, asciiBands: 'ranges', asciiDark: '#160033', asciiLow: '#6d28d9', asciiMid: '#ec4899', asciiHigh: '#fb923c', asciiLight: '#fef08a' },
+    cyanotype: { ...toneRanges, asciiBands: 'ranges', asciiDark: '#03182b', asciiLow: '#075985', asciiMid: '#0284c7', asciiHigh: '#7dd3fc', asciiLight: '#f0f9ff' },
+    vaporwave: { ...toneRanges, asciiBands: 'ranges', asciiDark: '#1b0f3b', asciiLow: '#6d28a8', asciiMid: '#e75aa2', asciiHigh: '#ffab7a', asciiLight: '#a7f3ea' },
+    sunset: { ...toneRanges, asciiBands: 'ranges', asciiDark: '#2b0a3d', asciiLow: '#8b1e5a', asciiMid: '#e84e6d', asciiHigh: '#ff9e57', asciiLight: '#ffe29a' },
+    paperback: { ...toneRanges, asciiBands: 'ranges', asciiDark: '#2b2118', asciiLow: '#74553a', asciiMid: '#b98a56', asciiHigh: '#e8d5ae', asciiLight: '#fff8e7' },
   };
   if (!configs[preset]) return;
   Object.assign(n.params, common, configs[preset]);
