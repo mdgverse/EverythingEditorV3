@@ -111,3 +111,11 @@ The reference was reopened and sampled across its full duration at five-second i
 | `patterns/sparse-dots.svg`, `medium-dots.svg`, `dense-dots.svg`, `inverse-dots.svg` | Density illustration ~1:15–1:17, showing five swatches and near/far comparisons | Four independent approximate patterns; spacing and counts are not asserted to match the reference. The inverse pattern has an opaque white background. |
 
 The frames show a progression of dot densities, rather than evidence that each individual dot moves. The introductory coloured glyph compositions change with edits/zoom, while the separate plugin demonstration changes settings and colours; those observations do not establish independently animated SVG paths. The 34 shapes are a practical geometric library, not a complete extraction of every image, letter, logo, UI element or video frame.
+
+## Adjustable tonal ranges (3.23)
+
+The reference frames at **6:45–7:10** and **7:45–7:50** show five coloured ranges with endpoints spanning different and overlapping portions of the tonal axis; at **7:50** the zoom exposes several coloured components within individual cells. The frame at **7:50** alone cannot establish the plug-in's per-plate blend equations.
+
+The editor therefore offers an **independent approximation**, not an exact port: choose **ASCII mode → Luminance** or **Edges**, **Enhanced colors → Tonal gradient**, and **Gradient bands → Adjustable ranges**. Expand **Adjustable tonal ranges** to set a start and end for each of the five colours and a shared feather. Each cell is measured once and each matching band draws a glyph; overlapping ranges layer multiple glyphs. The local position within the range picks a glyph from sparse to dense. Edge directions and scramble keep their own chosen mark. Equal endpoints disable a band; reversed endpoints are sorted for rendering. Feather fades inward from interior boundaries and does not fade the 0%/100% outer extremes.
+
+The range mode is CPU-rendered (the GPU option falls back automatically). Existing smooth, stepped, overlap and classic project settings remain unchanged. The mapping and layer blend are approximations; the underlying plugin is not available as source and its exact algorithm is not inferred from screenshots.

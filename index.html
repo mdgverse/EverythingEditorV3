@@ -437,7 +437,7 @@ html, body{overscroll-behavior:none;-webkit-tap-highlight-color:transparent}/* 1
 
 /* Versão do editor — o arquivo VERSION na raiz é a fonte da verdade
    (o build do APK usa o mesmo número no versionName e falha se divergir). */
-const APP_VERSION = '3.22.0';
+const APP_VERSION = '3.23.0';
 /* sem a telinha, a versão aparece no tooltip da marca (e o título da aba segue curto) */
 {
   const marca = document.getElementById('brandBtn');
@@ -3215,7 +3215,13 @@ const NODE_TYPES = {
       ENUM('asciiColor', 'Enhanced color', [['source', 'Source'], ['mono', 'Monochrome'], ['duotone', 'Duotone'], ['gradient', 'Tonal gradient']], 'source'),
       COL('asciiDark', 'Shadow color', '#211049'), COL('asciiLow', 'Low tone color', '#592094'),
       COL('asciiMid', 'Midtone color', '#ed328d'), COL('asciiHigh', 'High tone color', '#fa834a'), COL('asciiLight', 'Highlight color', '#ffdf68'),
-      ENUM('asciiBands', 'Gradient bands', [['smooth', 'Smooth'], ['stepped', 'Five bands'], ['overlap', 'Overlapping bands']], 'smooth'),
+      ENUM('asciiBands', 'Gradient bands', [['smooth', 'Smooth'], ['stepped', 'Five bands'], ['overlap', 'Overlapping bands'], ['ranges', 'Adjustable ranges']], 'smooth'),
+      NUM('asciiBand1Start', 'Shadows start (%)', 0, 100, 0), NUM('asciiBand1End', 'Shadows end (%)', 0, 100, 30),
+      NUM('asciiBand2Start', 'Low tones start (%)', 0, 100, 10), NUM('asciiBand2End', 'Low tones end (%)', 0, 100, 50),
+      NUM('asciiBand3Start', 'Midtones start (%)', 0, 100, 30), NUM('asciiBand3End', 'Midtones end (%)', 0, 100, 70),
+      NUM('asciiBand4Start', 'High tones start (%)', 0, 100, 50), NUM('asciiBand4End', 'High tones end (%)', 0, 100, 90),
+      NUM('asciiBand5Start', 'Highlights start (%)', 0, 100, 70), NUM('asciiBand5End', 'Highlights end (%)', 0, 100, 100),
+      NUM('asciiBandFeather', 'Range feather (%)', 0, 50, 10),
       NUM('asciiAspect', 'Cell aspect (%)', 30, 200, 100), NUM('asciiSize', 'Character size (%)', 25, 200, 100),
       NUM('asciiGamma', 'Gamma (%)', 25, 300, 100), NUM('asciiThreshold', 'Luminance threshold', 0, 255, 0),
       NUM('asciiColumns', 'Grid columns (0 = cell size)', 0, 500, 0),
@@ -10955,6 +10961,7 @@ function asciiPanel(n, body) {
   };
   group('Characters and grid', ['asciiCustom','asciiAspect','asciiSize','asciiColumns','asciiGamma','asciiThreshold','asciiEdge','asciiFill','asciiDensity']);
   group('Enhanced colors', ['asciiColor','asciiDark','asciiLow','asciiMid','asciiHigh','asciiLight','asciiBands']);
+  group('Adjustable tonal ranges', ['asciiBand1Start','asciiBand1End','asciiBand2Start','asciiBand2End','asciiBand3Start','asciiBand3End','asciiBand4Start','asciiBand4End','asciiBand5Start','asciiBand5End','asciiBandFeather']);
   group('Retro effects and mix', ['asciiGlow','asciiScan','asciiAberration','asciiNoise','asciiMix']);
   group('Animation', ['asciiScramble','asciiSeed']);
 }
@@ -10974,6 +10981,16 @@ function fx7AsciiEnhanced(src, W, H, p) {
   const parse = c => { const m = /^#([0-9a-f]{6})$/i.exec(c || ''); const n = m ? parseInt(m[1], 16) : 0; return [n >> 16, (n >> 8) & 255, n & 255]; };
   const dark = parse(p.asciiDark || '#211049'), low = parse(p.asciiLow || '#592094'), mid = parse(p.asciiMid || '#ed328d'), high = parse(p.asciiHigh || '#fa834a'), light = parse(p.asciiLight || '#ffdf68');
   const stops = [dark, low, mid, high, light];
+  // Adjustable ranges are opt-in; existing smooth, stepped and overlap projects
+  // retain their previous rendering and GPU behaviour.
+  const useRanges = p.asciiColor === 'gradient' && p.asciiBands === 'ranges';
+  const bandDefaults = [[0,30],[10,50],[30,70],[50,90],[70,100]];
+  const bands = useRanges ? bandDefaults.map(([lo,hi],i) => {
+    const a = clamp(Number(p['asciiBand'+(i+1)+'Start'] ?? lo),0,100)/100;
+    const b = clamp(Number(p['asciiBand'+(i+1)+'End'] ?? hi),0,100)/100;
+    return [Math.min(a,b),Math.max(a,b)];
+  }) : null;
+  const bandFeather = clamp(Number(p.asciiBandFeather ?? 10),0,50)/100;
   const blend = (a, b, t) => a.map((v, i) => Math.round(v + (b[i] - v) * t));
   const lum = (x, y) => { const i = (clamp(y, 0, H - 1) * W + clamp(x, 0, W - 1)) * 4; return fx5Luma255(src[i], src[i + 1], src[i + 2]) / 255; };
   const density = clamp(Number(p.asciiDensity ?? 0), 0, 100) / 100;
@@ -11017,7 +11034,20 @@ function fx7AsciiEnhanced(src, W, H, p) {
       const position = tone * 4, index = Math.min(3, Math.floor(position));
       rgb = p.asciiBands === 'stepped' ? stops[Math.min(4, Math.floor(tone * 5))] : blend(stops[index], stops[index + 1], position - index);
     }
-    if (p.asciiColor === 'gradient' && p.asciiBands === 'overlap') {
+    if (useRanges) {
+      for (let band = 0; band < 5; band++) {
+        const [lo,hi] = bands[band];
+        if (hi <= lo || tone < lo || tone > hi) continue;
+        const width = hi - lo, local = clamp((tone - lo) / width, 0, 1);
+        const fade = Math.min(bandFeather, width / 2);
+        const weight = fade > 0 ? Math.min(1, lo <= 0 ? 1 : (tone-lo)/fade, hi >= 1 ? 1 : (hi-tone)/fade) : 1;
+        const opacity = clamp(weight,0,1) * a / 255;
+        if (!opacity) continue;
+        const mark = (p.asciiMode === 'edge' && edge > .18) || scramble ? ch : (chars[Math.min(chars.length-1,Math.floor(local * chars.length))] || ' ');
+        ctx.fillStyle = `rgba(${stops[band].join(',')},${opacity})`;
+        ctx.fillText(mark, x + cellX / 2, y + cellY / 2);
+      }
+    } else if (p.asciiColor === 'gradient' && p.asciiBands === 'overlap') {
       const position = tone * 4, index = Math.min(3, Math.floor(position)), weight = position - index;
       const lowerChar = (p.asciiMode === 'edge' && edge > .18) || scramble ? ch : (chars[Math.min(chars.length - 1, Math.floor((index / 4) * chars.length))] || ' ');
       const upperChar = (p.asciiMode === 'edge' && edge > .18) || scramble ? ch : (chars[Math.min(chars.length - 1, Math.floor(((index + 1) / 4) * chars.length))] || ' ');
@@ -11061,7 +11091,7 @@ function fx7AsciiEnhanced(src, W, H, p) {
 let asciiAtlasCache = null;
 function fx7AsciiGpu(a, p) {
   if (p.asciiEngine !== 'gpu' || p.asciiMode !== 'luma' || SHADER_FALHOU.includes('asciiFast')) return null;
-  if (p.asciiBands === 'overlap' || ['asciiDensity','asciiScramble','asciiGlow','asciiScan','asciiAberration','asciiNoise'].some(k => Number(p[k]) > 0)) return null;
+  if (p.asciiBands === 'overlap' || p.asciiBands === 'ranges' || ['asciiDensity','asciiScramble','asciiGlow','asciiScan','asciiAberration','asciiNoise'].some(k => Number(p[k]) > 0)) return null;
   const chars = Array.from(p.asciiCustom || FX6_ASCII_SETS[p.charset] || FX6_ASCII_SETS.classic);
   if (!chars.length || chars.length > 64) return null;
   const k = String(p.asciiCustom || FX6_ASCII_SETS[p.charset] || FX6_ASCII_SETS.classic) + ':' + Number(p.asciiSize ?? 100);
