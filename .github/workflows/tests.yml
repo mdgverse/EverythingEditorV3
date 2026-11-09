@@ -81,6 +81,8 @@ jobs:
         run: node tests/shader-removal.test.mjs
       - name: Remoções 3.8.0 (Layer Comp e anotações fora, sem resíduo)
         run: node tests/cleanup.test.mjs
+      - name: Texto (fontes instaladas via Local Font Access)
+        run: node tests/text-fonts.test.mjs
       - name: Versão (VERSION = index.html = APK)
         run: node tests/version.test.mjs
       - name: Higiene (código morto, CSS sem uso, reference/ fora)
