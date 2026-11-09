@@ -13,6 +13,15 @@ const src=new Uint8ClampedArray(16*8*4);for(let y=0;y<8;y++)for(let x=0;x<16;x++
 const base={asciiMode:'luma',cell:8,asciiCustom:' .#',asciiColor:'gradient',asciiBands:'stepped'};
 const first=context.render(src,16,8,base);const cells=first.calls.filter(x=>x[0]==='text');assert.equal(cells.length,2);assert.notEqual(cells[0][1],cells[1][1]);assert.notEqual(cells[0][2],cells[1][2]);
 const edge=context.render(src,16,8,{...base,asciiMode:'edge'});assert.equal(edge.calls.filter(x=>x[0]==='text').length,2);
+// Ranges are optional, can overlap, and allow reversed or equal endpoints.
+const ranges={...base,asciiBands:'ranges',asciiBandFeather:0,asciiBand1Start:0,asciiBand1End:100,asciiBand2Start:0,asciiBand2End:100,asciiBand3Start:50,asciiBand3End:50,asciiBand4Start:100,asciiBand4End:0,asciiBand5Start:50,asciiBand5End:50};
+const ranged=context.render(src,16,8,ranges).calls.filter(x=>x[0]==='text');
+assert.equal(ranged.length,6);assert.notEqual(ranged[0][1],ranged[1][1]);
+const noRanges=context.render(src,16,8,{...ranges,asciiBand1Start:50,asciiBand1End:50,asciiBand2Start:50,asciiBand2End:50,asciiBand4Start:50,asciiBand4End:50});
+assert.equal(noRanges.calls.filter(x=>x[0]==='text').length,0);
+const edgeRanges=context.render(src,16,8,{...ranges,asciiMode:'edge'});assert.equal(edgeRanges.calls.filter(x=>x[0]==='text').length,6);
+assert.match(html,/p\.asciiBands === 'ranges' \|\|/);
+assert.match(html,/group\('Adjustable tonal ranges'/);
 const mixed=context.render(src,16,8,{...base,asciiMix:0});assert(mixed.calls.some(x=>x[0]==='image'));
 // The node composes glyphs over the source in Keep original mode, retaining
 // transparent source pixels and partially transparent edges via source-atop.
