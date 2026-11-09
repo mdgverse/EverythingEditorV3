@@ -19,6 +19,8 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
+      - name: ASCII optional modes and SVG assets
+        run: node tests/ascii-enhancement.test.mjs
       - name: Importação de Assets (sem ZIP, motivos, parada por cota)
         run: node tests/assets-import.test.mjs
       - name: Assets · seleção múltipla, mover para pasta e recorte em lote

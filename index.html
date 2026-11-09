@@ -437,7 +437,7 @@ html, body{overscroll-behavior:none;-webkit-tap-highlight-color:transparent}/* 1
 
 /* Versão do editor — o arquivo VERSION na raiz é a fonte da verdade
    (o build do APK usa o mesmo número no versionName e falha se divergir). */
-const APP_VERSION = '3.19.0';
+const APP_VERSION = '3.20.0';
 /* sem a telinha, a versão aparece no tooltip da marca (e o título da aba segue curto) */
 {
   const marca = document.getElementById('brandBtn');
@@ -3205,6 +3205,25 @@ const NODE_TYPES = {
       ENUM('color', 'Color', [['image', 'Source Color'], ['white', 'White'], ['mono', 'Black ink']], 'image'),
       ENUM('invert', 'Invert', [['no', 'Normal'], ['yes', 'Inverted']], 'no'),
       NUM('cell', 'Cell size', 4, 28, 10),
+      // ========== ASCII ENHANCEMENT START ==========
+      ENUM('asciiMode', 'ASCII mode', [['legacy', 'Classic (compatible)'], ['luma', 'Luminance'], ['edge', 'Edges']], 'legacy'),
+      ENUM('asciiEngine', 'Enhanced renderer', [['cpu', 'CPU'], ['gpu', 'GPU (CPU fallback for advanced effects)']], 'cpu'),
+      ENUM('asciiPreset', 'Enhanced preset', [['custom', 'Custom'], ['tonal', 'Tonal gradient'], ['circuit', 'Circuit edges'], ['retro', 'Retro display']], 'custom'),
+      { type: 'text', key: 'asciiCustom', label: 'Custom characters (sparse to dense)', def: '' },
+      ENUM('asciiColor', 'Enhanced color', [['source', 'Source'], ['mono', 'Monochrome'], ['duotone', 'Duotone'], ['gradient', 'Tonal gradient']], 'source'),
+      COL('asciiDark', 'Shadow color', '#211049'), COL('asciiLow', 'Low tone color', '#592094'),
+      COL('asciiMid', 'Midtone color', '#ed328d'), COL('asciiHigh', 'High tone color', '#fa834a'), COL('asciiLight', 'Highlight color', '#ffdf68'),
+      ENUM('asciiBands', 'Gradient bands', [['smooth', 'Smooth'], ['stepped', 'Five bands'], ['overlap', 'Overlapping bands']], 'smooth'),
+      NUM('asciiAspect', 'Cell aspect (%)', 30, 200, 100), NUM('asciiSize', 'Character size (%)', 25, 200, 100),
+      NUM('asciiGamma', 'Gamma (%)', 25, 300, 100), NUM('asciiThreshold', 'Luminance threshold', 0, 255, 0),
+      NUM('asciiColumns', 'Grid columns (0 = cell size)', 0, 500, 0),
+      NUM('asciiEdge', 'Edge strength (%)', 0, 300, 100), NUM('asciiFill', 'Edge mode fill (%)', 0, 100, 35),
+      NUM('asciiDensity', 'Variable density (%)', 0, 100, 0),
+      NUM('asciiScramble', 'Animated scramble (%)', 0, 100, 0), NUM('asciiSeed', 'Scramble seed', 0, 9999, 0),
+      NUM('asciiGlow', 'Glow (%)', 0, 100, 0), NUM('asciiScan', 'Scanlines (%)', 0, 100, 0),
+      NUM('asciiAberration', 'Chromatic aberration (px)', 0, 20, 0), NUM('asciiNoise', 'Noise (%)', 0, 100, 0),
+      NUM('asciiMix', 'Mix with original (%)', 0, 100, 100),
+      // ========== ASCII ENHANCEMENT END ==========
     ],
   },
   chromaticSplit: {
@@ -8370,6 +8389,46 @@ void main() {
   outColor=vec4(mix(src.rgb,effect,uMix),src.a);
 }`;
 
+// ========== ASCII ENHANCEMENT START ==========
+// Fast optional atlas renderer. Advanced effects continue on the CPU path.
+SHADERS.asciiFast = `
+uniform sampler2D uSrc, uAtlas;
+uniform vec2 uRes, uCell;
+uniform float uChars, uGamma, uThreshold, uInvert, uMix, uStepped;
+uniform float uSource, uMono, uDuo, uGradient;
+uniform vec3 uDark, uLow, uMid, uHigh, uLight;
+vec4 atScreen(vec2 xy) { return texture(uSrc, vec2(clamp(xy.x / uRes.x, 0.0, 1.0), 1.0-clamp(xy.y / uRes.y, 0.0, 1.0))); }
+void main() {
+  vec2 pos = vec2(vUv.x, 1.0-vUv.y)*uRes;
+  vec2 origin = floor(pos/uCell)*uCell;
+  vec4 sample0=atScreen(origin+uCell*vec2(.25,.25));
+  vec4 sample1=atScreen(origin+uCell*vec2(.75,.25));
+  vec4 sample2=atScreen(origin+uCell*vec2(.25,.75));
+  vec4 sample3=atScreen(origin+uCell*vec2(.75,.75));
+  vec4 avg=(sample0+sample1+sample2+sample3)*.25;
+  float t=pow(clamp(dot(avg.rgb,vec3(.2126,.7152,.0722)),0.0,1.0),uGamma);
+  t=mix(t,1.0-t,uInvert);
+  float glyph=floor(min(uChars-1.0,t*uChars));
+  vec2 local=fract(pos/uCell);
+  float mask=texture(uAtlas,vec2((glyph+local.x)/uChars,1.0-local.y)).a*step(uThreshold,t);
+  float v=t*4.0;
+  vec3 smoothColor=mix(uDark,uLow,clamp(v,0.0,1.0));
+  smoothColor=mix(smoothColor,uMid,clamp(v-1.0,0.0,1.0));
+  smoothColor=mix(smoothColor,uHigh,clamp(v-2.0,0.0,1.0));
+  smoothColor=mix(smoothColor,uLight,clamp(v-3.0,0.0,1.0));
+  float band=floor(min(4.0,t*5.0));
+  vec3 steppedColor=mix(uDark,uLow,step(1.0,band));
+  steppedColor=mix(steppedColor,uMid,step(2.0,band));
+  steppedColor=mix(steppedColor,uHigh,step(3.0,band));
+  steppedColor=mix(steppedColor,uLight,step(4.0,band));
+  vec3 rgb=avg.rgb*uSource+uLight*uMono+mix(uDark,uLight,t)*uDuo+mix(smoothColor,steppedColor,uStepped)*uGradient;
+  vec4 src=texture(uSrc,vUv);
+  float alpha=mix(src.a,mask*avg.a,uMix);
+  vec3 premul=src.rgb*src.a*(1.0-uMix)+rgb*mask*avg.a*uMix;
+  outColor=vec4(alpha>0.00001?premul/alpha:vec3(0.0),alpha);
+}`;
+// ========== ASCII ENHANCEMENT END ==========
+
 const PROGS = {};
 const SHADER_FALHOU = [];
 /* 3.8.0 — um shader problemático não pode derrubar o app inteiro (era tela branca):
@@ -10832,6 +10891,7 @@ function makeActionButton(n, p) {
 
 // ASCII generator (fxAscii from v1.6)
 function fx7Ascii(src, W, H, p) {
+  if (p.asciiMode && p.asciiMode !== 'legacy') return fx7AsciiEnhanced(src, W, H, p);
   const chars = FX6_ASCII_SETS[p.charset] || FX6_ASCII_SETS.classic;
   const cell = Math.max(4, Number(p.cell || 10));
   const cv = fx7NewCanvas(W, H);
@@ -10860,6 +10920,178 @@ function fx7Ascii(src, W, H, p) {
   }
   return cv;
 }
+
+// ========== ASCII ENHANCEMENT START ==========
+function asciiApplyPreset(n, preset) {
+  if (preset === 'custom') return;
+  const common = { asciiEngine: 'cpu', asciiMode: 'luma', asciiColor: 'gradient', asciiBands: 'smooth', asciiGamma: 100, asciiThreshold: 0, asciiMix: 100,
+    asciiEdge: 100, asciiFill: 35, asciiDensity: 0, asciiScramble: 0, asciiGlow: 0, asciiScan: 0, asciiAberration: 0, asciiNoise: 0 };
+  const configs = {
+    tonal: { asciiBands: 'overlap', asciiCustom: ' .~^/}i1YCmwQ@M', asciiDark: '#211049', asciiLow: '#592094', asciiMid: '#ed328d', asciiHigh: '#fa834a', asciiLight: '#ffdf68' },
+    circuit: { asciiMode: 'edge', asciiCustom: ' .:+#@', asciiEdge: 180, asciiFill: 15, asciiBands: 'stepped', asciiDark: '#111c3f', asciiLow: '#4046c6', asciiMid: '#e243b7', asciiHigh: '#fa8448', asciiLight: '#fff5db' },
+    retro: { asciiColor: 'mono', asciiCustom: ' .:;=+*#%@', asciiLight: '#80ff83', asciiGamma: 100, asciiGlow: 30, asciiScan: 55, asciiNoise: 8 },
+  };
+  if (!configs[preset]) return;
+  Object.assign(n.params, common, configs[preset]);
+  for (const key of Object.keys({...common, ...configs[preset]})) if (n.ui[key]) n.ui[key]();
+}
+function asciiPanel(n, body) {
+  const rows = {};
+  for (const el of [...body.children]) if (el.dataset?.pkey) rows[el.dataset.pkey] = el;
+  const group = (title, keys) => {
+    const d = document.createElement('details'); d.className = 'ascii-group';
+    const h = E('summary', '', title); h.style.cssText = 'cursor:pointer;padding:5px;font-size:11px;color:var(--text-strong)';
+    h.addEventListener('pointerdown', e => e.stopPropagation());
+    d.addEventListener('toggle', () => { if (n.el?.isConnected) drawLinks(); });
+    d.append(h); for (const key of keys) if (rows[key]) d.append(rows[key]); body.append(d);
+  };
+  group('Characters and grid', ['asciiCustom','asciiAspect','asciiSize','asciiColumns','asciiGamma','asciiThreshold','asciiEdge','asciiFill','asciiDensity']);
+  group('Enhanced colors', ['asciiColor','asciiDark','asciiLow','asciiMid','asciiHigh','asciiLight','asciiBands']);
+  group('Retro effects and mix', ['asciiGlow','asciiScan','asciiAberration','asciiNoise','asciiMix']);
+  group('Animation', ['asciiScramble','asciiSeed']);
+}
+// ========== ASCII ENHANCEMENT END ==========
+
+// ========== ASCII ENHANCEMENT START ==========
+// Optional renderer; the legacy path above is deliberately unchanged.
+function fx7AsciiEnhanced(src, W, H, p) {
+  const clamp = (x, a, b) => Math.max(a, Math.min(b, x));
+  const chars = Array.from(p.asciiCustom || FX6_ASCII_SETS[p.charset] || FX6_ASCII_SETS.classic);
+  const columns = clamp(Math.round(Number(p.asciiColumns || 0)), 0, 500);
+  const cellX = columns ? Math.max(2, Math.round(W / columns)) : Math.max(2, Math.round(Math.max(4, Number(p.cell || 10)) * clamp(Number(p.asciiAspect ?? 100), 30, 200) / 100));
+  const cellY = columns ? Math.max(2, Math.round(cellX * 100 / clamp(Number(p.asciiAspect ?? 100), 30, 200))) : Math.max(4, Number(p.cell || 10));
+  const gamma = clamp(Number(p.asciiGamma ?? 100), 25, 300) / 100;
+  const threshold = clamp(Number(p.asciiThreshold ?? 0), 0, 255) / 255;
+  const mix = clamp(Number(p.asciiMix ?? 100), 0, 100) / 100;
+  const parse = c => { const m = /^#([0-9a-f]{6})$/i.exec(c || ''); const n = m ? parseInt(m[1], 16) : 0; return [n >> 16, (n >> 8) & 255, n & 255]; };
+  const dark = parse(p.asciiDark || '#211049'), low = parse(p.asciiLow || '#592094'), mid = parse(p.asciiMid || '#ed328d'), high = parse(p.asciiHigh || '#fa834a'), light = parse(p.asciiLight || '#ffdf68');
+  const stops = [dark, low, mid, high, light];
+  const blend = (a, b, t) => a.map((v, i) => Math.round(v + (b[i] - v) * t));
+  const lum = (x, y) => { const i = (clamp(y, 0, H - 1) * W + clamp(x, 0, W - 1)) * 4; return fx5Luma255(src[i], src[i + 1], src[i + 2]) / 255; };
+  const density = clamp(Number(p.asciiDensity ?? 0), 0, 100) / 100;
+  const scramble = clamp(Number(p.asciiScramble ?? 0), 0, 100) / 100;
+  const noise = clamp(Number(p.asciiNoise ?? 0), 0, 100) / 100;
+  const seed = Math.round(Number(p.asciiSeed || 0)), frame = scramble ? Math.floor(TL.frame) : 0;
+  const cv = fx7NewCanvas(W, H), ctx = cv.getContext('2d');
+  ctx.font = `${Math.max(1, Math.round(cellY * 1.22 * clamp(Number(p.asciiSize ?? 100), 25, 200) / 100))}px "OCRA", "OCR A Extended", monospace`;
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  for (let y = 0; y < H; y += cellY) for (let x = 0; x < W; x += cellX) {
+    let r = 0, g = 0, b = 0, a = 0, count = 0;
+    for (let yy = y; yy < Math.min(H, y + cellY); yy += 2) for (let xx = x; xx < Math.min(W, x + cellX); xx += 2) {
+      const i = (yy * W + xx) * 4; r += src[i]; g += src[i + 1]; b += src[i + 2]; a += src[i + 3]; count++;
+    }
+    r /= count; g /= count; b /= count; a /= count;
+    let t = Math.pow(clamp(fx5Luma255(r, g, b) / 255, 0, 1), gamma);
+    if (p.invert === 'yes') t = 1 - t;
+    if (t < threshold) continue;
+    let tone = t;
+    let gx = 0, gy = 0, edge = 0;
+    if (p.asciiMode === 'edge') {
+      const cx = Math.min(W - 1, x + Math.floor(cellX / 2)), cy = Math.min(H - 1, y + Math.floor(cellY / 2));
+      gx = lum(cx + cellX, cy) - lum(cx - cellX, cy); gy = lum(cx, cy + cellY) - lum(cx, cy - cellY);
+      edge = clamp(Math.hypot(gx, gy) * clamp(Number(p.asciiEdge ?? 100), 0, 300) / 100, 0, 1);
+      t = Math.max(edge, t * clamp(Number(p.asciiFill ?? 35), 0, 100) / 100);
+    }
+    const ix = Math.floor(x / cellX), iy = Math.floor(y / cellY);
+    if (density && fx6Hash(ix + seed, iy) < density * (1 - t)) continue;
+    if (noise) { const delta = (fx6Hash(ix + seed + 731, iy) - .5) * noise; t = clamp(t + delta, 0, 1); tone = clamp(tone + delta, 0, 1); }
+    let ci = Math.min(chars.length - 1, Math.floor(t * chars.length));
+    if (scramble && fx6Hash(ix + seed, iy + frame * 997) < scramble) ci = Math.floor(fx6Hash(ix + frame * 431, iy + seed + 83) * chars.length);
+    let ch = chars[ci] || ' ';
+    if (p.asciiMode === 'edge' && edge > .18) {
+      const ax = Math.abs(gx), ay = Math.abs(gy);
+      ch = ax > ay * 2 ? '|' : ay > ax * 2 ? '-' : gx * gy > 0 ? '/' : '\\';
+    }
+    let rgb = [r, g, b];
+    if (p.asciiColor === 'mono') rgb = light;
+    else if (p.asciiColor === 'duotone') rgb = blend(dark, light, tone);
+    else if (p.asciiColor === 'gradient') {
+      const position = tone * 4, index = Math.min(3, Math.floor(position));
+      rgb = p.asciiBands === 'stepped' ? stops[Math.min(4, Math.floor(tone * 5))] : blend(stops[index], stops[index + 1], position - index);
+    }
+    if (p.asciiColor === 'gradient' && p.asciiBands === 'overlap') {
+      const position = tone * 4, index = Math.min(3, Math.floor(position)), weight = position - index;
+      const lowerChar = (p.asciiMode === 'edge' && edge > .18) || scramble ? ch : (chars[Math.min(chars.length - 1, Math.floor((index / 4) * chars.length))] || ' ');
+      const upperChar = (p.asciiMode === 'edge' && edge > .18) || scramble ? ch : (chars[Math.min(chars.length - 1, Math.floor(((index + 1) / 4) * chars.length))] || ' ');
+      ctx.fillStyle = `rgba(${stops[index].join(',')},${a / 255 * (1 - weight)})`;
+      ctx.fillText(lowerChar, x + cellX / 2, y + cellY / 2);
+      ctx.fillStyle = `rgba(${stops[index + 1].join(',')},${a / 255 * weight})`;
+      ctx.fillText(upperChar, x + cellX / 2, y + cellY / 2);
+    } else {
+      ctx.fillStyle = `rgba(${rgb.map(Math.round).join(',')},${a / 255})`;
+      ctx.fillText(ch, x + cellX / 2, y + cellY / 2);
+    }
+  }
+  const glow = clamp(Number(p.asciiGlow ?? 0), 0, 100) / 100;
+  const scan = clamp(Number(p.asciiScan ?? 0), 0, 100) / 100;
+  const aberration = clamp(Number(p.asciiAberration ?? 0), 0, 20);
+  if (!glow && !scan && !aberration && mix === 1) return cv;
+  const result = fx7NewCanvas(W, H), out = result.getContext('2d');
+  if (mix < 1) {
+    const original = fx7NewCanvas(W, H); original.getContext('2d').putImageData(new ImageData(new Uint8ClampedArray(src), W, H), 0, 0);
+    out.globalAlpha = 1 - mix; out.drawImage(original, 0, 0);
+    out.globalCompositeOperation = 'lighter';
+  }
+  out.globalAlpha = mix;
+  if (glow) { out.save(); out.filter = `blur(${Math.max(1, Math.round(cellY * .5))}px)`; out.globalAlpha = mix * glow; out.drawImage(cv, 0, 0); out.restore(); }
+  if (aberration) {
+    for (const [offset, color] of [[-aberration, '#ff0000'], [aberration, '#00ffff']]) {
+      const tint = fx7NewCanvas(W, H), tc = tint.getContext('2d');
+      tc.drawImage(cv, 0, 0); tc.globalCompositeOperation = 'source-in'; tc.fillStyle = color; tc.fillRect(0, 0, W, H);
+      out.save(); out.globalCompositeOperation = 'screen'; out.globalAlpha = mix * .45; out.drawImage(tint, offset, 0); out.restore();
+    }
+  }
+  out.globalAlpha = mix; out.drawImage(cv, 0, 0);
+  if (scan) { out.globalCompositeOperation = 'source-over'; out.globalAlpha = mix * scan * .65; out.fillStyle = '#000'; for (let y = 1; y < H; y += 3) out.fillRect(0, y, W, 1); }
+  out.globalAlpha = 1;
+  return result;
+}
+// ========== ASCII ENHANCEMENT END ==========
+
+// ========== ASCII ENHANCEMENT START ==========
+// One bounded atlas cache: changing character set/size releases the old GPU texture.
+let asciiAtlasCache = null;
+function fx7AsciiGpu(a, p) {
+  if (p.asciiEngine !== 'gpu' || p.asciiMode !== 'luma' || SHADER_FALHOU.includes('asciiFast')) return null;
+  if (p.asciiBands === 'overlap' || ['asciiDensity','asciiScramble','asciiGlow','asciiScan','asciiAberration','asciiNoise'].some(k => Number(p[k]) > 0)) return null;
+  const chars = Array.from(p.asciiCustom || FX6_ASCII_SETS[p.charset] || FX6_ASCII_SETS.classic);
+  if (!chars.length || chars.length > 64) return null;
+  const k = String(p.asciiCustom || FX6_ASCII_SETS[p.charset] || FX6_ASCII_SETS.classic) + ':' + Number(p.asciiSize ?? 100);
+  if (!asciiAtlasCache || asciiAtlasCache.key !== k) {
+    const cv = fx7NewCanvas(chars.length * 64, 64), ctx = cv.getContext('2d');
+    ctx.font = `${Math.max(1, Math.round(64 * 1.22 * Math.max(.25, Math.min(2, Number(p.asciiSize ?? 100) / 100))))}px "OCRA", "OCR A Extended", monospace`;
+    ctx.fillStyle = '#fff'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    chars.forEach((ch, i) => { ctx.save(); ctx.beginPath(); ctx.rect(i * 64, 0, 64, 64); ctx.clip(); ctx.fillText(ch, i * 64 + 32, 32); ctx.restore(); });
+    const tex = gl.createTexture(); if (!tex) return null;
+    gl.bindTexture(gl.TEXTURE_2D, tex); setTexParams(); gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, cv); gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, false);
+    if (gl.getError() !== gl.NO_ERROR) { gl.deleteTexture(tex); return null; }
+    if (asciiAtlasCache) gl.deleteTexture(asciiAtlasCache.tex);
+    asciiAtlasCache = { key: k, tex };
+  }
+  const src = fx7FastRes(a);
+  const columns = Math.max(0, Math.min(500, Math.round(Number(p.asciiColumns || 0))));
+  const aspect = Math.max(30, Math.min(200, Number(p.asciiAspect ?? 100)));
+  const cy = Math.max(4, Number(p.cell || 10));
+  const cellX = columns ? Math.max(2, Math.round(src.w / columns)) : Math.max(2, Math.round(cy * aspect / 100));
+  const cellY = columns ? Math.max(2, Math.round(cellX * 100 / aspect)) : cy;
+  const color = p.asciiColor || 'source';
+  const e = acquire(src.w, src.h);
+  draw('asciiFast', e, { uSrc: src.tex, uAtlas: asciiAtlasCache.tex }, {
+    uRes: [src.w, src.h], uCell: [cellX, cellY], uChars: chars.length,
+    uGamma: Math.max(.25, Math.min(3, Number(p.asciiGamma ?? 100) / 100)),
+    uThreshold: Math.max(0, Math.min(255, Number(p.asciiThreshold ?? 0))) / 255,
+    uInvert: p.invert === 'yes' ? 1 : 0, uMix: Math.max(0, Math.min(100, Number(p.asciiMix ?? 100))) / 100,
+    uStepped: p.asciiBands === 'stepped' ? 1 : 0,
+    uSource: color === 'source' ? 1 : 0, uMono: color === 'mono' ? 1 : 0,
+    uDuo: color === 'duotone' ? 1 : 0, uGradient: color === 'gradient' ? 1 : 0,
+    uDark: hexRGB(p.asciiDark || '#211049'), uLow: hexRGB(p.asciiLow || '#592094'),
+    uMid: hexRGB(p.asciiMid || '#ed328d'), uHigh: hexRGB(p.asciiHigh || '#fa834a'), uLight: hexRGB(p.asciiLight || '#ffdf68'),
+  });
+  if (src !== a && src.pooled) src.pooled.busy = false;
+  return mkRes(e);
+}
+// ========== ASCII ENHANCEMENT END ==========
 
 // Chromatic Split (fxChromaticSplit from v1.6)
 function fx7Chroma(src, out, W, H, p) {
@@ -22577,7 +22809,26 @@ function astTela() {
     try { await SS_DB.delAssetFolder(f.id); astFolderSel = 'all'; await astRefresh(); setStatus('Folder deleted. The assets went to “No folder”.'); }
     catch (e) { setStatus('Could not delete the folder.', true); }
   });
-  acts.append(bUp, bPasteHint, bVetor, bNova, bRenP, bDelP, fileInp);
+  const bAsciiShapes = E('button', 'ast-btn', 'Import ASCII shapes'); bAsciiShapes.type = 'button';
+  bAsciiShapes.title = 'Import the bundled geometric SVG shapes into this device library';
+  bAsciiShapes.addEventListener('click', async () => {
+    bAsciiShapes.disabled = true;
+    try {
+      const paths = ['frames/corner-marks', 'frames/technical-frame', 'frames/square-tile', 'grids/cell-grid', 'grids/dot-grid', 'decorations/tonal-bars', 'decorations/pixel-cross', 'decorations/pixel-diagonal', 'frames/dotted-corners', 'frames/parallel-header', 'icons/angle-brackets', 'icons/diagonal-hatch', 'patterns/checker', 'patterns/halftone-dots', 'patterns/cross-grid', 'patterns/ascii-lines', 'glyphs/at-pixel', 'glyphs/period-pixel', 'glyphs/horizontal', 'glyphs/vertical', 'glyphs/asterisk', 'glyphs/hash', 'glyphs/slash', 'decorations/tonal-vertical', 'decorations/pixel-tonal-cell'];
+      const files = [];
+      for (const path of paths) {
+        const response = await fetch('assets/ascii-shapes/' + path + '.svg');
+        if (!response.ok) throw new Error('Missing bundled SVG: ' + path);
+        const name = 'ascii-' + path.replace('/', '-') + '.svg';
+        const folder = astFolderSel !== 'all' && astFolderSel !== 'none' ? astFolderSel : null;
+        if (!astAssets.some(a => a.name === name && (a.folderId || null) === folder)) files.push(new File([await response.blob()], name, { type: 'image/svg+xml' }));
+      }
+      if (files.length) await astAddFiles(files);
+      else setStatus('ASCII shapes are already in this folder.');
+    } catch (err) { console.error(err); setStatus('Could not import the ASCII shapes.', true); }
+    finally { bAsciiShapes.disabled = false; }
+  });
+  acts.append(bUp, bAsciiShapes, bPasteHint, bVetor, bNova, bRenP, bDelP, fileInp);
   /* Backup/Restore da biblioteca: usa o mesmo pacote da tela inicial
      (projetos + pastas + Assets num .json só) */
   const bBk = E('button', 'ast-btn', 'Backup all'); bBk.type = 'button'; bBk.id = 'astBtnBackup';
@@ -24226,7 +24477,12 @@ const RUN = {
     if (src !== a && src.pooled) src.pooled.busy = false;
     return fxRampaAplica(n, 1, rampaIn, mkRes(e));
   },
-  ascii: (n, [a]) => (a ? fx7Canvas(a, (s, W, H) => fx7Ascii(s.getContext('2d', { willReadFrequently: true }).getImageData(0, 0, W, H).data, W, H, n.params)) : null),
+  ascii: (n, [a]) => {
+    if (!a) return null;
+    if (n.params.asciiMode && n.params.asciiMode !== 'legacy' && Number(n.params.asciiMix) === 0) return ptRes(a);
+    const gpu = fx7AsciiGpu(a, n.params);
+    return gpu || fx7Canvas(a, (s, W, H) => fx7Ascii(s.getContext('2d', { willReadFrequently: true }).getImageData(0, 0, W, H).data, W, H, n.params));
+  },
   chromaticSplit: (n, [a]) => (a ? fx7Pixel(a, (s, o, W, H) => fx7Chroma(s, o, W, H, n.params)) : null),
   sharpness: (n, [a]) => (a ? fx7Canvas(a, (s, W, H) => fx7Sharp(s, W, H, n.params)) : null),
   starGlow: (n, [a]) => (a ? fx7Canvas(a, (s, W, H) => fx7StarGlow(s, W, H, n.params)) : null),
@@ -24974,6 +25230,7 @@ function buildNodeEl(n) {
   if (AUD_FX_TIPOS[n.type]) buildAudFxBody(n, body);
   buildControls(n, body);
   if (n.type === 'image') mediaMontaControles(n, body);   // mode/speed/start (GIF and video only)
+  if (n.type === 'ascii') asciiPanel(n, body);
   if (n.type === 'halfmode') halfModePanelVertical(n, body);   // 2.9.64: vertical in all builds; height follows the linked inks
   if (n.type === 'distressor') { if (EE_DOCK_H) distressDocker(n, body); else panelVerticalLargura(n, body, 'dsW'); }   // web: horizontal · APK: vertical
   if (n.type === 'vandal') vandalPanel(n, body);   // docker vertical nativo (2.9.60)
@@ -27101,6 +27358,7 @@ function makeEnum(n, p) {
     if (n.type === 'vandal' && p.key === 'decalAsset' && n.params.vandalMode === 'classic') { n.params.vandalMode='combined'; if(n.ui.vandalMode)n.ui.vandalMode(); }
     if (n.type === 'fractureEffect' && p.key === 'freeze') fractureSetFreeze(n, sel.value === 'yes');
     if (n.type === 'blRGBCurves' && p.key === 'channel') blCurveSwitch(n, prevVal, sel.value);
+    if (n.type === 'ascii' && p.key === 'asciiPreset') asciiApplyPreset(n, sel.value);
     if (n.type === 'halfmode') {
       if (p.key === 'theme') applyHalfModeTheme(n);
       else if (p.key === 'wadaCombo') applyWadaCombo(n);
@@ -34490,6 +34748,7 @@ function tlApplyFrame() {
     }
     const on = !tlIsIdentity(v);
     if (on !== n.animOn) { n.animOn = on; changed = true; }
+    if (frameChanged && n.type === 'ascii' && n.params.asciiMode !== 'legacy' && Number(n.params.asciiScramble) > 0) changed = true;
     if (changed) { markDirty(n.id); touched++; tlRefreshKeys(n); }
   }
   if (frameChanged) mediaFrameTick();
