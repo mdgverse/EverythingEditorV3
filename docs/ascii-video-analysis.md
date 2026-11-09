@@ -44,7 +44,7 @@ Additional standalone approximations: `frames/dotted-corners.svg` and `frames/pa
 
 ## Usage and example configurations
 
-1. Existing ASCII projects keep **ASCII mode → Classic (compatible)**, using the pre-existing renderer and settings.
+1. Existing ASCII projects retain their pre-existing renderer and transparent-glyph output. New nodes default to **Background → Keep original**: glyphs are composited over the input while preserving its alpha. To use this on an existing node, select **Keep original**; select **Transparent** for glyph-only output.
 2. For a five-colour look: select **Luminance**, **Tonal gradient**, then **Five bands** or **Overlapping bands**. Adjust the five colours, cell size, aspect, gamma and threshold. These options are approximations, not the source plug-in's precise thresholds.
 3. For angular contours: select **Edges**, adjust **Edge strength** and **Edge mode fill**, then choose the colour mapping. Slash, backslash, vertical and horizontal glyphs indicate locally estimated direction.
 4. For motion: increase **Animated scramble** and move the editor timeline. Noise is deterministic per cell; timeline scramble updates when the timeline changes and does not run a separate timer.

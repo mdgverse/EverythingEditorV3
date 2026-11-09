@@ -437,7 +437,7 @@ html, body{overscroll-behavior:none;-webkit-tap-highlight-color:transparent}/* 1
 
 /* Versão do editor — o arquivo VERSION na raiz é a fonte da verdade
    (o build do APK usa o mesmo número no versionName e falha se divergir). */
-const APP_VERSION = '3.20.0';
+const APP_VERSION = '3.20.1';
 /* sem a telinha, a versão aparece no tooltip da marca (e o título da aba segue curto) */
 {
   const marca = document.getElementById('brandBtn');
@@ -3206,6 +3206,7 @@ const NODE_TYPES = {
       ENUM('invert', 'Invert', [['no', 'Normal'], ['yes', 'Inverted']], 'no'),
       NUM('cell', 'Cell size', 4, 28, 10),
       // ========== ASCII ENHANCEMENT START ==========
+      ENUM('asciiBackground', 'Background', [['original', 'Keep original'], ['transparent', 'Transparent']], 'original'),
       ENUM('asciiMode', 'ASCII mode', [['legacy', 'Classic (compatible)'], ['luma', 'Luminance'], ['edge', 'Edges']], 'legacy'),
       ENUM('asciiEngine', 'Enhanced renderer', [['cpu', 'CPU'], ['gpu', 'GPU (CPU fallback for advanced effects)']], 'cpu'),
       ENUM('asciiPreset', 'Enhanced preset', [['custom', 'Custom'], ['tonal', 'Tonal gradient'], ['circuit', 'Circuit edges'], ['retro', 'Retro display']], 'custom'),
@@ -8394,7 +8395,7 @@ void main() {
 SHADERS.asciiFast = `
 uniform sampler2D uSrc, uAtlas;
 uniform vec2 uRes, uCell;
-uniform float uChars, uGamma, uThreshold, uInvert, uMix, uStepped;
+uniform float uChars, uGamma, uThreshold, uInvert, uMix, uStepped, uKeepOriginal;
 uniform float uSource, uMono, uDuo, uGradient;
 uniform vec3 uDark, uLow, uMid, uHigh, uLight;
 vec4 atScreen(vec2 xy) { return texture(uSrc, vec2(clamp(xy.x / uRes.x, 0.0, 1.0), 1.0-clamp(xy.y / uRes.y, 0.0, 1.0))); }
@@ -8425,7 +8426,9 @@ void main() {
   vec4 src=texture(uSrc,vUv);
   float alpha=mix(src.a,mask*avg.a,uMix);
   vec3 premul=src.rgb*src.a*(1.0-uMix)+rgb*mask*avg.a*uMix;
-  outColor=vec4(alpha>0.00001?premul/alpha:vec3(0.0),alpha);
+  vec4 transparentResult=vec4(alpha>0.00001?premul/alpha:vec3(0.0),alpha);
+  vec4 originalResult=vec4(mix(src.rgb,rgb,mask*avg.a*uMix),src.a);
+  outColor=mix(transparentResult,originalResult,uKeepOriginal);
 }`;
 // ========== ASCII ENHANCEMENT END ==========
 
@@ -11042,7 +11045,7 @@ function fx7AsciiEnhanced(src, W, H, p) {
     }
   }
   out.globalAlpha = mix; out.drawImage(cv, 0, 0);
-  if (scan) { out.globalCompositeOperation = 'source-over'; out.globalAlpha = mix * scan * .65; out.fillStyle = '#000'; for (let y = 1; y < H; y += 3) out.fillRect(0, y, W, 1); }
+  if (scan) { out.globalCompositeOperation = p.asciiBackground === 'original' ? 'source-atop' : 'source-over'; out.globalAlpha = mix * scan * .65; out.fillStyle = '#000'; for (let y = 1; y < H; y += 3) out.fillRect(0, y, W, 1); }
   out.globalAlpha = 1;
   return result;
 }
@@ -11082,7 +11085,7 @@ function fx7AsciiGpu(a, p) {
     uGamma: Math.max(.25, Math.min(3, Number(p.asciiGamma ?? 100) / 100)),
     uThreshold: Math.max(0, Math.min(255, Number(p.asciiThreshold ?? 0))) / 255,
     uInvert: p.invert === 'yes' ? 1 : 0, uMix: Math.max(0, Math.min(100, Number(p.asciiMix ?? 100))) / 100,
-    uStepped: p.asciiBands === 'stepped' ? 1 : 0,
+    uStepped: p.asciiBands === 'stepped' ? 1 : 0, uKeepOriginal: p.asciiBackground === 'original' ? 1 : 0,
     uSource: color === 'source' ? 1 : 0, uMono: color === 'mono' ? 1 : 0,
     uDuo: color === 'duotone' ? 1 : 0, uGradient: color === 'gradient' ? 1 : 0,
     uDark: hexRGB(p.asciiDark || '#211049'), uLow: hexRGB(p.asciiLow || '#592094'),
@@ -24481,7 +24484,22 @@ const RUN = {
     if (!a) return null;
     if (n.params.asciiMode && n.params.asciiMode !== 'legacy' && Number(n.params.asciiMix) === 0) return ptRes(a);
     const gpu = fx7AsciiGpu(a, n.params);
-    return gpu || fx7Canvas(a, (s, W, H) => fx7Ascii(s.getContext('2d', { willReadFrequently: true }).getImageData(0, 0, W, H).data, W, H, n.params));
+    return gpu || fx7Canvas(a, (s, W, H) => {
+      const p = n.params;
+      const pixels = s.getContext('2d', { willReadFrequently: true }).getImageData(0, 0, W, H).data;
+      if (p.asciiBackground !== 'original') return fx7Ascii(pixels, W, H, p);
+      // Draw glyphs over the original without increasing its alpha, including at
+      // partially transparent edges. Mix controls glyph opacity, not the source.
+      const enhanced = p.asciiMode && p.asciiMode !== 'legacy';
+      const mix = enhanced ? Math.max(0, Math.min(100, Number(p.asciiMix ?? 100))) / 100 : 1;
+      const glyphs = fx7Ascii(pixels, W, H, enhanced ? { ...p, asciiMix: 100 } : p);
+      const result = fx7NewCanvas(W, H), out = result.getContext('2d');
+      out.drawImage(s, 0, 0);
+      out.globalCompositeOperation = 'source-atop';
+      out.globalAlpha = mix;
+      out.drawImage(glyphs, 0, 0);
+      return result;
+    });
   },
   chromaticSplit: (n, [a]) => (a ? fx7Pixel(a, (s, o, W, H) => fx7Chroma(s, o, W, H, n.params)) : null),
   sharpness: (n, [a]) => (a ? fx7Canvas(a, (s, W, H) => fx7Sharp(s, W, H, n.params)) : null),
@@ -24686,6 +24704,8 @@ function createNode(type, x, y, opts = {}) {
   if (type === 'vandal' && !Array.isArray(n.params.vandalMasks)) n.params.vandalMasks=[];
   if (type === 'vandal' && opts.params) for (let i=1;i<=5;i++) if (!('vandalSoft'+i in opts.params)) n.params['vandalSoft'+i] = Number(opts.params.vandalSoft) || 0;
   if (oldVandal && !(opts.params && 'vandalMode' in opts.params)) n.params.vandalMode = 'classic';
+  // Existing ASCII projects retain the former transparent-glyph output.
+  if (type === 'ascii' && opts.params && !('asciiBackground' in opts.params)) n.params.asciiBackground = 'transparent';
   if (type === 'fractureEffect' && opts.params && !('fractureEngine' in opts.params)) n.params.fractureEngine = 'classic';
   if (type === 'transform' && opts.params && !('unit' in opts.params)) n.params.unit = 'pct';   // old project: X/Y were in %
   if (type === 'fill' && opts.params && !('gX1' in opts.params)) fillMigraLegado(n);   // old Fill: centred line from the angle
