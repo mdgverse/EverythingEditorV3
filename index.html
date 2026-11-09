@@ -437,7 +437,7 @@ html, body{overscroll-behavior:none;-webkit-tap-highlight-color:transparent}/* 1
 
 /* Versão do editor — o arquivo VERSION na raiz é a fonte da verdade
    (o build do APK usa o mesmo número no versionName e falha se divergir). */
-const APP_VERSION = '3.20.1';
+const APP_VERSION = '3.21.0';
 /* sem a telinha, a versão aparece no tooltip da marca (e o título da aba segue curto) */
 {
   const marca = document.getElementById('brandBtn');
@@ -22817,16 +22817,16 @@ function astTela() {
   bAsciiShapes.addEventListener('click', async () => {
     bAsciiShapes.disabled = true;
     try {
-      const paths = ['frames/corner-marks', 'frames/technical-frame', 'frames/square-tile', 'grids/cell-grid', 'grids/dot-grid', 'decorations/tonal-bars', 'decorations/pixel-cross', 'decorations/pixel-diagonal', 'frames/dotted-corners', 'frames/parallel-header', 'icons/angle-brackets', 'icons/diagonal-hatch', 'patterns/checker', 'patterns/halftone-dots', 'patterns/cross-grid', 'patterns/ascii-lines', 'glyphs/at-pixel', 'glyphs/period-pixel', 'glyphs/horizontal', 'glyphs/vertical', 'glyphs/asterisk', 'glyphs/hash', 'glyphs/slash', 'decorations/tonal-vertical', 'decorations/pixel-tonal-cell'];
+      const paths = ['frames/corner-marks', 'frames/technical-frame', 'frames/square-tile', 'grids/cell-grid', 'grids/dot-grid', 'decorations/tonal-bars', 'decorations/pixel-cross', 'decorations/pixel-diagonal', 'frames/dotted-corners', 'frames/parallel-header', 'icons/angle-brackets', 'icons/diagonal-hatch', 'patterns/checker', 'patterns/halftone-dots', 'patterns/cross-grid', 'patterns/ascii-lines', 'glyphs/at-pixel', 'glyphs/period-pixel', 'glyphs/horizontal', 'glyphs/vertical', 'glyphs/asterisk', 'glyphs/hash', 'glyphs/slash', 'decorations/tonal-vertical', 'decorations/pixel-tonal-cell', 'glyphs/backslash', 'glyphs/forward-slash', 'decorations/pixel-color-cross', 'decorations/pixel-color-stair', 'decorations/pixel-color-bars', 'patterns/sparse-dots', 'patterns/medium-dots', 'patterns/dense-dots', 'patterns/inverse-dots'];
       const files = [];
+      const folder = astFolderSel !== 'all' && astFolderSel !== 'none' ? astFolderSel : null;
       for (const path of paths) {
         const response = await fetch('assets/ascii-shapes/' + path + '.svg');
         if (!response.ok) throw new Error('Missing bundled SVG: ' + path);
         const name = 'ascii-' + path.replace('/', '-') + '.svg';
-        const folder = astFolderSel !== 'all' && astFolderSel !== 'none' ? astFolderSel : null;
         if (!astAssets.some(a => a.name === name && (a.folderId || null) === folder)) files.push(new File([await response.blob()], name, { type: 'image/svg+xml' }));
       }
-      if (files.length) await astAddFiles(files);
+      if (files.length) await astAddFiles(files, folder);
       else setStatus('ASCII shapes are already in this folder.');
     } catch (err) { console.error(err); setStatus('Could not import the ASCII shapes.', true); }
     finally { bAsciiShapes.disabled = false; }
