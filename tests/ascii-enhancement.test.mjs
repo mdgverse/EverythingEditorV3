@@ -65,6 +65,7 @@ const pc=vm.createContext({});vm.runInContext(ps+'; this.apply=asciiApplyPreset;
 pc.apply(n,'tonal');assert.equal(n.params.asciiBands,'overlap');assert.equal(n.params.asciiColor,'gradient');
 pc.apply(n,'circuit');assert.equal(n.params.asciiMode,'edge');assert.equal(n.params.asciiFill,15);
 pc.apply(n,'retro');assert.equal(n.params.asciiScan,55);assert.equal(n.params.asciiColor,'mono');
+for(const preset of ['heatmap','ember','phosphor','arcade','cyanotype','vaporwave','sunset','paperback']){pc.apply(n,preset);assert.equal(n.params.asciiColor,'gradient');assert.equal(n.params.asciiBands,'ranges');assert.equal(n.params.asciiBand1Start,0);assert.equal(n.params.asciiBand5End,100);assert.equal(new Set([n.params.asciiDark,n.params.asciiLow,n.params.asciiMid,n.params.asciiHigh,n.params.asciiLight]).size,5);assert.match(html,new RegExp(`\\['${preset}', 'Tone map ·`));}
 assert.match(html,/await astAddFiles\(files, folder\)/);
 assert.match(html,/group\('Characters and grid'/);assert.match(html,/group\('Enhanced colors'/);assert.match(html,/group\('Retro effects and mix'/);
 
