@@ -83,6 +83,8 @@ jobs:
         run: node tests/cleanup.test.mjs
       - name: Texto (fontes instaladas via Local Font Access)
         run: node tests/text-fonts.test.mjs
+      - name: Texto → efeitos (RGBA direto, glow e reamostragem sem halo)
+        run: node tests/text-effects.test.mjs
       - name: Versão (VERSION = index.html = APK)
         run: node tests/version.test.mjs
       - name: Higiene (código morto, CSS sem uso, reference/ fora)
