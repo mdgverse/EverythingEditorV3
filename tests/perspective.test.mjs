@@ -151,7 +151,7 @@ const H0 = perspH(0, 0, 100);
 /* ---------- um passe: uniformes ---------- */
 const corpoMapa = recorta('function perspAplica(a, p) {', 'function perspSobre(a, b) {');
 const fonteDesloca = recorta('function perspDesloca(', '/* um passe de perspectiva');
-const passa = new Function('perspH', 'perspFitMap', 'perspDesloca', 'pointOp', corpoMapa + '\nreturn perspAplica;')(
+const passa = new Function('perspH', 'perspFitMap', 'perspDesloca', 'spatialOp', corpoMapa + '\nreturn perspAplica;')(
   perspH, perspFitMap, new Function(fonteDesloca + '\nreturn perspDesloca;')(), (a, prog, u) => ({ prog, u })
 );
 

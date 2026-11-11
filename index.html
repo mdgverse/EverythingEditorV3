@@ -437,7 +437,7 @@ html, body{overscroll-behavior:none;-webkit-tap-highlight-color:transparent}/* 1
 
 /* Versão do editor — o arquivo VERSION na raiz é a fonte da verdade
    (o build do APK usa o mesmo número no versionName e falha se divergir). */
-const APP_VERSION = '3.24.1';
+const APP_VERSION = '3.24.2';
 /* sem a telinha, a versão aparece no tooltip da marca (e o título da aba segue curto) */
 {
   const marca = document.getElementById('brandBtn');
@@ -4665,6 +4665,23 @@ void main(){
   outColor = vec4(clamp(d / 255.0, 0.0, 1.0), s.a);
 }`,
 
+  /* Alpha-correct resampling: spatial passes work on premultiplied RGB so a
+     transparent neighbour (RGB 0) cannot darken antialiased edges, then the
+     stored result is converted back to the editor's straight RGBA. */
+  premultiply: `
+uniform sampler2D uSrc;
+void main(){
+  vec4 s = texture(uSrc, vUv);
+  outColor = vec4(s.rgb * s.a, s.a);
+}`,
+
+  unpremultiply: `
+uniform sampler2D uSrc;
+void main(){
+  vec4 s = texture(uSrc, vUv);
+  outColor = s.a > 0.0001 ? vec4(clamp(s.rgb / s.a, 0.0, 1.0), s.a) : vec4(0.0);
+}`,
+
   /* Separable Gaussian blur (one direction per pass) */
   blur: `
 uniform sampler2D uSrc;
@@ -6369,17 +6386,17 @@ uniform sampler2D uSrc;
 uniform vec2 uTexel;
 uniform float uThr, uPre, uUseTint;
 uniform vec3 uTint;
-vec4 pre(vec3 c){
-  if (uPre < 0.5) return vec4(c, 1.0);
-  float y = dot(c, LUMA);
-  float k = clamp((y - uThr) / max(1.0 - uThr, 0.0001), 0.0, 1.0);
-  return vec4((uUseTint > 0.5 ? uTint : c) * k, k);
+vec4 pre(vec4 s){
+  if (uPre < 0.5) return s;   // deeper levels already carry premultiplied glow
+  float y = dot(s.rgb, LUMA);
+  float k = clamp((y - uThr) / max(1.0 - uThr, 0.0001), 0.0, 1.0) * s.a;
+  return vec4((uUseTint > 0.5 ? uTint : s.rgb) * k, k);
 }
 void main(){
-  vec4 c = pre(texture(uSrc, vUv + vec2(-1.0,-1.0)*uTexel).rgb)
-         + pre(texture(uSrc, vUv + vec2( 1.0,-1.0)*uTexel).rgb)
-         + pre(texture(uSrc, vUv + vec2(-1.0, 1.0)*uTexel).rgb)
-         + pre(texture(uSrc, vUv + vec2( 1.0, 1.0)*uTexel).rgb);
+  vec4 c = pre(texture(uSrc, vUv + vec2(-1.0,-1.0)*uTexel))
+         + pre(texture(uSrc, vUv + vec2( 1.0,-1.0)*uTexel))
+         + pre(texture(uSrc, vUv + vec2(-1.0, 1.0)*uTexel))
+         + pre(texture(uSrc, vUv + vec2( 1.0, 1.0)*uTexel));
   outColor = c * 0.25;
 }`,
 
@@ -6399,26 +6416,37 @@ void main(){
   outColor = texture(uBase, vUv) + r / 16.0;
 }`,
 
-  /* screen with the glow (non-premultiplied colour, weight = alpha * intensity), same as the original canvas */
+  /* Screen with the glow, then composite that foreground over the glow layer:
+     the halo gets its own alpha, so it stays visible around transparent
+     content (text, cut-outs) instead of living only inside the source alpha. */
   bloomComp: `
 uniform sampler2D uSrc, uGlow;
 uniform float uK;
 void main(){
   vec4 s = texture(uSrc, vUv);
   vec4 g = texture(uGlow, vUv);
-  vec3 c = g.rgb / max(g.a, 0.0001);
-  float a = clamp(g.a * uK, 0.0, 1.0);
+  vec3 c = clamp(g.rgb / max(g.a, 0.0001), 0.0, 1.0);
+  float ga = clamp(g.a * uK, 0.0, 1.0);
   vec3 sc = 1.0 - (1.0 - s.rgb) * (1.0 - c);
-  outColor = vec4(mix(s.rgb, sc, a), s.a);
+  vec3 fg = mix(s.rgb, sc, ga);
+  float oa = s.a + ga * (1.0 - s.a);
+  vec3 rgb = oa > 0.0001 ? (fg * s.a + c * ga * (1.0 - s.a)) / oa : vec3(0.0);
+  outColor = vec4(clamp(rgb, 0.0, 1.0), oa);
 }`,
 
-  /* 'lighter' (add) of the glow, used by the Glitch Glow */
+  /* 'lighter' (add) of the glow, used by the Glitch Glow — the added light
+     also lands behind transparent pixels, with the glow's own alpha. */
   addGlow: `
 uniform sampler2D uSrc, uGlow;
 uniform float uK;
 void main(){
   vec4 s = texture(uSrc, vUv);
-  outColor = vec4(clamp(s.rgb + texture(uGlow, vUv).rgb * uK, 0.0, 1.0), s.a);
+  vec4 g = texture(uGlow, vUv);
+  float ga = clamp(g.a * uK, 0.0, 1.0);
+  float oa = s.a + ga * (1.0 - s.a);
+  vec3 premult = s.rgb * s.a + g.rgb * uK * (1.0 - s.a);
+  vec3 rgb = oa > 0.0001 ? clamp(premult / oa, 0.0, 1.0) : vec3(0.0);
+  outColor = vec4(rgb, oa);
 }`,
 
   /* ---- Glitch: passo 1 (fatias, separação RGB, jitter, halftone, bandas, dropout) ---- */
@@ -9146,6 +9174,29 @@ function pointOp(a, prog, uni, extra) {
   draw(prog, e, Object.assign({ uSrc: a.tex }, extra || {}), uni);
   return mkRes(e);
 }
+/* Spatial/resampling passes: run the shader on a premultiplied copy and
+   convert back afterwards. Filtering straight RGBA lets the black RGB of
+   transparent pixels bleed into antialiased edges (dark halos on text);
+   premultiplied filtering keeps the edge colour at every alpha level. */
+function spatialOp(a, prog, uni, extra) {
+  if (!a) return null;
+  const pre = acquire(a.w, a.h), mid = acquire(a.w, a.h), out = acquire(a.w, a.h);
+  draw('premultiply', pre, { uSrc: a.tex }, {});
+  draw(prog, mid, Object.assign({ uSrc: pre.tex }, extra || {}), uni);
+  draw('unpremultiply', out, { uSrc: mid.tex }, {});
+  pre.busy = false; mid.busy = false;
+  return mkRes(out);
+}
+/* Gaussian blur in premultiplied space (same reason as spatialOp). */
+function gaussianBlurRes(a, sigma) {
+  const pre = acquire(a.w, a.h), t = acquire(a.w, a.h), b = acquire(a.w, a.h), r = acquire(a.w, a.h);
+  draw('premultiply', pre, { uSrc: a.tex }, {});
+  draw('blur', t, { uSrc: pre.tex }, { uDir: [1 / a.w, 0], uSigma: sigma });
+  draw('blur', b, { uSrc: t.tex }, { uDir: [0, 1 / a.h], uSigma: sigma });
+  draw('unpremultiply', r, { uSrc: b.tex }, {});
+  pre.busy = false; t.busy = false; b.busy = false;
+  return mkRes(r);
+}
 
 function runImage(n) {
   const src = getSource(n);
@@ -9179,24 +9230,18 @@ function runBlur(n, [a]) {
   if (!a) return null;
   const sigma = n.params.radius, passes = n.params.passes | 0;
   if (sigma < 0.05 || passes < 1) return ptRes(a);
-  const r = acquire(a.w, a.h), t = acquire(a.w, a.h);
   // N passes of a Gaussian with sigma are equivalent to one with sigma*sqrt(N) (variances add up)
-  const effSigma = sigma * Math.sqrt(passes);
-  draw('blur', t, { uSrc: a.tex }, { uDir: [1 / a.w, 0], uSigma: effSigma });
-  draw('blur', r, { uSrc: t.tex }, { uDir: [0, 1 / a.h], uSigma: effSigma });
-  t.busy = false;
-  return mkRes(r);
+  return gaussianBlurRes(a, sigma * Math.sqrt(passes));
 }
 
 function runSharpen(n, [a]) {
   if (!a) return null;
   const p = n.params;
   if (p.amount <= 0) return ptRes(a);
-  const t = acquire(a.w, a.h), b = acquire(a.w, a.h), r = acquire(a.w, a.h);
-  draw('blur', t, { uSrc: a.tex }, { uDir: [1 / a.w, 0], uSigma: p.radius });
-  draw('blur', b, { uSrc: t.tex }, { uDir: [0, 1 / a.h], uSigma: p.radius });
-  draw('sharpen', r, { uOrig: a.tex, uBlur: b.tex }, { uAmt: p.amount / 100, uTh: p.threshold });
-  t.busy = false; b.busy = false;
+  const blurred = gaussianBlurRes(a, p.radius);
+  const r = acquire(a.w, a.h);
+  draw('sharpen', r, { uOrig: a.tex, uBlur: blurred.tex }, { uAmt: p.amount / 100, uTh: p.threshold });
+  if (blurred.pooled) blurred.pooled.busy = false;
   return mkRes(r);
 }
 
@@ -23574,7 +23619,7 @@ function perspAplica(a, p) {
   const fin = perspFitMap(perspH(Number(p.horiz) || 0, Number(p.vert) || 0, p.depth), asp, Math.max(asp, 1));
   const inv = [[fin[0], fin[3], fin[6]], [fin[1], fin[4], fin[7]], [fin[2], fin[5], fin[8]]];
   const desl = perspDesloca(p, asp, Math.max(asp, 1));
-  return pointOp(a, 'perspectiveFx', {
+  return spatialOp(a, 'perspectiveFx', {
     uHx: inv[0], uHy: inv[1], uHz: inv[2],
     uShift: desl,
     uMode: p.modo === 'sphere' ? 1 : 0,
@@ -23880,7 +23925,7 @@ const RUN = {
   twistBend: (n, [a]) => {
     if (!a) return null;
     const p = n.params;
-    return pointOp(a, 'twistBend', {
+    return spatialOp(a, 'twistBend', {
       uCentro: [(Number(p.centroX) || 0) / 100, 1 - (Number(p.centroY) || 0) / 100],
       uTModo: p.modo === 'curvar' ? 1 : 0, uTQuant: (Number(p.quantidade) || 0) / 100,
     });
@@ -23992,9 +24037,9 @@ const RUN = {
     const p = n.params, th = p.rotation * Math.PI / 180;
     const pct = p.unit === 'pct';                   // old projects stay in %
     const tx = pct ? p.x / 100 * a.w : p.x, ty = pct ? p.y / 100 * a.h : p.y;
-    return pointOp(a, 'transform', { uRes: [a.w, a.h], uT: [tx, ty], uRot: th, uScale: p.scale });
+    return spatialOp(a, 'transform', { uRes: [a.w, a.h], uT: [tx, ty], uRot: th, uScale: p.scale });
   },
-  flip: (n, [a]) => { const h = n.params.axis === 'h' ? 1 : 0; return pointOp(a, 'flip', { uFX: h, uFY: 1 - h }); },
+  flip: (n, [a]) => { const h = n.params.axis === 'h' ? 1 : 0; return spatialOp(a, 'flip', { uFX: h, uFY: 1 - h }); },
   lensDistortion: (n, [a]) => {
     if (!a) return null;
     const p = n.params;
