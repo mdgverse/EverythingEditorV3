@@ -437,7 +437,7 @@ html, body{overscroll-behavior:none;-webkit-tap-highlight-color:transparent}/* 1
 
 /* Versão do editor — o arquivo VERSION na raiz é a fonte da verdade
    (o build do APK usa o mesmo número no versionName e falha se divergir). */
-const APP_VERSION = '3.24.2';
+const APP_VERSION = '3.24.3';
 /* sem a telinha, a versão aparece no tooltip da marca (e o título da aba segue curto) */
 {
   const marca = document.getElementById('brandBtn');
@@ -3267,7 +3267,7 @@ const NODE_TYPES = {
     title: 'Layer mix', cat: 'compose', inputs: ['Image'],
     params: [
       NUM('opacity', 'Opacity', 0, 100, 45),
-      ENUM('blend', 'Blend', [['screen', 'Screen'], ['multiply', 'Multiply'], ['overlay', 'Overlay'], ['source-over', 'Normal']], 'screen'),
+      ENUM('blend', 'Blend', [['screen', 'Screen'], ['multiply', 'Multiply'], ['overlay', 'Overlay'], ['source-over', 'Normal'], ['dissolve', 'Dissolve']], 'screen'),
       ENUM('biCanal', 'Blend If · channel', [['cinza', 'Luminance'], ['r', 'Red'], ['g', 'Green'], ['b', 'Blue']], 'cinza'),
       NUM('biTLo0', 'Blend If · top hides below', 0, 255, 0), NUM('biTLo1', 'Blend If · top returns above', 0, 255, 0),
       NUM('biTHi0', 'Blend If · top stays below', 0, 255, 255), NUM('biTHi1', 'Blend If · top hides above', 0, 255, 255),
@@ -4726,7 +4726,8 @@ ${BLEND_GLSL}void main(){
   vec4 b = texture(uB, vUv);
   if (uMode == 26) {
     float h = fract(sin(dot(gl_FragCoord.xy, vec2(12.9898, 78.233))) * 43758.5453);
-    outColor = vec4(h < uFac ? b.rgb : a.rgb, a.a);
+    float prob = clamp(uFac, 0.0, 1.0) * b.a;
+    outColor = h < prob ? vec4(b.rgb, 1.0) : a;
     return;
   }
   vec3 r = blendRGB(a.rgb, b.rgb);
@@ -7931,8 +7932,17 @@ void main(){
     f *= biPesoG(vt, uBiT0, uBiT1, uBiT2, uBiT3) * biPesoG(vu, uBiU0, uBiU1, uBiU2, uBiU3);
   }
   if (uMode == 26) {
+    // Dissolve: whole pixels switch from A to B. The probability is the
+    // factor times B's own alpha; a switched pixel takes B at full alpha,
+    // so B can appear over a transparent A instead of inheriting A's alpha.
     float h = fract(sin(dot(gl_FragCoord.xy, vec2(12.9898, 78.233))) * 43758.5453);
-    outColor = vec4(h < f ? b.rgb : a.rgb, a.a);
+    float prob = clamp(f, 0.0, 1.0) * b.a;
+    if (uTipo == 1) {
+      float la = dot(a.rgb, LUMA), lb = dot(b.rgb, LUMA);
+      outColor = h < prob ? vec4(vec3(lb), 1.0) : vec4(vec3(la), a.a);
+    } else {
+      outColor = h < prob ? vec4(b.rgb, 1.0) : a;
+    }
     return;
   }
   if (uTipo == 1) {
@@ -11312,11 +11322,13 @@ function biLe(p) {
 function fx7LayerMix(srcCanvas, W, H, p) {
   const cv = fx7NewCanvas(W, H);
   const ctx = cv.getContext('2d');
+  const dissolve = p.blend === 'dissolve';
+  const opacity = Math.min(1, Math.max(0, Number(p.opacity ?? 45) / 100));
   ctx.drawImage(srcCanvas, 0, 0);                       // a camada, uma vez só
-  ctx.globalAlpha = Number(p.opacity ?? 45) / 100;
-  ctx.globalCompositeOperation = p.blend || 'screen';
+  ctx.globalAlpha = dissolve ? 1 : opacity;
+  ctx.globalCompositeOperation = dissolve ? 'source-over' : (p.blend || 'screen');
   const bi = biLe(p);
-  if (!bi.on) {
+  if (!bi.on && !dissolve) {
     ctx.drawImage(srcCanvas, 0, 0);                     // a mistura acontece no lugar
   } else {
     const top = fx7NewCanvas(W, H);
@@ -11327,8 +11339,17 @@ function fx7LayerMix(srcCanvas, W, H, p) {
     const dd = im.data;
     for (let i = 0; i < dd.length; i += 4) {
       if (dd[i + 3] === 0) continue;
-      const w = biPeso255(biValor255(dd, i, bi.canal), bi.t) * biPeso255(biValor255(bd, i, bi.canal), bi.u);
-      if (w < 0.999) dd[i + 3] = Math.round(dd[i + 3] * w);
+      const w = bi.on ? biPeso255(biValor255(dd, i, bi.canal), bi.t) * biPeso255(biValor255(bd, i, bi.canal), bi.u) : 1;
+      if (dissolve) {
+        // Dissolve is stochastic, not a Canvas composite op: each pixel is
+        // either kept as the base or replaced by a fully opaque copy of
+        // itself, with probability opacity × source alpha × Blend If.
+        const px = i / 4, x = px % W, y = Math.floor(px / W);
+        let h = (Math.imul(x + 1, 374761393) + Math.imul(y + 1, 668265263)) >>> 0;
+        h = Math.imul(h ^ (h >>> 13), 1274126177) >>> 0;
+        const hash = ((h ^ (h >>> 16)) >>> 0) / 4294967296;
+        dd[i + 3] = hash < opacity * (dd[i + 3] / 255) * w ? 255 : 0;
+      } else if (w < 0.999) dd[i + 3] = Math.round(dd[i + 3] * w);
     }
     tctx.putImageData(im, 0, 0);
     ctx.drawImage(top, 0, 0);
@@ -25768,6 +25789,44 @@ function perspDelSocket(n, idx) {
 
 function hexRgb01(h) { const v = fx5Hex(h); return [v.r / 255, v.g / 255, v.b / 255]; }
 
+// Dissolve for the Canvas 2D layer engine: 'dissolve' is not a native
+// globalCompositeOperation, so whole pixels are switched one by one.
+// A switched pixel takes the top colour at full alpha; the probability is
+// the top pixel's effective alpha (source alpha × layer opacity).
+function dissolveCanvasOnto(ctx, srcCanvas) {
+  const W = ctx.canvas.width, H = ctx.canvas.height;
+  const img = ctx.getImageData(0, 0, W, H), bd = img.data;
+  const sd = srcCanvas.getContext('2d').getImageData(0, 0, W, H).data;
+  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+    const i = (y * W + x) * 4, sa = sd[i + 3];
+    if (!sa) continue;
+    let h = (Math.imul(x + 1, 374761393) + Math.imul(y + 1, 668265263)) >>> 0;
+    h = Math.imul(h ^ (h >>> 13), 1274126177) >>> 0;
+    if (((h ^ (h >>> 16)) >>> 0) / 4294967296 < sa / 255) {
+      bd[i] = sd[i]; bd[i + 1] = sd[i + 1]; bd[i + 2] = sd[i + 2]; bd[i + 3] = 255;
+    }
+  }
+  ctx.putImageData(img, 0, 0);
+}
+// Clipped variant: a switched pixel takes the top colour but keeps the
+// base layer's alpha (the clip outline), as in the GPU layerClip pass.
+function dissolveClippedCanvasOnto(ctx, clippedCanvas) {
+  const W = ctx.canvas.width, H = ctx.canvas.height;
+  const img = ctx.getImageData(0, 0, W, H), bd = img.data;
+  const cd = clippedCanvas.getContext('2d').getImageData(0, 0, W, H).data;
+  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+    const i = (y * W + x) * 4, ba = bd[i + 3];
+    if (!ba) continue;
+    const prob = Math.min(1, cd[i + 3] / ba);   // destination-in already multiplied by the base alpha
+    let h = (Math.imul(x + 1, 374761393) + Math.imul(y + 1, 668265263)) >>> 0;
+    h = Math.imul(h ^ (h >>> 13), 1274126177) >>> 0;
+    if (((h ^ (h >>> 16)) >>> 0) / 4294967296 < prob) {
+      bd[i] = cd[i]; bd[i + 1] = cd[i + 1]; bd[i + 2] = cd[i + 2]; bd[i + 3] = ba;
+    }
+  }
+  ctx.putImageData(img, 0, 0);
+}
+
 // Non-destructive Canvas 2D engine with globalCompositeOperation = 'destination-in':
 // clips an upper layer (or group of layers) exactly by the alpha channel of the lower base layer.
 function composeLayerClipCanvas2D(baseCanvas, topCanvas, opts) {
@@ -25786,6 +25845,7 @@ function composeLayerClipCanvas2D(baseCanvas, topCanvas, opts) {
   cctx.globalAlpha = 1;
   cctx.globalCompositeOperation = 'destination-in';
   cctx.drawImage(baseCanvas, 0, 0, W, H);
+  if (o.blend === 'dissolve') { dissolveClippedCanvasOnto(ctx, clipped); return out; }
   // Composes the clipped content preserving exactly the alpha outline of the base layer
   ctx.globalCompositeOperation = o.blend && o.blend !== 'normal' ? o.blend : 'source-over';
   ctx.drawImage(clipped, 0, 0);
@@ -25821,9 +25881,12 @@ function renderLayerStackCanvas2D(layerCanvases, layerConfigs, width, height) {
           blend: C.blend || 'source-over',
         });
       }
-      octx.globalCompositeOperation = P.blend && P.blend !== 'normal' ? P.blend : 'source-over';
-      octx.drawImage(grp, 0, 0);
-      octx.globalCompositeOperation = 'source-over';
+      if (P.blend === 'dissolve') dissolveCanvasOnto(octx, grp);
+      else {
+        octx.globalCompositeOperation = P.blend && P.blend !== 'normal' ? P.blend : 'source-over';
+        octx.drawImage(grp, 0, 0);
+        octx.globalCompositeOperation = 'source-over';
+      }
     }
     i = nextIdx;
   }
