@@ -87,6 +87,8 @@ jobs:
         run: node tests/text-effects.test.mjs
       - name: Dissolve (Layer Position, Mix e Layer mix)
         run: node tests/dissolve.test.mjs
+      - name: Artboards (vários canvas por projeto)
+        run: node tests/artboards.test.mjs
       - name: Versão (VERSION = index.html = APK)
         run: node tests/version.test.mjs
       - name: Higiene (código morto, CSS sem uso, reference/ fora)
