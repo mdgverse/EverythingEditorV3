@@ -128,7 +128,7 @@ console.log('Displacement v6 · mapas, vetor, borda e ruído');
 
 /* ---------------------------------------------------- 8. painel com seções recolhíveis */
 {
-  ok(/const SEC   = \(key, label, tip\)/.test(html), 'existe o tipo de parâmetro SEC');
+  ok(/const SEC   = \(key, label, tip, closed\)/.test(html), 'existe o tipo de parâmetro SEC');
   ok(/if \(p\.type === 'sec'\) \{ destino = buildSection\(body, p\)\.body; continue; \}/.test(html),
     'buildControls abre uma seção e joga os controles seguintes dentro dela');
   ok(/if \(el\) \{ el\.dataset\.pkey = p\.key; destino\.append\(el\); \}/.test(html), 'os controles entram na seção corrente');

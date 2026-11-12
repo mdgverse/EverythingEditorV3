@@ -91,6 +91,8 @@ jobs:
         run: node tests/artboards.test.mjs
       - name: Ícone oficial (favicon e launcher Ouroboros)
         run: node tests/icon.test.mjs
+      - name: CRT Screen (categorias, interruptores e render otimizado)
+        run: node tests/crt-screen.test.mjs
       - name: Versão (VERSION = index.html = APK)
         run: node tests/version.test.mjs
       - name: Higiene (código morto, CSS sem uso, reference/ fora)
