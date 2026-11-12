@@ -78,7 +78,7 @@ ok(!existe('.github/workflows/fetch-reference.yml'), 'workflow que baixava a ref
 ok(existe('index.html') && existe('tests') && existe('android'), 'o que é usado continua no lugar');
 ok(existe('.nojekyll'), '.nojekyll preservado (o Pages precisa dele)');
 const readme = fs.readFileSync(new URL('../README.md', import.meta.url), 'utf8');
-ok(readme.includes('https://mdgverse.github.io/EverythingEditorV3/') && readme.includes('https://github.com/mdgverse/EverythingEditorV3/releases/download/apk-latest/EverythingEditor.apk'), 'README destaca o site e o APK');
+ok(readme.includes('https://mdgverse.github.io/EverythingEditorV3/') && readme.includes('https://github.com/mdgverse/EverythingEditorV3/releases/download/apk-latest/OuroborosEditor.apk'), 'README destaca o site e o APK');
 
 /* ---------- todo teste do projeto roda no CI, e nada de workflow sobrando ---------- */
 {

@@ -26,7 +26,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 /**
- * Casca Android do Everything Editor.
+ * Casca Android do Ouroboros Editor.
  *
  * O editor é um arquivo HTML único e offline. Ele é servido pelo WebView a partir
  * de assets/ usando uma origem https sintética (appassets.androidplatform.net), o que

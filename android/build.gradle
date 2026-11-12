@@ -1,4 +1,4 @@
-// Build do app Android (casca WebView) do Everything Editor.
+// Build do app Android (casca WebView) do Ouroboros Editor.
 // Não usa bibliotecas externas de propósito: menos peças para quebrar no CI.
 plugins {
     id 'com.android.application' version '8.7.3' apply false

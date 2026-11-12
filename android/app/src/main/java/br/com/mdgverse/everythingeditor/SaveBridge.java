@@ -22,13 +22,13 @@ import java.util.Map;
  *   chunk(id, base64)
  *   end(id)
  *
- * Os bytes vão para Downloads/Everything Editor/ pelo MediaStore, sem pedir
+ * Os bytes vão para Downloads/Ouroboros Editor/ pelo MediaStore, sem pedir
  * permissão de armazenamento (Android 10+).
  */
 public class SaveBridge {
 
     private static final String TAG = "EverythingEditorSave";
-    private static final String FOLDER = Environment.DIRECTORY_DOWNLOADS + "/Everything Editor";
+    private static final String FOLDER = Environment.DIRECTORY_DOWNLOADS + "/Ouroboros Editor";
 
     private static final class Item {
         OutputStream out;
@@ -107,7 +107,7 @@ public class SaveBridge {
             ContentValues cv = new ContentValues();
             cv.put(MediaStore.Downloads.IS_PENDING, 0);
             activity.getContentResolver().update(item.uri, cv, null, null);
-            toast("Salvo em Downloads/Everything Editor/" + item.name, false);
+            toast("Salvo em Downloads/Ouroboros Editor/" + item.name, false);
         } catch (Exception e) {
             Log.e(TAG, "end failed", e);
             toast("Falha ao finalizar o arquivo.", true);
