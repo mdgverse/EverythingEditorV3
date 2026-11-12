@@ -34,6 +34,8 @@ preto; legado: 48/72/96/144/192 cheios).
   assinatura existente — nunca regenerar nem substituir;
 - dados do usuário: nomes de IndexedDB/localStorage (`everything-editor-*`) e o
   formato dos projetos/backups continuam os mesmos;
-- a hashtag da comunidade `#everythingeditor` e a URL do site
-  (`mdgverse.github.io/EverythingEditorV3/`) — são identificadores dos posts e do
-  endereço já publicados, não texto de marca.
+- a hashtag da comunidade `#everythingeditor` — é o identificador dos posts já
+  publicados, não texto de marca;
+- a URL do site mudou por decisão do usuário em 2026-11-02: o repositório foi
+  renomeado para `OuroborosEditor` (`mdgverse.github.io/OuroborosEditor/`), e os
+  links internos (README, `CMTY_PAGES`, feed) foram atualizados junto.

@@ -242,7 +242,7 @@ ok(web.cmtyValidos(new Array(60).fill(0).map((_, i) => ({ id: i, platform: 'inst
   'corta no limite de 24');
 ok(web.cmtyEndereco('community/a.jpg') === 'community/a.jpg', 'no site a imagem é relativa');
 ok(web.cmtyEndereco('https://cdn/2.jpg') === 'https://cdn/2.jpg', 'URL absoluta passa intacta');
-ok(app.cmtyEndereco('community/a.jpg') === 'https://mdgverse.github.io/EverythingEditorV3/community/a.jpg',
+ok(app.cmtyEndereco('community/a.jpg') === 'https://mdgverse.github.io/OuroborosEditor/community/a.jpg',
   'no APK a imagem vem do Pages');
 ok(app.cmtyForaDoSite() && !web.cmtyForaDoSite(), 'detecta o WebView');
 
