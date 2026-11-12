@@ -3,7 +3,7 @@
  *
  * O site é estático (GitHub Pages) e o APK leva só o index.html, então não existe
  * servidor: quem faz o papel de backend é este script, rodando no GitHub Actions a
- * cada 6 horas. Ele consulta as APIs, baixa as miniaturas para community/ (o CDN do
+ * cada 3 horas. Ele consulta as APIs, baixa as miniaturas para community/ (o CDN do
  * Instagram expira; o arquivo local não) e grava community/feed.json + o seed no
  * index.html. O front lê esse JSON (ou o seed, no APK offline).
  *
@@ -26,7 +26,7 @@ const RAIZ = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 export const TAGS = ['everythingeditor', 'EverythingEditor'];
 export const LIMITE = 24;          // cartões no carrossel
 export const SEED_MAX = 12;        // quantos vão embutidos no index.html
-export const BLOG_PADRAO = 'mdgverse';   // posts do próprio blog, mesmo sem tag
+export const BLOG_PADRAO = 'mdgverse';   // blog lido direto — só post marcado entra
 export const FOTO_MAX = 1280;      // largura máxima baixada do CDN
 export const MINI_MAX = 320;       // largura da miniatura que fica no repositório
 const MINI_PESO = 120 * 1024;      // acima disso vale reencodar
@@ -72,6 +72,26 @@ export function fotoDeBlocos(blocos) {
   return escolheMidia(midias);
 }
 
+/** foto do post onde ela estiver: photos[] antigo, blocos NPF ou, num reblog, o trail */
+export function fotoDoPost(b) {
+  if (!b || typeof b !== 'object') return null;
+  const direta = melhorFoto((b.photos || [])[0]) || fotoDeBlocos(b.content);
+  if (direta) return direta;
+  for (const t of b.trail || []) {
+    const doTrail = t && fotoDeBlocos(t.content);
+    if (doTrail) return doTrail;
+  }
+  return null;
+}
+
+/** o post carrega a hashtag no campo de tags? (a legenda não conta) */
+export function temTag(b, tag) {
+  const alvo = String(tag || '').replace(/^#+/, '').trim().toLowerCase();
+  if (!alvo) return false;
+  return (Array.isArray(b && b.tags) ? b.tags : [])
+    .some(t => String(t).replace(/^#+/, '').trim().toLowerCase() === alvo);
+}
+
 /** blog/view/... é o link feio da API: volta para o endereço do post.
  *  Atenção: o id do Tumblr passa de 2^53, o JSON.parse arredonda — o id_string é o certo. */
 export function urlDoPost(b) {
@@ -110,7 +130,7 @@ export function normaliza(plataforma, brutos) {
       autor = b.username || null;
       legenda = b.caption || '';
     } else {
-      const foto = melhorFoto((b.photos || [])[0]) || fotoDeBlocos(b.content);
+      const foto = fotoDoPost(b);
       img = foto && foto.url;
       w = (foto && foto.w) || 0;
       h = (foto && foto.h) || 0;
@@ -136,10 +156,19 @@ export function normaliza(plataforma, brutos) {
   return saida;
 }
 
-/** junta, tira repetido (mesmo id ou mesma imagem) e corta no limite */
+/* instante do cartão: o Tumblr manda epoch (segundos), o Instagram manda ISO */
+function instante(it) {
+  const t = String((it && it.ts) || '').trim();
+  if (/^\d+$/.test(t)) return Number(t);
+  const ms = Date.parse(t);
+  return Number.isFinite(ms) ? ms / 1000 : 0;
+}
+
+/** do mais novo ao mais antigo, sem repetido (mesmo id ou mesma imagem), até o limite */
 export function escolhe(itens, limite = LIMITE) {
+  const ordenados = (itens || []).slice().sort((a, b) => instante(b) - instante(a));
   const vistos = new Set(), vistosImg = new Set(), saida = [];
-  for (const it of itens || []) {
+  for (const it of ordenados) {
     if (!it || !it.id || !it.img || !it.url) continue;
     if (vistos.has(it.id) || vistosImg.has(it.img)) continue;
     vistos.add(it.id);
@@ -170,22 +199,30 @@ export async function buscaInstagram(tag, token, userId) {
 }
 
 export async function buscaTumblr(tag, chave) {
-  const r = await json(`${API_TB}?tag=${encodeURIComponent(tag)}&limit=20&api_key=${encodeURIComponent(chave)}`);
+  const r = await json(`${API_TB}?tag=${encodeURIComponent(tag)}&limit=20&npf=true&api_key=${encodeURIComponent(chave)}`);
   const lista = (r && r.response) || [];
-  return normaliza('tumblr', lista.filter(p => p && (p.type === 'photo' || (p.photos && p.photos.length))));
+  /* sem filtro por type/photos: post do editor novo é NPF (type "text" com bloco de
+     imagem, sem photos[]) — quem decide é o normaliza, que exige imagem de verdade */
+  return normaliza('tumblr', lista);
 }
 
 export function postsDaResposta(r) {
   return (r && r.response && r.response.posts) || [];
 }
 
-/** posts do próprio blog **marcados com a hashtag** (os sem tag ficam de fora) */
+/** posts do próprio blog **marcados com a hashtag** (os sem tag ficam de fora).
+ *  Duas consultas: a da API com ?tag= e a lista recente conferida aqui pelas tags
+ *  do post — se o filtro da API falhar com alguma grafia/formato, a outra pega. */
 export async function buscaBlog(blog, chave, tag, limite = 20) {
   const nome = String(blog || '').replace(/^https?:\/\//, '').replace(/\/+$/, '');
-  const url = `${API_BLOG}${encodeURIComponent(nome)}.tumblr.com/posts` +
-    `?limit=${limite}&filter=text&npf=true${tag ? '&tag=' + encodeURIComponent(tag) : ''}` +
-    `&api_key=${encodeURIComponent(chave)}`;
-  return normaliza('tumblr', postsDaResposta(await json(url)));
+  const base = `${API_BLOG}${encodeURIComponent(nome)}.tumblr.com/posts` +
+    `?limit=${limite}&filter=text&npf=true`;
+  const chaveQ = `&api_key=${encodeURIComponent(chave)}`;
+  if (!tag) return normaliza('tumblr', postsDaResposta(await json(base + chaveQ)));
+  const marcados = postsDaResposta(await json(base + '&tag=' + encodeURIComponent(tag) + chaveQ));
+  const recentes = postsDaResposta(await json(base + chaveQ));
+  const daLista = recentes.filter(p => temTag(p, tag));
+  return escolhe(normaliza('tumblr', marcados.concat(daLista)), limite);
 }
 
 /* ------------------------------------------------------------------ cache */
@@ -322,7 +359,7 @@ export async function publica({ itens, avisos, fontes = [] }, raiz = RAIZ, seco 
   const arquivo = path.join(raiz, FEED);
   let antes = null;
   try { antes = JSON.parse(await fs.readFile(arquivo, 'utf8')); } catch (_) {}
-  /* nada mudou? não grava — senão o cron faria um commit a cada 6 h à toa */
+  /* nada mudou? não grava — senão o cron faria um commit a cada 3 h à toa */
   const igual = !!antes && JSON.stringify(antes.items) === JSON.stringify(itens) &&
     JSON.stringify(antes.notices) === JSON.stringify(avisos);
   const dados = {
