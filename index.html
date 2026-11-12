@@ -470,7 +470,7 @@ html, body{overscroll-behavior:none;-webkit-tap-highlight-color:transparent}/* 1
 
 /* Versão do editor — o arquivo VERSION na raiz é a fonte da verdade
    (o build do APK usa o mesmo número no versionName e falha se divergir). */
-const APP_VERSION = '1.1.3';
+const APP_VERSION = '1.1.4';
 /* tooltip do botão da marca: só o nome do produto (a versão é metadado, não entra na marca) */
 {
   const marca = document.getElementById('brandBtn');
@@ -32352,7 +32352,9 @@ async function importMasks(list, keepIds) {
 }
 // swaps the saved ids for the session ids (nodes and stack items)
 function remapMasks(data, map) {
-  for (const nd of data.nodes || []) {
+  const listas = [data.nodes || []];
+  if (data.ab) for (const e of data.ab.list || []) listas.push(((e.graph || {}).nodes) || []);
+  for (const lista of listas) for (const nd of lista) {
     const p = nd.params; if (!p) continue;
     if (p.maskId) p.maskId = map.get(p.maskId) || 0;
   }
@@ -33078,6 +33080,7 @@ async function loadGraphData(data) {
     idMap.set(Number(oldId), nid);
   }
   for (const nd of data.nodes || []) if (nd.imgId != null) nd.imgId = idMap.has(nd.imgId) ? idMap.get(nd.imgId) : null;
+  if (data.ab) for (const e of data.ab.list || []) for (const nd of ((e.graph || {}).nodes || [])) if (nd.imgId != null) nd.imgId = idMap.has(nd.imgId) ? idMap.get(nd.imgId) : null;
   remapMasks(data, await importMasks(data.masks));
   restoreGraph(data);
   abCarregaDe(data);
