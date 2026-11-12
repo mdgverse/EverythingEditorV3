@@ -470,7 +470,7 @@ html, body{overscroll-behavior:none;-webkit-tap-highlight-color:transparent}/* 1
 
 /* Versão do editor — o arquivo VERSION na raiz é a fonte da verdade
    (o build do APK usa o mesmo número no versionName e falha se divergir). */
-const APP_VERSION = '1.1.1';
+const APP_VERSION = '1.1.2';
 /* tooltip do botão da marca: só o nome do produto (a versão é metadado, não entra na marca) */
 {
   const marca = document.getElementById('brandBtn');
@@ -886,7 +886,6 @@ const CATS = {
   retouch: { label: 'Retouch',     color: '#8a5a3a' },
   audio:   { label: 'Audio',       color: '#2e7d6b' },
   output:  { label: 'Output',       color: '#8a3b3b' },
-  generative: { label: 'Generative', color: '#4a7a3f' },
 };
 /* 3.3.11: lists of the Math, Vector and Voronoi/Waves nodes */
 const FXLOW_MATH_OPS = [['somar', 'Add'], ['subtrair', 'Subtract'], ['multiplicar', 'Multiply'], ['dividir', 'Divide'],
@@ -2190,7 +2189,7 @@ const NODE_TYPES = {
     ],
   },
   artboard: {
-    title: 'Artboard', cat: 'generative', inputs: [], outs: ['Image'],
+    title: 'Artboard', cat: 'input', inputs: [], outs: ['Image'],
     kw: 'artboard canvas size document page board prancheta tamanho tela',
     params: [
       NUM('fw', 'Width (px)', 1, 8192, 1024),

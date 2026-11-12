@@ -128,9 +128,9 @@ ok(/const a = createNode\('fill', 60, 140/.test(html), 'New Document continua na
 console.log('Artboards · integração');
 
 /* ---------- nó Artboard na categoria Generative ---------- */
-ok(/generative: \{ label: 'Generative'/.test(html), 'categoria Generative existe no menu Add');
-ok(/artboard: \{\n    title: 'Artboard', cat: 'generative', inputs: \[\], outs: \['Image'\]/.test(html),
-  'nó Artboard é fonte de imagem (sem entradas) na Generative');
+ok(/artboard: \{\n    title: 'Artboard', cat: 'input', inputs: \[\], outs: \['Image'\]/.test(html),
+  'nó Artboard é fonte de imagem (sem entradas) na categoria Input');
+ok(!/cat: 'generative'/.test(html) && !/generative: \{ label:/.test(html), 'categoria Generative saiu (o Artboard era o único nó dela)');
 ok(/artboard: n => runArtboard\(n\)/.test(html) && /function runArtboard/.test(html), 'RUN do Artboard registrado');
 ok(/c\.width = W; c\.height = H;/.test(extrai('function runArtboard', '/* ---------- Fill gradient')) &&
    !/fillDesenha|fillGradFx/.test(extrai('function runArtboard', '/* ---------- Fill gradient')),
