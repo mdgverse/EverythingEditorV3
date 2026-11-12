@@ -34,13 +34,13 @@ for (const d of defs) padroes[d.key] = d.def;
 
 /* --- bloco puro de ativações --- */
 const puro = extrai('/* CRT_PURO_INI */', '/* CRT_PURO_FIM */');
-const P = new Function(puro + '\nreturn { CRT_GRUPOS, CRT_KEYS, CRT_NEUTRO, crtParamAtivo, crtEffectiveParams, crtAplicarDefaults };')();
-const { CRT_GRUPOS, CRT_KEYS, CRT_NEUTRO, crtParamAtivo, crtEffectiveParams, crtAplicarDefaults } = P;
+const P = new Function(puro + '\nreturn { CRT_GRUPOS, CRT_KEYS, CRT_NEUTRO, crtParamAtivo, crtEffectiveParams, crtAplicarDefaults, crtMaskDePixels };')();
+const { CRT_GRUPOS, CRT_KEYS, CRT_NEUTRO, crtParamAtivo, crtEffectiveParams, crtAplicarDefaults, crtMaskDePixels } = P;
 
 console.log('CRT Screen · parâmetros e categorias');
 
 /* 1. nó novo: defaults visuais atuais + tudo ligado */
-ok(defs.length === 24, 'os 24 parâmetros existentes continuam lá', defs.length);
+ok(defs.length === 25, 'os 24 parâmetros existentes + Module scale', defs.length);
 ok(padroes.style === 'color' && padroes.curvature === 26 && padroes.scanlines === 58 && padroes.grille === 62 &&
    padroes.phosphor === 34 && padroes.chroma === 3.5 && padroes.glow === 34 && padroes.mix === 100 && padroes.seed === 4,
   'valores padrão visuais não mudaram');
@@ -52,7 +52,7 @@ ok(defs.every(d => crtParamAtivo({ ...padroes }, d.key)), 'nó novo inicia com t
 const chavesGrupos = CRT_GRUPOS.flatMap(g => g[1]);
 ok(JSON.stringify([...chavesGrupos].sort()) === JSON.stringify(defs.map(d => d.key).sort()), 'categorias cobrem todos os parâmetros exatamente uma vez');
 ok(JSON.stringify(CRT_GRUPOS.map(g => g[0])) === JSON.stringify(secs.map(d => d.key)), 'grupos do bloco puro batem com as seções do painel');
-ok(secs.length === 6 && secs.every(d => d.closed), 'todas as categorias nascem recolhidas (closed)');
+ok(secs.length === 7 && secs.every(d => d.closed), 'todas as categorias nascem recolhidas (closed)');
 ok(/gravado === null && p\.closed/.test(html), 'buildSection respeita o padrão recolhido só na primeira abertura (depois vale a escolha do usuário)');
 ok(JSON.stringify(Object.keys(CRT_NEUTRO).sort()) === JSON.stringify([...CRT_KEYS].sort()), 'todo parâmetro tem um valor neutro definido');
 
@@ -157,8 +157,51 @@ const religado = roda({ ...padroes, crtOff: {} });
 ok(Buffer.from(religado).equals(Buffer.from(outDef)), 'religar todos volta ao resultado original, sem salto');
 
 /* otimização aplicada de verdade */
-ok(/fx12CRT\(s, W, H, n\.params, n\.runtime\)/.test(html), 'RUN reutiliza os buffers do runtime do nó');
+ok(/fx12CRT\(s, W, H, n\.params, n\.runtime, /.test(html), 'RUN reutiliza os buffers do runtime do nó');
 ok(/function crtScratch/.test(html) && /cache\._crt/.test(html), 'canvas/ImageData/tabelas são reutilizados entre renders');
 ok(!/const sample = \(sx, sy, ch\)/.test(extrai('function fx12CRT', '/* fx13 */')), 'amostragem por pixel não chama mais fx7Idx');
+
+console.log('CRT Screen · socket module');
+
+/* socket exatamente "module", sem remover o principal */
+ok(JSON.stringify(noDef.inputs) === JSON.stringify(['Image', 'module']), 'sockets do nó: Image + module');
+ok(padroes.moduleScale === 100 && CRT_NEUTRO.moduleScale === 100, 'Module scale nasce neutro em 100% e tem interruptor');
+ok(crtEffectiveParams({ ...padroes, crtOff: { moduleScale: false } }).moduleScale === 100, 'desligar o Module scale volta ao 100% neutro');
+
+/* conversão para máscara: preto ativo, branco/transparente neutros, AA suave */
+const masc = crtMaskDePixels(new Uint8ClampedArray([
+  0, 0, 0, 255,        // preto opaco
+  255, 255, 255, 255,  // branco opaco
+  0, 0, 0, 0,          // transparente
+  0, 0, 0, 128,        // preto meio alfa
+  128, 128, 128, 255,  // cinza (borda antialiased)
+]));
+ok(masc[0] === 255 && masc[1] === 0 && masc[2] === 0, 'preto vira região ativa; branco e transparente são neutros');
+ok(masc[3] === 128 && masc[4] === 127, 'alfa parcial e cinza de borda viram cobertura parcial (sem binarizar)');
+
+/* com module: a célula 2×1 [preto, neutro] escurece só as colunas pares */
+function fonteUniforme() {
+  const c = fx7NewCanvas(W, H);
+  for (let i = 0; i < c._data.length; i += 4) { c._data[i] = 200; c._data[i + 1] = 200; c._data[i + 2] = 200; c._data[i + 3] = 255; }
+  return c;
+}
+const limpo = { ...padroes, curvature: 0, scanlines: 0, grille: 100, phosphor: 0, glow: 0, noise: 0, vignette: 0, chroma: 0, brightness: 0, contrast: 0, rainbow: 0, overdrive: 0, sparkle: 0, streaks: 0, glitch: 0, roll: 0, mix: 100 };
+const mascCell = { data: new Uint8ClampedArray([255, 0]), w: 2, h: 1 };
+const comMod = mundo.fx12CRT(fonteUniforme(), W, H, { ...limpo }, {}, mascCell)._out.data;
+const semMod = mundo.fx12CRT(fonteUniforme(), W, H, { ...limpo }, {}, null)._out.data;
+const px = (d, x, y) => d[(y * W + x) * 4];
+ok(px(comMod, 32, 24) === 0 && px(comMod, 33, 24) > 0 && px(comMod, 32, 24) < px(semMod, 32, 24),
+  'célula do module se repete: coluna do preto escurece, a do neutro não');
+ok(comMod[(24 * W + 32) * 4 + 3] === 255 && semMod[(24 * W + 32) * 4 + 3] === 255, 'alfa da imagem principal é preservado com e sem module');
+const mascZero = { data: new Uint8ClampedArray(64 * 48), w: 64, h: 48 };
+ok(Buffer.from(mundo.fx12CRT(fonte(), W, H, { ...padroes }, {}, mascZero)._out.data)
+  .equals(Buffer.from(roda({ ...padroes, grille: 0 }))),
+  'module todo neutro = grille interno desligado (fator 1) — nenhum retângulo branco inserido');
+
+/* cache e fiação */
+ok(/crtScreen: \(n, \[a, b\]\)/.test(html) && /b \? crtModuleMask\(n, b, W, H, a\) : null/.test(html),
+  'RUN entrega a máscara do module (ou null quando desconectado)');
+ok(/c\.res === b && c\.cellW === cellW && c\.cellH === cellH/.test(html), 'cache da máscara: identidade da fonte + tamanho da célula');
+ok(/def\.inputs\[1\] === 'module'/.test(html), 'socket module é opcional para o efeito solto (imagem de teste continua)');
 
 process.exit(resumo() ? 0 : 1);

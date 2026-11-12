@@ -474,7 +474,7 @@ html, body{overscroll-behavior:none;-webkit-tap-highlight-color:transparent}/* 1
 
 /* Versão do editor — o arquivo VERSION na raiz é a fonte da verdade
    (o build do APK usa o mesmo número no versionName e falha se divergir). */
-const APP_VERSION = '1.2.0';
+const APP_VERSION = '1.3.0';
 /* tooltip do botão da marca: só o nome do produto (a versão é metadado, não entra na marca) */
 {
   const marca = document.getElementById('brandBtn');
@@ -3390,7 +3390,7 @@ const NODE_TYPES = {
     ],
   },
   crtScreen: {
-    title: 'CRT screen', cat: 'lens', inputs: ['Image'],
+    title: 'CRT screen', cat: 'lens', inputs: ['Image', 'module'],
     params: [
       SEC('crtStyle', 'Screen style', 'Phosphor color family, curved tube geometry and the darkened tube edges.', true),
       ENUM('style', 'Style', [['color', 'Color CRT'], ['green', 'Green phosphor'], ['amber', 'Amber terminal'], ['mono', 'Monochrome']], 'color'),
@@ -3409,6 +3409,8 @@ const NODE_TYPES = {
       SEC('crtGlow', 'Glow & exposure', 'Light bloom around bright areas and the final tone of the tube.', true),
       NUM('glow', 'Glow', 0, 100, 34), NUM('glowRadius', 'Glow radius', 0, 18, 5, 0.25),
       NUM('brightness', 'Glow Intensity', -80, 80, 4), NUM('contrast', 'Mask contrast', -80, 120, 18),
+      SEC('crtModule', 'Module', 'Custom pattern from the module socket (image, vector or black text): black areas darken the tube like the RGB grid; white/transparent are neutral. Disconnected = built-in phosphor pattern.', true),
+      NUM('moduleScale', 'Module scale', 10, 400, 100),
       SEC('crtOutput', 'Output', 'How strongly the tube image replaces the original, and the variation seed.', true),
       NUM('mix', 'Blend', 0, 100, 100), NUM('seed', 'Seed', 0, 99, 4),
     ],
@@ -11814,6 +11816,7 @@ const CRT_GRUPOS = [
   ['crtScan', ['scanlines', 'scanSpacing', 'noise', 'roll', 'glitch']],
   ['crtColor', ['rainbow', 'rainbowScale', 'overdrive', 'sparkle', 'streaks', 'chroma']],
   ['crtGlow', ['glow', 'glowRadius', 'brightness', 'contrast']],
+  ['crtModule', ['moduleScale']],
   ['crtOutput', ['mix', 'seed']],
 ];
 const CRT_KEYS = CRT_GRUPOS.flatMap(g => g[1]);
@@ -11823,6 +11826,7 @@ const CRT_NEUTRO = {
   scanlines: 0, scanSpacing: 3, noise: 0, roll: 0, glitch: 0,
   rainbow: 0, rainbowScale: 90, overdrive: 0, sparkle: 0, streaks: 0, chroma: 0,
   glow: 0, glowRadius: 5, brightness: 0, contrast: 0,
+  moduleScale: 100,
   mix: 100, seed: 4,
 };
 function crtParamAtivo(p, key) { return !(p && p.crtOff && typeof p.crtOff === 'object' && p.crtOff[key] === false); }
@@ -11831,6 +11835,16 @@ function crtEffectiveParams(p) {
   const out = { ...src };
   for (const k of CRT_KEYS) if (!crtParamAtivo(src, k)) out[k] = CRT_NEUTRO[k];
   return out;
+}
+function crtMaskDePixels(px) {
+  /* célula do module em tons de cinza: 255 = preto ativo (escurece),
+     0 = branco/transparente neutro. Sem binarizar: AA preservado. */
+  const data = new Uint8ClampedArray((px.length / 4) | 0);
+  for (let i = 0, j = 0; i < px.length; i += 4, j++) {
+    const lum = (0.2126 * px[i] + 0.7152 * px[i + 1] + 0.0722 * px[i + 2]) / 255;
+    data[j] = Math.round((px[i + 3] / 255) * (1 - lum) * 255);
+  }
+  return data;
 }
 function crtAplicarDefaults(params, defParams) {
   for (const d of defParams || []) {
@@ -11859,8 +11873,33 @@ function crtScratch(cache, W, H) {
   return scr;
 }
 
-function fx12CRT(srcCanvas, W, H, p, cache) {
+/* Pattern do socket `module`: rasteriza a fonte (imagem/vetor/texto) uma
+   única vez por revisão da fonte e devolve a máscara da célula já no
+   tamanho de trabalho. Chave do cache: o próprio resultado da fonte +
+   dimensões da célula — editar outro parâmetro reutiliza; editar a fonte
+   gera um resultado novo no grafo e invalida. A fonte nunca é alterada. */
+function crtModuleMask(n, b, W, H, a) {
+  if (!b) return null;
+  const p = crtEffectiveParams(n.params);
+  const kW = W / Math.max(1, (a && (a.fw || a.w)) || W);
+  const kH = H / Math.max(1, (a && (a.fh || a.h)) || H);
+  const escala = (Number(p.moduleScale) || 100) / 100;
+  const cellW = Math.max(1, Math.round((b.fw || b.w) * escala * kW));
+  const cellH = Math.max(1, Math.round((b.fh || b.h) * escala * kH));
+  const cache = n.runtime || (n.runtime = {});
+  const c = cache._crtMod;
+  if (c && c.res === b && c.cellW === cellW && c.cellH === cellH) return c.mask;
+  const cell = fx7NewCanvas(cellW, cellH);
+  const g = cell.getContext('2d', { willReadFrequently: true });
+  drawImageHQ(g, fx7SrcCanvas(b), cellW, cellH);
+  const mask = { data: crtMaskDePixels(g.getImageData(0, 0, cellW, cellH).data), w: cellW, h: cellH };
+  cache._crtMod = { res: b, cellW, cellH, mask };
+  return mask;
+}
+
+function fx12CRT(srcCanvas, W, H, p, cache, modMask) {
   p = crtEffectiveParams(p);
+  const mod = (modMask && modMask.data && modMask.w > 0 && modMask.h > 0) ? modMask : null;
   const src = srcCanvas.getContext('2d', { willReadFrequently: true }).getImageData(0, 0, W, H).data;
   const glowAmount = Number(p.glow || 0) / 100;
   const glowRadius = Math.max(0, Number(p.glowRadius || 0));
@@ -11939,14 +11978,14 @@ function fx12CRT(srcCanvas, W, H, p, cache) {
     sxBA[x] = nx * cx;
     nxAbsA[x] = Math.abs(nx);
   }
-  if (!maskPorLinha) fillColMul(0);
+  if (!mod && !maskPorLinha) fillColMul(0);
   const segOn = scr.segOn, segAl = scr.segAl;
   for (let y = 0; y < H; y++) {
     const dy = y + 0.5 - cy, ny = dy / Math.max(1, cy), ny2 = ny * ny, nyAbs = Math.abs(ny), syB = ny * cy;
     let rowSync = 0;
     if (glitch > 0.001 && fx6Hash(Math.floor(y / 12) + seed * 31, seed) < glitch * 0.18) rowSync = (fx6Hash(y, seed) - 0.5) * glitch * 42;
     const rollOffset = (roll ? Math.sin(y * 0.018 + seed * 1.7) * roll * 0.24 : 0) + rowSync;
-    if (maskPorLinha) fillColMul(y);
+    if (!mod && maskPorLinha) fillColMul(y);
     /* streaks: a faixa e os segmentos são por linha — 1 hash por segmento, não por pixel */
     let rowStreak = false, segLen = 0;
     if (streaks > 0.001 && fx6Hash(y * 3 + 5, seed + 57) < streaks * 0.1) {
@@ -11996,8 +12035,14 @@ function fx12CRT(srcCanvas, W, H, p, cache) {
       }
       const scanWave = 0.5 + 0.5 * Math.sin((sy + seed) * Math.PI * 2 / spacing);
       const shade = 1 - scan * (0.14 + scanWave * 0.46);
-      const co = x * 3;
-      const pr = colMul[co], pg = colMul[co + 1], pb = colMul[co + 2];
+      let pr, pg, pb;
+      if (mod) {
+        const mf = 1 - grille * (mod.data[(y % mod.h) * mod.w + (x % mod.w)] / 255);
+        pr = pg = pb = mf;
+      } else {
+        const co = x * 3;
+        pr = colMul[co]; pg = colMul[co + 1]; pb = colMul[co + 2];
+      }
       const vign = clamp01(1 - Math.pow(Math.max(0, rr2 - 0.15), 1.2) * vignette * 0.92);
       const mask = fx9Smooth((1.06 - Math.max(nxAbsA[x], nyAbs)) * 6) * vign;
       const flicker = noise > 0.001 ? 1 + (fx6Hash(x + seed * 101, y - seed * 73) - 0.5) * noise * 0.34 : 1;
@@ -24801,7 +24846,7 @@ const RUN = {
   invertGhost: (n, [a]) => (a ? fx7Pixel(a, (s, o, W, H) => fx9Ghost(s, o, W, H, n.params)) : null),
   tron: (n, [a]) => (a ? fx7Canvas(a, (s, W, H) => fx10Tron(s, W, H, n.params)) : null),
   highlightStarburst: (n, [a]) => (a ? fx7Canvas(a, (s, W, H) => fx11Starburst(s, W, H, n.params)) : null),
-  crtScreen: (n, [a]) => (a ? fx7Canvas(a, (s, W, H) => fx12CRT(s, W, H, n.params, n.runtime)) : null),
+  crtScreen: (n, [a, b]) => (a ? fx7Canvas(a, (s, W, H) => fx12CRT(s, W, H, n.params, n.runtime, b ? crtModuleMask(n, b, W, H, a) : null)) : null),
   glassStudio: (n, [a, b]) => fxStudioRun(a, (s, W, H, pp) => {
     // Texture linked on Refraction: the texture replaces the built-in direction/pattern map
     const driven = !!b && (pp.glassMode || 'flutedPrism') === 'refractal';
@@ -25145,7 +25190,7 @@ function fxAutoSource() {
 function fxPodeSolto(n, def) {
   if (n.type === 'brush') return false;   // Brush with no image = its own layer (fw×fh)
   if (n.type === 'effectStack') return true;
-  if (!def || !def.inputs || def.inputs.length !== 1) return false;
+  if (!def || !def.inputs || !(def.inputs.length === 1 || def.inputs[1] === 'module')) return false;   // socket auxiliar 'module' é opcional
   if (def.outs && def.outs.length !== 1) return false;
   if (['input', 'output', 'mask', 'matte'].includes(def.cat)) return false;
   return !(def.params || []).some(p => ['file', 'paint', 'text', 'stack'].includes(p.type));
@@ -25184,7 +25229,7 @@ function evalNode(id) {
     const l = linkTo(id, i);
     return l ? evalSource(l) : null;
   });
-  if (ins.length === 1 && !ins[0] && fxPodeSolto(n, def)) ins[0] = fxAutoSource();
+  if (!ins[0] && fxPodeSolto(n, def)) ins[0] = fxAutoSource();
   const savedParams = fxFastParams(n, ins);   // 2.9.49: faithful light preview (parameters in px at the preview scale)
   let res = null;
   try {
