@@ -89,6 +89,8 @@ jobs:
         run: node tests/dissolve.test.mjs
       - name: Artboards (vários canvas por projeto)
         run: node tests/artboards.test.mjs
+      - name: Ícone oficial (favicon e launcher Ouroboros)
+        run: node tests/icon.test.mjs
       - name: Versão (VERSION = index.html = APK)
         run: node tests/version.test.mjs
       - name: Higiene (código morto, CSS sem uso, reference/ fora)
