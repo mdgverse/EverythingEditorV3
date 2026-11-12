@@ -153,4 +153,16 @@ ok(/'Artboard individual'/.test(html) && /'Carrossel — todos os Artboards'/.te
 ok(/JPG · com cor de fundo/.test(html) && /PNG · transparência/.test(html), 'formato sem alfa pede cor de fundo; PNG preserva transparência');
 ok(/Artboards \/ Output/.test(html) && /id="abManage"/.test(html), 'gerenciador descobrível na barra do editor');
 
+/* ---------- regressão 1.1.4: imagem de um projeto vazando para outro ----------
+   Ao abrir um projeto, loadGraphData dá ids novos às imagens do arquivo e
+   remapeia os nós. Os grafos dos Artboards também precisam ser remapeados:
+   sem isso, o Artboard restaurado aponta para a imagem de outro projeto. */
+const corpoLoad = extrai('async function loadGraphData(data) {', 'function downloadBlob');
+ok(/data\.ab\.list/.test(corpoLoad) && /idMap\.has\(nd\.imgId\) \? idMap\.get\(nd\.imgId\) : null;\n  remapMasks/.test(corpoLoad.replace(/\s+/g, ' ').replace('  ', ' ')) || /for \(const nd of \(\(e\.graph \|\| \{\}\)\.nodes \|\| \[\]\)\) if \(nd\.imgId != null\) nd\.imgId = idMap/.test(corpoLoad),
+  'abrir projeto remapeia os imgId dos grafos dos Artboards');
+ok(corpoLoad.indexOf('e.graph') > -1 && corpoLoad.indexOf('e.graph') < corpoLoad.indexOf('abCarregaDe(data)'),
+  'o remapeio acontece antes de restaurar o Artboard ativo');
+const corpoRemap = extrai('function remapMasks(data, map) {', '// autosave of the masks');
+ok(/data\.ab/.test(corpoRemap) && /listas/.test(corpoRemap), 'remapMasks também remapeia as máscaras dos Artboards');
+
 process.exit(resumo() ? 0 : 1);
