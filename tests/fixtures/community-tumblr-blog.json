@@ -6,7 +6,7 @@
       {
         "id": 832038252529762304, "id_string": "832038252529762304", "type": "text", "blog_name": "mdgverse",
         "post_url": "https://www.tumblr.com/blog/view/mdgverse/832038252529762304",
-        "timestamp": 1790395834,
+        "timestamp": 1790395834, "tags": ["everythingeditor", "dispatch"],
         "content": [
           {
             "type": "image",
@@ -22,7 +22,7 @@
       {
         "id": 832013690377322496, "id_string": "832013690377322496", "type": "text", "blog_name": "mdgverse",
         "post_url": "https://www.tumblr.com/blog/view/mdgverse/832013690377322496",
-        "timestamp": 1789980000,
+        "timestamp": 1789980000, "tags": ["EverythingEditor"],
         "content": [
           {
             "type": "image",
@@ -43,7 +43,7 @@
       {
         "id": 830768584126070784, "type": "text", "blog_name": "mdgverse",
         "post_url": "https://www.tumblr.com/blog/view/mdgverse/830768584126070784",
-        "timestamp": 1789000000,
+        "timestamp": 1789000000, "tags": ["everythingeditor"],
         "content": [{ "type": "text", "text": "I'm developing my own image editor" }]
       }
     ]

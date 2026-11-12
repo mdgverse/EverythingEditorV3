@@ -6,7 +6,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { ok, resumo } from './kit.mjs';
-import { normaliza, escolhe, trocaSeed, melhorFoto, fotoDeBlocos, urlDoPost, postsDaResposta, limpaCache, encolhe, MINI_MAX, buscaBlog, publica, TAGS, LIMITE, MARCA_INI, MARCA_FIM, BLOG_PADRAO, FOTO_MAX } from '../scripts/community.mjs';
+import { normaliza, escolhe, trocaSeed, melhorFoto, fotoDeBlocos, fotoDoPost, temTag, urlDoPost, postsDaResposta, limpaCache, encolhe, MINI_MAX, buscaBlog, buscaTumblr, publica, TAGS, LIMITE, MARCA_INI, MARCA_FIM, BLOG_PADRAO, FOTO_MAX } from '../scripts/community.mjs';
 
 const html = fs.readFileSync(new URL('../index.html', import.meta.url), 'utf8');
 const fixtures = n => JSON.parse(fs.readFileSync(new URL('./fixtures/' + n, import.meta.url), 'utf8'));
@@ -45,6 +45,13 @@ ok(blog[0].img === 'https://64.media.tumblr.com/dispatch_1280.jpg', 'NPF: imagem
 ok(blog[0].alt.includes('Dispatch'), 'texto do bloco vira alt', blog[0].alt);
 ok(blog[1].img === 'https://64.media.tumblr.com/queen_1600.jpg', 'sem versão menor, usa a que tem', blog[1].img);
 ok(fotoDeBlocos([{ type: 'text', text: 'oi' }]) === null, 'bloco sem imagem é ignorado');
+ok(fotoDoPost({ trail: [{ content: [{ type: 'image', media: [{ url: 'https://64.media.tumblr.com/t.jpg', width: 800 }] }] }] }).url ===
+  'https://64.media.tumblr.com/t.jpg', 'reblog: a foto vem do trail');
+ok(fotoDoPost({ content: [{ type: 'text', text: 'oi' }] }) === null, 'nem conteúdo nem trail: sem foto');
+ok(temTag({ tags: ['EverythingEditor'] }, 'everythingeditor'), 'a tag casa sem ligar para maiúsculas');
+ok(temTag({ tags: ['#everythingeditor'] }, 'everythingeditor'), 'e com # na frente');
+ok(!temTag({ tags: [], summary: 'arte nova #everythingeditor' }, 'everythingeditor'), 'hashtag só na legenda não conta');
+ok(!temTag({}, 'everythingeditor') && !temTag({ tags: ['outra'] }, 'everythingeditor'), 'post sem a tag fica de fora');
 ok(urlDoPost({ post_url: 'https://x.tumblr.com/post/7' }) === 'https://x.tumblr.com/post/7', 'link já certo passa intacto');
 ok(urlDoPost({ post_url: 'https://www.tumblr.com/blog/view/b/832038252529762304', blog_name: 'b', id: 832038252529762304,
   id_string: '832038252529762304' }) === 'https://b.tumblr.com/post/832038252529762304', 'usa id_string (o id numérico é arredondado)');
@@ -56,6 +63,12 @@ ok(FOTO_MAX === 1280, 'teto de largura no repositório', FOTO_MAX);
 
 const juntos = escolhe(ig.concat(tb));
 ok(juntos.length === 5, 'junta as plataformas e derruba o repetido', juntos.length);
+const foraDeOrdem = escolhe([
+  { id: 'v', platform: 'tumblr', url: 'https://b.tumblr.com/post/1', img: '1.jpg', ts: '1000' },
+  { id: 'n', platform: 'tumblr', url: 'https://b.tumblr.com/post/2', img: '2.jpg', ts: '3000' },
+  { id: 'm', platform: 'instagram', url: 'https://instagram.com/p/3', img: '3.jpg', ts: '1970-01-01T00:33:20.000Z' },
+]);
+ok(foraDeOrdem.map(i => i.id).join(',') === 'n,m,v', 'carrossel do mais novo ao mais antigo (epoch e ISO)', foraDeOrdem.map(i => i.id));
 const todos = escolhe(ig.concat(tb, blog));
 ok(todos.length === 7, 'blog e hashtag se somam sem repetir o mesmo post', todos.length);
 ok(todos.filter(i => i.author === '@mdgverse').length === 2, 'os dois posts do blog estão no carrossel');
@@ -138,21 +151,55 @@ ok(/addEventListener\('error'/.test(card) && /classList\.add\('sem-foto'\)/.test
   'sem internet no APK, o cartão mostra a inicial (não fica imagem quebrada)');
 ok(/\.cmty-th\.sem-foto\{/.test(html), 'estilo do cartão sem foto');
 
-/* o blog só entrega post marcado: a tag vai na consulta, não no filtro de depois */
+/* o blog só entrega post marcado: a tag vai na consulta E na conferência local */
 const fetchOriginal = globalThis.fetch;
 const respostaBlog = fixtures('community-tumblr-blog.json');
-let pedida = '';
-globalThis.fetch = async (url) => { pedida = String(url); return { ok: true, status: 200, json: async () => respostaBlog }; };
+const mascara = u => u.replace(/api_key=[^&]+/, 'api_key=***');
+let pedidas = [];
+globalThis.fetch = async (url) => { pedidas.push(String(url)); return { ok: true, status: 200, json: async () => respostaBlog }; };
 const doBlog = await buscaBlog('mdgverse', 'k', 'everythingeditor');
-const urlBlog = pedida.replace(/api_key=[^&]+/, 'api_key=***');
+const urlBlog = mascara(pedidas.find(u => /[?&]tag=/.test(u)) || '');
+const urlRecente = mascara(pedidas.find(u => !/[?&]tag=/.test(u)) || '');
 const semTag = await buscaBlog('mdgverse', 'k', '');
-globalThis.fetch = fetchOriginal;
 ok(/\/v2\/blog\/mdgverse\.tumblr\.com\/posts\?/.test(urlBlog), 'consulta o blog certo', urlBlog.split('?')[0]);
 ok(/[?&]tag=everythingeditor(&|$)/.test(urlBlog), 'pede só os posts marcados com a hashtag', urlBlog);
 ok(/npf=true/.test(urlBlog) && /filter=text/.test(urlBlog), 'e no formato novo');
-ok(!/api_key=[^*]/.test(urlBlog), 'a chave não aparece no log');
+ok(/\/v2\/blog\/mdgverse\.tumblr\.com\/posts\?/.test(urlRecente) && /npf=true/.test(urlRecente),
+  'também lê a lista recente do blog', urlRecente.split('&api_key')[0]);
+ok(!/api_key=[^*]/.test(urlBlog + urlRecente), 'a chave não aparece no log');
 ok(doBlog.length === 3 && doBlog.every(i => i.platform === 'tumblr'), 'normaliza o que voltou', doBlog.length);
+ok(new Set(doBlog.map(i => i.id)).size === doBlog.length, 'as duas consultas não duplicam o mesmo post');
 ok(semTag instanceof Array, 'sem tag explícita ainda funciona');
+
+/* se o ?tag= da API voltar vazio, a lista recente salva: entra quem tem a tag no
+   campo de tags (post marcado sem foto continua fora; hashtag na legenda não vale) */
+globalThis.fetch = async (url) => {
+  const vazia = /[?&]tag=/.test(String(url));
+  return { ok: true, status: 200, json: async () => vazia ? { response: { posts: [] } } : respostaBlog };
+};
+const soDaLista = await buscaBlog('mdgverse', 'k', 'everythingeditor');
+ok(soDaLista.length === 2 && soDaLista.every(i => i.author === '@mdgverse'),
+  'filtro da API vazio: os marcados da lista recente entram', soDaLista.length);
+
+/* a busca global pede NPF: post do editor novo (type "text" + bloco de imagem,
+   sem photos[]) não é mais descartado antes do normaliza */
+let pedidaTag = '';
+globalThis.fetch = async (url) => {
+  pedidaTag = String(url);
+  return { ok: true, status: 200, json: async () => ({ response: [
+    { id_string: '7001', type: 'text', blog_name: 'novo', post_url: 'https://novo.tumblr.com/post/7001', timestamp: 1790400000,
+      tags: ['everythingeditor'],
+      content: [{ type: 'image', media: [{ url: 'https://64.media.tumblr.com/npf.jpg', width: 1000 }] },
+                { type: 'text', text: 'arte nova' }] },
+    { id_string: '7002', type: 'text', blog_name: 'novo', post_url: 'https://novo.tumblr.com/post/7002', timestamp: 1790400100,
+      tags: ['everythingeditor'], content: [{ type: 'text', text: 'sem foto' }] },
+  ] }) };
+};
+const daTagGlobal = await buscaTumblr('everythingeditor', 'k');
+globalThis.fetch = fetchOriginal;
+ok(/npf=true/.test(pedidaTag) && /[?&]tag=everythingeditor(&|$)/.test(pedidaTag), 'busca global no formato novo', mascara(pedidaTag));
+ok(daTagGlobal.length === 1 && daTagGlobal[0].img === 'https://64.media.tumblr.com/npf.jpg',
+  'post NPF com imagem entra; o de texto puro fica fora', daTagGlobal.length);
 
 /* ---------------------------------------------------------------- dados e APK */
 const dados = extrai('function cmtyForaDoSite() {', 'function cmtyCard(it) {');
@@ -201,7 +248,7 @@ ok(app.cmtyForaDoSite() && !web.cmtyForaDoSite(), 'detecta o WebView');
 
 /* ---------------------------------------------------------------- o job */
 const wf = fs.readFileSync(new URL('../.github/workflows/community.yml', import.meta.url), 'utf8');
-ok(/cron: '17 \*\/6 \* \* \*'/.test(wf), 'roda de 6 em 6 hours (cache do feed)');
+ok(/cron: '17 \*\/3 \* \* \*'/.test(wf), 'roda de 3 em 3 hours (cache do feed)');
 ok(/workflow_dispatch/.test(wf), 'dá para rodar na mão');
 ok(/IG_TOKEN|TUMBLR_KEY/.test(wf), 'lê os segredos das APIs');
 ok(/node scripts\/community\.mjs/.test(wf), 'roda o coletor');
