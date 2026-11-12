@@ -474,7 +474,7 @@ html, body{overscroll-behavior:none;-webkit-tap-highlight-color:transparent}/* 1
 
 /* Versão do editor — o arquivo VERSION na raiz é a fonte da verdade
    (o build do APK usa o mesmo número no versionName e falha se divergir). */
-const APP_VERSION = '1.3.0';
+const APP_VERSION = '1.3.1';
 /* tooltip do botão da marca: só o nome do produto (a versão é metadado, não entra na marca) */
 {
   const marca = document.getElementById('brandBtn');
@@ -11889,12 +11889,21 @@ function crtModuleMask(n, b, W, H, a) {
   const cache = n.runtime || (n.runtime = {});
   const c = cache._crtMod;
   if (c && c.res === b && c.cellW === cellW && c.cellH === cellH) return c.mask;
-  const cell = fx7NewCanvas(cellW, cellH);
-  const g = cell.getContext('2d', { willReadFrequently: true });
-  drawImageHQ(g, fx7SrcCanvas(b), cellW, cellH);
-  const mask = { data: crtMaskDePixels(g.getImageData(0, 0, cellW, cellH).data), w: cellW, h: cellH };
-  cache._crtMod = { res: b, cellW, cellH, mask };
-  return mask;
+  try {
+    /* teto de segurança: célula gigante (fonte enorme × escala) é reduzida
+       proporcionalmente — nunca aloca um canvas maior que o quadro útil */
+    const teto = 4096;
+    const q = Math.min(1, teto / Math.max(cellW, cellH));
+    const cw = Math.max(1, Math.round(cellW * q)), ch = Math.max(1, Math.round(cellH * q));
+    const cell = fx7NewCanvas(cw, ch);
+    const g = cell.getContext('2d', { willReadFrequently: true });
+    drawImageHQ(g, fx7SrcCanvas(b), cw, ch);
+    const mask = { data: crtMaskDePixels(g.getImageData(0, 0, cw, ch).data), w: cw, h: ch };
+    cache._crtMod = { res: b, cellW, cellH, mask };
+    return mask;
+  } catch (e) {
+    return null;   // fonte ilegível: volta ao pattern interno, o nó nunca quebra
+  }
 }
 
 function fx12CRT(srcCanvas, W, H, p, cache, modMask) {
@@ -12037,7 +12046,17 @@ function fx12CRT(srcCanvas, W, H, p, cache, modMask) {
       const shade = 1 - scan * (0.14 + scanWave * 0.46);
       let pr, pg, pb;
       if (mod) {
-        const mf = 1 - grille * (mod.data[(y % mod.h) * mod.w + (x % mod.w)] / 255);
+        /* Pattern do vídeo (Texturelabs): cada ponto do pattern tem um limiar
+           (preto = limiar alto, branco/transparente = sem limiar). O pixel
+           "acende" onde o brilho da imagem passa do limiar do pattern —
+           trocar o pattern troca as formas que acendem. A força é o grille:
+           100% = pattern puro, menos = pattern misturado ao tubo. */
+        const m = mod.data[(y % mod.h) * mod.w + (x % mod.w)] / 255;
+        const lumNow = clamp01(fx5Luma255(r, g, b) / 255);
+        let f = (lumNow - m) / 0.12 + 1;
+        f = f < 0 ? 0 : (f > 1 ? 1 : f);
+        f = f * f * (3 - 2 * f);
+        const mf = 1 - grille * (1 - f);
         pr = pg = pb = mf;
       } else {
         const co = x * 3;
