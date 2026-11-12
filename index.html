@@ -4,14 +4,16 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <meta name="theme-color" content="#1b1b1b" />
+<!-- Ícone da marca: trocar pelo asset oficial quando ele estiver em assets/branding/ouroboros-icon.svg (ver assets/branding/README.md) -->
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Crect width='24' height='24' rx='5' fill='%23000'/%3E%3Cpath d='M12,12C9,7.6,5.2,7.6,5.2,12C5.2,16.4,9,16.4,12,12C15,7.6,18.8,7.6,18.8,12C18.8,16.4,15,16.4,12,12' fill='none' stroke='%23fff' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E" />
 <link rel="shortcut icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Crect width='24' height='24' rx='5' fill='%23000'/%3E%3Cpath d='M12,12C9,7.6,5.2,7.6,5.2,12C5.2,16.4,9,16.4,12,12C15,7.6,18.8,7.6,18.8,12C18.8,16.4,15,16.4,12,12' fill='none' stroke='%23fff' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E" />
 <link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Crect width='24' height='24' rx='5' fill='%23000'/%3E%3Cpath d='M12,12C9,7.6,5.2,7.6,5.2,12C5.2,16.4,9,16.4,12,12C15,7.6,18.8,7.6,18.8,12C18.8,16.4,15,16.4,12,12' fill='none' stroke='%23fff' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E" />
 <meta name="color-scheme" content="dark light" />
 <meta name="mobile-web-app-capable" content="yes" />
 <meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-title" content="Ouroboros Editor" />
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-<title>Everything Editor v3 — WebGL</title>
+<title>Ouroboros Editor</title>
 <script>try{var __t=localStorage.getItem("everything-editor:theme");if(__t)document.documentElement.setAttribute("data-theme",__t);if(__t==="custom"){var __c=JSON.parse(localStorage.getItem("everything-editor:theme-custom")||"null");if(__c)for(var __k in __c)document.documentElement.style.setProperty(__k,__c[__k])}}catch(e){}</script>
 <style>/* ---- themes: colour variables (the default is Dark) ---- */
 :root{--bg:#1b1b1b;--bar:#232323;--view:#242424;--grid:#3c3c3c;--node:#3d3d3d;--dock:#161616;--edge:#111;--outline:#878787;--line:#3a3a3a;--line2:#3d3d3d;--line3:#555;--panel:#262626;--panel2:#2b2b2b;--panel3:#1f1f1f;--btn:#2a2a2a;--btn2:#4a4a4a;--hover:#3a3a3a;--field:#171717;--field2:#1d1d1d;--field3:#1e1e1e;--card:#202025;--item:#333;--text:#d9d9d9;--text-strong:#eee;--text-muted:#9a9a9a;--text-dim:#959595;--text-accent:#9fb6d9;--accent:#4772b3;--accent-hover:#4670b0;--on-accent:#fff;--sel:#ff8c00;--brand:#ff9c3a;--brand2:#e07b1f;--link:#c7c729;--zip:#f5c542;--ss-bg:rgba(14,14,16,.97);color-scheme:dark}html[data-theme="light"]{--bg:#eeeeee;--bar:#e2e2e2;--view:#f7f7f7;--grid:#d4d4d4;--node:#ffffff;--dock:#dcdcdc;--edge:#b5b5b5;--outline:#8f8f8f;--line:#c9c9c9;--line2:#bdbdbd;--line3:#a8a8a8;--panel:#f0f0f0;--panel2:#f5f5f5;--panel3:#ffffff;--btn:#e4e4e4;--btn2:#d6d6d6;--hover:#d5d5d5;--field:#ffffff;--field2:#ffffff;--field3:#f4f4f4;--card:#ffffff;--item:#fafafa;--text:#222222;--text-strong:#000000;--text-muted:#666666;--text-dim:#6b6b6b;--text-accent:#1f4f9c;--accent:#2f6fd6;--accent-hover:#2a64c4;--on-accent:#ffffff;--sel:#e0701a;--brand:#c4561a;--brand2:#d9661a;--link:#003366;--zip:#b45309;--ss-bg:rgba(240,240,242,.97);color-scheme:light}html[data-theme="night"]{--bg:#0b1220;--bar:#0f1a2e;--view:#0d1728;--grid:#22324f;--node:#1b2a46;--dock:#0a1222;--edge:#050a14;--outline:#737373;--line:#22324f;--line2:#2e4268;--line3:#3a5282;--panel:#111d33;--panel2:#15233d;--panel3:#0b1526;--btn:#1b2b48;--btn2:#243755;--hover:#2a3f63;--field:#0a1424;--field2:#0a1424;--field3:#0d1830;--card:#13203a;--item:#1a2944;--text:#cbd9f0;--text-strong:#eef4ff;--text-muted:#8ea3c4;--text-dim:#8397bb;--text-accent:#9cc3ff;--accent:#2563eb;--accent-hover:#1d4ed8;--on-accent:#ffffff;--sel:#38bdf8;--brand:#7dd3fc;--brand2:#38bdf8;--link:#e6d55a;--zip:#ffd000;--ss-bg:rgba(8,14,26,.97);color-scheme:dark}html[data-theme="contrast"]{--bg:#000000;--bar:#000000;--view:#000000;--grid:#2a2a2a;--node:#111111;--dock:#000000;--edge:#ffffff;--line:#7a7a7a;--line2:#9a9a9a;--line3:#bdbdbd;--panel:#0a0a0a;--panel2:#0f0f0f;--panel3:#000000;--btn:#1a1a1a;--btn2:#2a2a2a;--hover:#333333;--field:#000000;--field2:#000000;--field3:#000000;--card:#0a0a0a;--item:#141414;--text:#ffffff;--text-strong:#ffffff;--text-muted:#cfcfcf;--text-dim:#bdbdbd;--text-accent:#ffe066;--accent:#ffb000;--accent-hover:#ffc233;--on-accent:#000000;--sel:#ffff00;--brand:#ffd000;--brand2:#ffb000;--link:#00ffff;--zip:#ffd000;--ss-bg:rgba(0,0,0,.98);color-scheme:dark}html[data-theme="purple"]{--bg:#17121f;--bar:#1e1729;--view:#1a1424;--grid:#35294a;--node:#2c2140;--dock:#120d19;--edge:#0c0812;--outline:#707070;--line:#3a2d52;--line2:#4a3a66;--line3:#5c4a7d;--panel:#21192f;--panel2:#271e38;--panel3:#181224;--btn:#2e2440;--btn2:#3a2d52;--hover:#3f3157;--field:#130e1c;--field2:#130e1c;--field3:#161025;--card:#221a33;--item:#2a2040;--text:#e3d9f2;--text-strong:#f7f2ff;--text-muted:#a897c2;--text-dim:#9d8cba;--text-accent:#d8b4fe;--accent:#7c3aed;--accent-hover:#6229c4;--on-accent:#ffffff;--sel:#f472b6;--brand:#e879f9;--brand2:#d946ef;--link:#fde047;--zip:#f5c542;--ss-bg:rgba(16,10,26,.97);color-scheme:dark}/* 2.9.85: Custom theme dialog */
@@ -177,7 +179,7 @@ html, body{overscroll-behavior:none;-webkit-tap-highlight-color:transparent}/* 1
 <body>
 <div class="app">
   <header class="topbar">
-    <div class="brand" id="brandBtn" role="button" tabindex="0" aria-haspopup="true" aria-expanded="false" aria-controls="brandMenu"><svg class="brand-mark" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><rect width="24" height="24" rx="5" fill="#000"/><path d="M12,12C9,7.6,5.2,7.6,5.2,12C5.2,16.4,9,16.4,12,12C15,7.6,18.8,7.6,18.8,12C18.8,16.4,15,16.4,12,12" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg><span class="brand-txt">Everything Editor v3</span><span class="brand-caret" aria-hidden="true">▾</span></div>
+    <div class="brand" id="brandBtn" role="button" tabindex="0" aria-haspopup="true" aria-expanded="false" aria-controls="brandMenu"><svg class="brand-mark" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><rect width="24" height="24" rx="5" fill="#000"/><path d="M12,12C9,7.6,5.2,7.6,5.2,12C5.2,16.4,9,16.4,12,12C15,7.6,18.8,7.6,18.8,12C18.8,16.4,15,16.4,12,12" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg><span class="brand-txt">Ouroboros Editor</span><span class="brand-caret" aria-hidden="true">▾</span></div>
     <button class="tbtn" id="btnHome" title="Start screen: new document and recent">Home</button>
     <button class="tbtn" id="btnOpen" title="Open image, GIF or video (Ctrl+O)">Open image</button>
     <button class="tbtn" id="btnAdd" title="Add node (Shift+A)">Add</button>
@@ -209,6 +211,7 @@ html, body{overscroll-behavior:none;-webkit-tap-highlight-color:transparent}/* 1
       <span class="bm-tg-txt" id="sckState">Off</span>
     </label>
   </div>
+  <div class="bm-sec"><div class="bm-h">Version</div><div id="appVer"></div></div>
 </div>
 
   <div id="projTabs" class="proj-tabs" style="display:none"></div>
@@ -437,11 +440,13 @@ html, body{overscroll-behavior:none;-webkit-tap-highlight-color:transparent}/* 1
 
 /* Versão do editor — o arquivo VERSION na raiz é a fonte da verdade
    (o build do APK usa o mesmo número no versionName e falha se divergir). */
-const APP_VERSION = '3.24.4';
-/* sem a telinha, a versão aparece no tooltip da marca (e o título da aba segue curto) */
+const APP_VERSION = '1.0.0';
+/* tooltip do botão da marca: só o nome do produto (a versão é metadado, não entra na marca) */
 {
   const marca = document.getElementById('brandBtn');
-  if (marca) marca.title = 'Everything Editor ' + APP_VERSION;
+  if (marca) marca.title = 'Ouroboros Editor';
+  const verEl = document.getElementById('appVer');
+  if (verEl) verEl.textContent = APP_VERSION;
 }
 
 /* =========================================================
@@ -19463,7 +19468,7 @@ function rampaExportaJSON() {
 function rampaExportaGPL() {
   if (!rpCtx) return;
   const nomeEl = document.getElementById('rpCustName');
-  const nome = (nomeEl && nomeEl.value.trim()) || 'Everything Editor ramp';
+  const nome = (nomeEl && nomeEl.value.trim()) || 'Ouroboros Editor ramp';
   const linhas = rampaLutPontos(rpCtx.paradas, 16).map(c => {
     const rgb = rampaHex(c);
     return `${Math.round(rgb[0] * 255)} ${Math.round(rgb[1] * 255)} ${Math.round(rgb[2] * 255)}\t${c.toUpperCase()}`;
@@ -28480,7 +28485,7 @@ window.screencastKeys = sckLiga;   // liga/desliga pelo console: screencastKeys(
   window.addEventListener('blur', () => { sckHeld.clear(); sckPinta(); });
 }
 
-// brand menu: opens under "Everything Editor v3"; closes with a click/tap outside or Escape
+// brand menu: opens under "Ouroboros Editor"; closes with a click/tap outside or Escape
 function brandMenuOpen(on) {
   const m = document.getElementById('brandMenu'), b = document.getElementById('brandBtn');
   if (!m || !b) return;
@@ -33548,14 +33553,14 @@ async function bkBackupTudo() {
   const iso = new Date().toISOString().slice(0, 10);
   const blob = new Blob([JSON.stringify({ app: 'Everything Editor', tipo: BK_TIPO, v: BK_V, em: Date.now(),
     projetos: nProjetos, assets: nAssets, conteudo })], { type: 'application/json' });
-  downloadBlob(blob, 'everything-editor-backup-' + iso + '.json');
+  downloadBlob(blob, 'ouroboros-editor-backup-' + iso + '.json');
   setStatus(`Backup pronto: ${nProjetos} projeto(s) e ${nAssets} asset(s).`);
 }
 
 async function bkRestaurarTudo(file) {
   let pack = null;
   try { pack = JSON.parse(await file.text()); } catch (e) { pack = null; }
-  if (!pack || pack.tipo !== BK_TIPO) { setStatus('Este arquivo não é um backup do Everything Editor.', true); return; }
+  if (!pack || pack.tipo !== BK_TIPO) { setStatus('Este arquivo não é um backup do Ouroboros Editor.', true); return; }
   setStatus('Restaurando o backup…');
   const conteudo = bkDesembalar(pack.conteudo || {});
   await SS_DB.restore(conteudo);

@@ -62,8 +62,8 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          git config user.name "everything-editor-bot"
-          git config user.email "everything-editor-bot@users.noreply.github.com"
+          git config user.name "ouroboros-editor-bot"
+          git config user.email "ouroboros-editor-bot@users.noreply.github.com"
           git add community index.html
           if git diff --cached --quiet; then
             echo "nada novo no feed"

@@ -12,5 +12,5 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "EverythingEditor"
+rootProject.name = "OuroborosEditor"
 include ':app'

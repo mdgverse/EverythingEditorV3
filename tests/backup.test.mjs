@@ -69,7 +69,7 @@ ok(/async restore\(pack\)/.test(extrai('const SS_DB = (() => {', 'async function
 ok(/getAllKeys\(\)/.test(html), 'as chaves da loja data viajam junto (chave fora do registro)');
 ok(/for \(let i = 0; i < dados\.length; i\+\+\)/.test(html), 'restore regrava o grafo com a chave certa');
 ok(/if \(!pack \|\| pack\.tipo !== BK_TIPO\)/.test(html), 'restore recusa arquivo que não é backup');
-ok(/downloadBlob\(blob, 'everything-editor-backup-'/.test(html), 'backup sai como arquivo pelo mesmo caminho do Save graph (funciona no APK)');
+ok(/downloadBlob\(blob, 'ouroboros-editor-backup-'/.test(html), 'backup sai como arquivo pelo mesmo caminho do Save graph (funciona no APK)');
 ok(/id="ssBackup"/.test(html) && /id="ssRestore"/.test(html), 'botões Backup/Restore na tela inicial');
 ok(/id="ssRestoreFile" type="file"|id="ssRestoreFile"[^>]*accept="\.json/.test(html), 'escolha do arquivo de backup');
 ok(/bkBackupTudo\(\)\.catch/.test(html) && /bkRestaurarTudo\(arq\)\.catch/.test(html), 'falhas viram aviso em vez de travar');
