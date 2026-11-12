@@ -116,6 +116,10 @@
 .ctl-sec-h:hover{opacity:1}
 .ctl-sec.fold .ctl-sec-b{display:none}
 .ctl-sec-b{display:grid;gap:4px;padding-top:3px}
+.crt-param{display:flex;gap:5px;align-items:flex-start}
+.crt-param>.crt-ctl{flex:1;min-width:0}
+.crt-param.off>.crt-ctl{opacity:.48}
+.crt-on{flex:none;margin:2px 0 0;width:14px;height:14px;accent-color:var(--sel);cursor:pointer}
 #rpPresets{height:186px}
 body.mobile #rpPresets{height:150px}
 .rp-preset{transition:box-shadow .12s ease,transform .12s ease}
@@ -470,7 +474,7 @@ html, body{overscroll-behavior:none;-webkit-tap-highlight-color:transparent}/* 1
 
 /* Versão do editor — o arquivo VERSION na raiz é a fonte da verdade
    (o build do APK usa o mesmo número no versionName e falha se divergir). */
-const APP_VERSION = '1.1.4';
+const APP_VERSION = '1.2.0';
 /* tooltip do botão da marca: só o nome do produto (a versão é metadado, não entra na marca) */
 {
   const marca = document.getElementById('brandBtn');
@@ -909,7 +913,7 @@ const KERNELS = [['soften', 'Smooth'], ['sharpen', 'Sharpness'], ['laplace', 'La
 const NUM   = (key, label, min, max, def, step = 1) => ({ type: 'num', key, label, min, max, def, step });
 const ENUM  = (key, label, options, def) => ({ type: 'enum', key, label, options, def });
 // 3.8.0: seção recolhível dentro do nó (Input maps / Vector control / Advanced …)
-const SEC   = (key, label, tip) => ({ type: 'sec', key, label, tip });
+const SEC   = (key, label, tip, closed) => ({ type: 'sec', key, label, tip, closed: !!closed });
 const INFO  = (key, label) => ({ type: 'info', key, label });
 const COL   = (key, label, def) => ({ type: 'color', key, label, def });
 const TXT   = (key, label, def) => ({ type: 'text', key, label, def });
@@ -3388,18 +3392,24 @@ const NODE_TYPES = {
   crtScreen: {
     title: 'CRT screen', cat: 'lens', inputs: ['Image'],
     params: [
+      SEC('crtStyle', 'Screen style', 'Phosphor color family, curved tube geometry and the darkened tube edges.', true),
       ENUM('style', 'Style', [['color', 'Color CRT'], ['green', 'Green phosphor'], ['amber', 'Amber terminal'], ['mono', 'Monochrome']], 'color'),
-      NUM('curvature', 'Screen curvature', 0, 80, 26), NUM('scanlines', 'Scanlines', 0, 100, 58),
-      NUM('scanSpacing', 'Line spacing', 1, 9, 3, 0.25), NUM('grille', 'RGB grid', 0, 100, 62),
+      NUM('curvature', 'Screen curvature', 0, 80, 26), NUM('vignette', 'Vignette', 0, 100, 42),
+      SEC('crtMask', 'Phosphor mask', 'The RGB phosphor pattern printed on the tube: stripes, dots or slots.', true),
+      NUM('grille', 'RGB grid', 0, 100, 62),
       ENUM('grilleMode', 'Phosphor mask', [['aperture', 'Aperture grille / stripes'], ['dots', 'Dots (shadow mask)'], ['slot', 'Slot mask']], 'aperture'),
-      NUM('grilleSize', 'Phosphor scale', 1, 8, 1),
+      NUM('grilleSize', 'Phosphor scale', 1, 8, 1), NUM('phosphor', 'Phosphor glow', 0, 100, 34),
+      SEC('crtScan', 'Scanlines & sync', 'Horizontal line structure, flicker and synchronization failures.', true),
+      NUM('scanlines', 'Scanlines', 0, 100, 58), NUM('scanSpacing', 'Line spacing', 1, 9, 3, 0.25),
+      NUM('noise', 'Noise / flicker', 0, 60, 8), NUM('roll', 'Vertical roll', 0, 60, 8), NUM('glitch', 'Sync glitch', 0, 100, 10),
+      SEC('crtColor', 'Color & interference', 'Color fringing, rainbow moiré and overloaded phosphor artifacts.', true),
       NUM('rainbow', 'Rainbow interference', 0, 100, 0), NUM('rainbowScale', 'Rainbow scale', 10, 300, 90),
       NUM('overdrive', 'Phosphor overload', 0, 100, 0), NUM('sparkle', 'Glow pixels', 0, 100, 0),
-      NUM('streaks', 'Rainbow bands', 0, 100, 0), NUM('phosphor', 'Phosphor glow', 0, 100, 34),
-      NUM('chroma', 'Chromatic split', 0, 18, 3.5, 0.25), NUM('glow', 'Glow', 0, 100, 34),
-      NUM('glowRadius', 'Glow radius', 0, 18, 5, 0.25), NUM('noise', 'Noise / flicker', 0, 60, 8),
-      NUM('roll', 'Vertical roll', 0, 60, 8), NUM('glitch', 'Sync glitch', 0, 100, 10),
-      NUM('vignette', 'Vignette', 0, 100, 42), NUM('brightness', 'Glow Intensity', -80, 80, 4), NUM('contrast', 'Mask contrast', -80, 120, 18),
+      NUM('streaks', 'Rainbow bands', 0, 100, 0), NUM('chroma', 'Chromatic split', 0, 18, 3.5, 0.25),
+      SEC('crtGlow', 'Glow & exposure', 'Light bloom around bright areas and the final tone of the tube.', true),
+      NUM('glow', 'Glow', 0, 100, 34), NUM('glowRadius', 'Glow radius', 0, 18, 5, 0.25),
+      NUM('brightness', 'Glow Intensity', -80, 80, 4), NUM('contrast', 'Mask contrast', -80, 120, 18),
+      SEC('crtOutput', 'Output', 'How strongly the tube image replaces the original, and the variation seed.', true),
       NUM('mix', 'Blend', 0, 100, 100), NUM('seed', 'Seed', 0, 99, 4),
     ],
   },
@@ -11794,22 +11804,80 @@ function fx11Starburst(srcCanvas, W, H, p) {
 
 /* fx12 */
 // ===== v12: CRT Screen (fxCrtScreen from v1.6) =====
-function fx12CRT(srcCanvas, W, H, p) {
+/* CRT_PURO_INI */
+/* Categorias do painel do CRT Screen e o valor NEUTRO de cada parâmetro:
+   desligar um parâmetro troca a contribuição dele pelo neutro abaixo, sem
+   tocar no valor salvo (n.params.crtOff[key] === false; ausente = ligado). */
+const CRT_GRUPOS = [
+  ['crtStyle', ['style', 'curvature', 'vignette']],
+  ['crtMask', ['grille', 'grilleMode', 'grilleSize', 'phosphor']],
+  ['crtScan', ['scanlines', 'scanSpacing', 'noise', 'roll', 'glitch']],
+  ['crtColor', ['rainbow', 'rainbowScale', 'overdrive', 'sparkle', 'streaks', 'chroma']],
+  ['crtGlow', ['glow', 'glowRadius', 'brightness', 'contrast']],
+  ['crtOutput', ['mix', 'seed']],
+];
+const CRT_KEYS = CRT_GRUPOS.flatMap(g => g[1]);
+const CRT_NEUTRO = {
+  style: 'color', curvature: 0, vignette: 0,
+  grille: 0, grilleMode: 'aperture', grilleSize: 1, phosphor: 0,
+  scanlines: 0, scanSpacing: 3, noise: 0, roll: 0, glitch: 0,
+  rainbow: 0, rainbowScale: 90, overdrive: 0, sparkle: 0, streaks: 0, chroma: 0,
+  glow: 0, glowRadius: 5, brightness: 0, contrast: 0,
+  mix: 100, seed: 4,
+};
+function crtParamAtivo(p, key) { return !(p && p.crtOff && typeof p.crtOff === 'object' && p.crtOff[key] === false); }
+function crtEffectiveParams(p) {
+  const src = p || {};
+  const out = { ...src };
+  for (const k of CRT_KEYS) if (!crtParamAtivo(src, k)) out[k] = CRT_NEUTRO[k];
+  return out;
+}
+function crtAplicarDefaults(params, defParams) {
+  for (const d of defParams || []) {
+    if (!d || d.type === 'sec' || !d.key) continue;
+    params[d.key] = Array.isArray(d.def) ? JSON.parse(JSON.stringify(d.def)) : d.def;
+  }
+  params.crtOff = {};   // reset: valores padrão e todos os parâmetros ligados
+  return params;
+}
+/* CRT_PURO_FIM */
+
+/* Buffers do CRT reutilizados entre renders (canvas de saída, ImageData, glow
+   e tabelas por coluna): ficam no runtime do nó, nunca serializam. Recria só
+   quando as dimensões mudam; o resultado é copiado para a textura na hora. */
+function crtScratch(cache, W, H) {
+  if (cache && cache._crt && cache._crt.w === W && cache._crt.h === H) return cache._crt;
+  const cv = fx7NewCanvas(W, H), gc = fx7NewCanvas(W, H);
+  const scr = {
+    w: W, h: H, cv, ctx: cv.getContext('2d'), out: null,
+    glowCv: gc, glowCtx: gc.getContext('2d', { willReadFrequently: true }),
+    colMul: new Float32Array(W * 3), nx2: new Float32Array(W), sxB: new Float32Array(W),
+    nxAbs: new Float32Array(W), segOn: new Uint8Array(W), segAl: new Float32Array(W),
+  };
+  scr.out = scr.ctx.createImageData(W, H);
+  if (cache && typeof cache === 'object') cache._crt = scr;
+  return scr;
+}
+
+function fx12CRT(srcCanvas, W, H, p, cache) {
+  p = crtEffectiveParams(p);
   const src = srcCanvas.getContext('2d', { willReadFrequently: true }).getImageData(0, 0, W, H).data;
   const glowAmount = Number(p.glow || 0) / 100;
   const glowRadius = Math.max(0, Number(p.glowRadius || 0));
+  const scr = crtScratch(cache, W, H);
   let glowData = null;
   if (glowAmount > 0.001 && glowRadius > 0.05) {
-    const gc = fx7NewCanvas(W, H);
-    const g = gc.getContext('2d', { willReadFrequently: true });
+    const g = scr.glowCtx;
+    g.filter = 'none';
+    g.clearRect(0, 0, W, H);
     g.filter = `blur(${glowRadius}px)`;
     g.drawImage(srcCanvas, 0, 0);
     g.filter = 'none';
     glowData = g.getImageData(0, 0, W, H).data;
   }
-  const cv = fx7NewCanvas(W, H);
-  const ctx = cv.getContext('2d');
-  const out = ctx.createImageData(W, H), od = out.data;
+  const cv = scr.cv;
+  const ctx = scr.ctx;
+  const out = scr.out, od = out.data;
   const cx = W / 2, cy = H / 2;
   const curvature = Number(p.curvature || 0) / 100 * 0.52;
   const scan = Number(p.scanlines || 0) / 100;
@@ -11834,19 +11902,77 @@ function fx12CRT(srcCanvas, W, H, p) {
   const seed = Number(p.seed || 0);
   const style = p.style || 'color';
   const c255 = v => clamp(v, 0, 255);
-  const sample = (sx, sy, ch) => src[fx7Idx(sx, sy, W, H) + ch];
-  for (let y = 0; y < H; y++) {
-    const rowSync = (fx6Hash(Math.floor(y / 12) + seed * 31, seed) < glitch * 0.18) ? (fx6Hash(y, seed) - 0.5) * glitch * 42 : 0;
-    const rollOffset = Math.sin(y * 0.018 + seed * 1.7) * roll * 0.24 + rowSync;
+  const maskPorLinha = triadSize > 1 && (grilleMode === 'dots' || grilleMode === 'slot');
+  /* tabelas por coluna: posição normalizada e o multiplicador RGB da máscara
+     (a máscara só muda por linha nos modos dots/slot com escala > 1) */
+  const colMul = scr.colMul, nx2A = scr.nx2, sxBA = scr.sxB, nxAbsA = scr.nxAbs;
+  const divCx = Math.max(1, cx);   // divisão (não recíproco): mesmo arredondamento do código original
+  const fillColMul = y => {
+    const rowH = triadSize * (grilleMode === 'dots' ? 1 : 3);
+    const rowIdx = Math.floor(y / rowH);
+    const xoOff = (rowIdx & 1) ? triadSize * 1.5 : 0;
     for (let x = 0; x < W; x++) {
-      const i = (y * W + x) * 4;
-      const nx = (x + 0.5 - cx) / Math.max(1, cx), ny = (y + 0.5 - cy) / Math.max(1, cy);
-      const rr2 = nx * nx + ny * ny;
+      let triad, gapMul = 1;
+      if (triadSize <= 1) {
+        triad = ((x % 3) + 3) % 3;
+      } else if (maskPorLinha) {
+        const xo = x + xoOff;
+        triad = ((Math.floor(xo / triadSize) % 3) + 3) % 3;
+        const fxm = ((xo % triadSize) + 0.5) / triadSize - 0.5;
+        const fym = ((y % rowH) + 0.5) / rowH - 0.5;
+        const dd = Math.hypot(fxm, fym) * 2;
+        gapMul = 1 - grille * 0.8 * fx9Smooth((dd - 0.62) / 0.3);
+      } else {
+        triad = ((Math.floor(x / triadSize) % 3) + 3) % 3;
+        const fxm = ((x % triadSize) + 0.5) / triadSize - 0.5;
+        gapMul = 1 - grille * 0.55 * fx9Smooth((Math.abs(fxm) - 0.3) / 0.16);
+      }
+      const o = x * 3;
+      colMul[o] = (1 - grille * (triad === 0 ? 0.02 : 0.42)) * gapMul;
+      colMul[o + 1] = (1 - grille * (triad === 1 ? 0.02 : 0.42)) * gapMul;
+      colMul[o + 2] = (1 - grille * (triad === 2 ? 0.02 : 0.42)) * gapMul;
+    }
+  };
+  for (let x = 0; x < W; x++) {
+    const dx = x + 0.5 - cx, nx = dx / divCx;
+    nx2A[x] = nx * nx;
+    sxBA[x] = nx * cx;
+    nxAbsA[x] = Math.abs(nx);
+  }
+  if (!maskPorLinha) fillColMul(0);
+  const segOn = scr.segOn, segAl = scr.segAl;
+  for (let y = 0; y < H; y++) {
+    const dy = y + 0.5 - cy, ny = dy / Math.max(1, cy), ny2 = ny * ny, nyAbs = Math.abs(ny), syB = ny * cy;
+    let rowSync = 0;
+    if (glitch > 0.001 && fx6Hash(Math.floor(y / 12) + seed * 31, seed) < glitch * 0.18) rowSync = (fx6Hash(y, seed) - 0.5) * glitch * 42;
+    const rollOffset = (roll ? Math.sin(y * 0.018 + seed * 1.7) * roll * 0.24 : 0) + rowSync;
+    if (maskPorLinha) fillColMul(y);
+    /* streaks: a faixa e os segmentos são por linha — 1 hash por segmento, não por pixel */
+    let rowStreak = false, segLen = 0;
+    if (streaks > 0.001 && fx6Hash(y * 3 + 5, seed + 57) < streaks * 0.1) {
+      rowStreak = true;
+      segLen = 8 + Math.floor(fx6Hash(y + seed, 23) * 46);
+      const nseg = Math.ceil(W / segLen);
+      for (let sg = 0; sg < nseg; sg++) {
+        segOn[sg] = fx6Hash(y * 17 + sg * 13, seed * 29 + sg) < 0.62 ? 1 : 0;
+        segAl[sg] = 0.5 + 0.45 * fx6Hash(sg, y);
+      }
+    }
+    const rowBase0 = y * W;
+    for (let x = 0; x < W; x++) {
+      const i = (rowBase0 + x) * 4;
+      const rr2 = nx2A[x] + ny2;
       const barrel = 1 + curvature * rr2;
-      const sx = cx + nx * cx * barrel + rollOffset;
-      const sy = cy + ny * cy * barrel;
-      let r = sample(sx - chroma, sy, 0), g = sample(sx, sy, 1), b = sample(sx + chroma, sy, 2);
-      const a = sample(sx, sy, 3);
+      const sx = cx + sxBA[x] * barrel + rollOffset;
+      const sy = cy + syB * barrel;
+      let iy = Math.round(sy); iy = iy < 0 ? 0 : (iy >= H ? H - 1 : iy);
+      const rowB = iy * W;
+      let ixM = Math.round(sx); ixM = ixM < 0 ? 0 : (ixM >= W ? W - 1 : ixM);
+      let ixL = Math.round(sx - chroma); ixL = ixL < 0 ? 0 : (ixL >= W ? W - 1 : ixL);
+      let ixR = Math.round(sx + chroma); ixR = ixR < 0 ? 0 : (ixR >= W ? W - 1 : ixR);
+      const iM = (rowB + ixM) * 4;
+      let r = src[(rowB + ixL) * 4], g = src[iM + 1], b = src[(rowB + ixR) * 4 + 2];
+      const a = src[iM + 3];
       r = (r - 128) * contrast + 128 + bright;
       g = (g - 128) * contrast + 128 + bright;
       b = (b - 128) * contrast + 128 + bright;
@@ -11855,7 +11981,7 @@ function fx12CRT(srcCanvas, W, H, p) {
       else if (style === 'amber') { r = lum * 1.15; g = lum * 0.72; b = lum * 0.18; }
       else if (style === 'mono') { r = g = b = lum; }
       if (rainbow > 0.001) {
-        const ph = (sy / Math.max(6, rainbowScale)) * Math.PI * 2 + seed * 0.9 + Math.sin(sx * 0.006 + sy * 0.013) * 1.3;
+        const ph = (sy / rainbowScale) * Math.PI * 2 + seed * 0.9 + Math.sin(sx * 0.006 + sy * 0.013) * 1.3;
         r *= 1 + rainbow * 0.5 * Math.sin(ph);
         g *= 1 + rainbow * 0.5 * Math.sin(ph + 2.094);
         b *= 1 + rainbow * 0.5 * Math.sin(ph + 4.188);
@@ -11870,33 +11996,14 @@ function fx12CRT(srcCanvas, W, H, p) {
       }
       const scanWave = 0.5 + 0.5 * Math.sin((sy + seed) * Math.PI * 2 / spacing);
       const shade = 1 - scan * (0.14 + scanWave * 0.46);
-      let triad, gapMul = 1;
-      if (triadSize <= 1) {
-        triad = ((x % 3) + 3) % 3;
-      } else if (grilleMode === 'dots' || grilleMode === 'slot') {
-        const rowH = triadSize * (grilleMode === 'dots' ? 1 : 3);
-        const rowIdx = Math.floor(y / rowH);
-        const xo = x + ((rowIdx & 1) ? triadSize * 1.5 : 0);
-        triad = ((Math.floor(xo / triadSize) % 3) + 3) % 3;
-        const fxm = ((xo % triadSize) + 0.5) / triadSize - 0.5;
-        const fym = ((y % rowH) + 0.5) / rowH - 0.5;
-        const dd = Math.hypot(fxm, fym) * 2;
-        gapMul = 1 - grille * 0.8 * fx9Smooth((dd - 0.62) / 0.3);
-      } else {
-        triad = ((Math.floor(x / triadSize) % 3) + 3) % 3;
-        const fxm = ((x % triadSize) + 0.5) / triadSize - 0.5;
-        gapMul = 1 - grille * 0.55 * fx9Smooth((Math.abs(fxm) - 0.3) / 0.16);
-      }
-      const pr = (1 - grille * (triad === 0 ? 0.02 : 0.42)) * gapMul;
-      const pg = (1 - grille * (triad === 1 ? 0.02 : 0.42)) * gapMul;
-      const pb = (1 - grille * (triad === 2 ? 0.02 : 0.42)) * gapMul;
+      const co = x * 3;
+      const pr = colMul[co], pg = colMul[co + 1], pb = colMul[co + 2];
       const vign = clamp01(1 - Math.pow(Math.max(0, rr2 - 0.15), 1.2) * vignette * 0.92);
-      const mask = fx9Smooth((1.06 - Math.max(Math.abs(nx), Math.abs(ny))) * 6) * vign;
-      const flicker = 1 + (fx6Hash(x + seed * 101, y - seed * 73) - 0.5) * noise * 0.34;
+      const mask = fx9Smooth((1.06 - Math.max(nxAbsA[x], nyAbs)) * 6) * vign;
+      const flicker = noise > 0.001 ? 1 + (fx6Hash(x + seed * 101, y - seed * 73) - 0.5) * noise * 0.34 : 1;
       if (glowData) {
-        const gi = fx7Idx(sx, sy, W, H);
-        const gl = Math.max(0, fx5Luma255(glowData[gi], glowData[gi + 1], glowData[gi + 2]) - 110) / 145 * glowAmount;
-        r += glowData[gi] * gl * 0.42; g += glowData[gi + 1] * gl * 0.42; b += glowData[gi + 2] * gl * 0.42;
+        const gl = Math.max(0, fx5Luma255(glowData[iM], glowData[iM + 1], glowData[iM + 2]) - 110) / 145 * glowAmount;
+        r += glowData[iM] * gl * 0.42; g += glowData[iM + 1] * gl * 0.42; b += glowData[iM + 2] * gl * 0.42;
       }
       const phosphorBoost = 1 + phosphor * (0.15 + 0.25 * scanWave);
       r = c255(r * shade * pr * flicker * mask * phosphorBoost);
@@ -11910,11 +12017,10 @@ function fx12CRT(srcCanvas, W, H, p) {
           if (chn < 1) r = c255(r + amp); else if (chn < 2) g = c255(g + amp); else b = c255(b + amp);
         }
       }
-      if (streaks > 0.001 && fx6Hash(y * 3 + 5, seed + 57) < streaks * 0.1) {
-        const segLen = 8 + Math.floor(fx6Hash(y + seed, 23) * 46);
+      if (rowStreak) {
         const segi = Math.floor(x / segLen);
-        if (fx6Hash(y * 17 + segi * 13, seed * 29 + segi) < 0.62) {
-          const al = 0.5 + 0.45 * fx6Hash(segi, y);
+        if (segOn[segi]) {
+          const al = segAl[segi];
           r = fx9Mix(r, 255 * fx6Hash(x * 7 + 1, y + seed), al);
           g = fx9Mix(g, 255 * fx6Hash(x * 7 + 2, y - seed), al);
           b = fx9Mix(b, 255 * fx6Hash(x * 7 + 3, y + seed * 2), al);
@@ -24695,7 +24801,7 @@ const RUN = {
   invertGhost: (n, [a]) => (a ? fx7Pixel(a, (s, o, W, H) => fx9Ghost(s, o, W, H, n.params)) : null),
   tron: (n, [a]) => (a ? fx7Canvas(a, (s, W, H) => fx10Tron(s, W, H, n.params)) : null),
   highlightStarburst: (n, [a]) => (a ? fx7Canvas(a, (s, W, H) => fx11Starburst(s, W, H, n.params)) : null),
-  crtScreen: (n, [a]) => (a ? fx7Canvas(a, (s, W, H) => fx12CRT(s, W, H, n.params)) : null),
+  crtScreen: (n, [a]) => (a ? fx7Canvas(a, (s, W, H) => fx12CRT(s, W, H, n.params, n.runtime)) : null),
   glassStudio: (n, [a, b]) => fxStudioRun(a, (s, W, H, pp) => {
     // Texture linked on Refraction: the texture replaces the built-in direction/pattern map
     const driven = !!b && (pp.glassMode || 'flutedPrism') === 'refractal';
@@ -24887,6 +24993,7 @@ function createNode(type, x, y, opts = {}) {
   // Existing ASCII projects retain the former transparent-glyph output.
   if (type === 'ascii' && opts.params && !('asciiBackground' in opts.params)) n.params.asciiBackground = 'transparent';
   if (type === 'fractureEffect' && opts.params && !('fractureEngine' in opts.params)) n.params.fractureEngine = 'classic';
+  if (type === 'crtScreen' && (!n.params.crtOff || typeof n.params.crtOff !== 'object' || Array.isArray(n.params.crtOff))) n.params.crtOff = {};   // sem flags (projeto antigo) = todos os parâmetros ligados
   if (type === 'transform' && opts.params && !('unit' in opts.params)) n.params.unit = 'pct';   // old project: X/Y were in %
   if (type === 'fill' && opts.params && !('gX1' in opts.params)) fillMigraLegado(n);   // old Fill: centred line from the angle
   if (type === 'halfmode' && !/^(custom|p\d+)$/.test(String(n.params.theme))) n.params.theme = 'custom';
@@ -27407,10 +27514,38 @@ function buildSection(body, p) {
   });
   let gravado = null;
   try { gravado = localStorage.getItem(chave); } catch (_) {}
-  if (gravado === '1') marca(true);
+  if (gravado === '1' || (gravado === null && p.closed)) marca(true);   // seção "closed": recolhida até o usuário abrir (a escolha dele fica gravada)
   box.append(b, conteudo);
   body.append(box);
   return { box, body: conteudo };
+}
+/* CRT Screen: cada parâmetro tem interruptor próprio. Desligar grava
+   crtOff[key]=false (o valor salvo fica intacto e o controle continua
+   editável); ligar apaga a flag. Sem flag = ligado (projetos antigos). */
+function crtParamRow(n, p, el) {
+  const wrap = E('div', 'crt-param');
+  const cb = document.createElement('input');
+  cb.type = 'checkbox';
+  cb.className = 'crt-on';
+  const on = crtParamAtivo(n.params, p.key);
+  cb.checked = on;
+  cb.title = (on ? 'Disable ' : 'Enable ') + p.label;
+  cb.setAttribute('aria-label', cb.title);
+  const ctl = E('div', 'crt-ctl');
+  ctl.append(el);
+  wrap.classList.toggle('off', !on);
+  cb.addEventListener('pointerdown', e => e.stopPropagation());
+  cb.addEventListener('click', e => e.stopPropagation());
+  cb.addEventListener('change', () => {
+    if (!n.params.crtOff || typeof n.params.crtOff !== 'object' || Array.isArray(n.params.crtOff)) n.params.crtOff = {};
+    if (cb.checked) delete n.params.crtOff[p.key]; else n.params.crtOff[p.key] = false;
+    wrap.classList.toggle('off', !cb.checked);
+    cb.title = (cb.checked ? 'Disable ' : 'Enable ') + p.label;
+    cb.setAttribute('aria-label', cb.title);
+    markDirty(n.id); requestRender(); commit();
+  });
+  wrap.append(cb, ctl);
+  return wrap;
 }
 function buildControls(n, body) {
   let destino = body;                          // 3.8.0: seção recolhível corrente
@@ -27433,7 +27568,25 @@ function buildControls(n, body) {
     else if (p.type === 'gpins') el = makeGradientPins(n);
     else if (p.type === 'pview') el = makePerspView(n);
     else if (p.type === 'button') el = makeActionButton(n, p);
+    if (el && n.type === 'crtScreen') el = crtParamRow(n, p, el);
     if (el) { el.dataset.pkey = p.key; destino.append(el); }
+  }
+  if (n.type === 'crtScreen') {
+    const bReset = E('button', 'stk-btn', 'Reset');
+    bReset.type = 'button';
+    bReset.title = 'Restore the default values and enable all parameters';
+    bReset.addEventListener('pointerdown', e => e.stopPropagation());
+    bReset.addEventListener('click', e => {
+      e.stopPropagation();
+      crtAplicarDefaults(n.params, NODE_TYPES.crtScreen.params);
+      for (const d of NODE_TYPES.crtScreen.params) if (d.key && n.ui[d.key]) n.ui[d.key]();
+      body.querySelectorAll('.crt-on').forEach(cb => { cb.checked = true; });
+      body.querySelectorAll('.crt-param.off').forEach(w => w.classList.remove('off'));
+      markDirty(n.id); requestRender(); commit();
+    });
+    const secOut = body.querySelector('[data-pkey="mix"]');
+    const destinoReset = secOut ? secOut.closest('.ctl-sec-b') : null;
+    (destinoReset || body).append(bReset);
   }
   if (n.type === 'glassStudio') {
     const note = E('div', 'glass-tex-note');
