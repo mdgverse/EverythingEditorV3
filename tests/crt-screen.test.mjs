@@ -198,6 +198,29 @@ ok(Buffer.from(mundo.fx12CRT(fonte(), W, H, { ...padroes }, {}, mascZero)._out.d
   .equals(Buffer.from(roda({ ...padroes, grille: 0 }))),
   'module todo neutro = grille interno desligado (fator 1) — nenhum retângulo branco inserido');
 
+/* semântica do vídeo (1.3.1): o pattern acende por limiar de brilho.
+   Regressão do relato "module não funciona": com a multiplicação suave
+   anterior, trocar o pattern mal mudava a imagem; agora patterns
+   diferentes produzem formas diferentes e os cinzas do pattern acendem
+   só onde a imagem é brilhante o bastante (estilo Hard Mix). */
+function fonteCinza(v) {
+  const c = fx7NewCanvas(W, H);
+  for (let i = 0; i < c._data.length; i += 4) { c._data[i] = v; c._data[i + 1] = v; c._data[i + 2] = v; c._data[i + 3] = 255; }
+  return c;
+}
+const cellA = { data: new Uint8ClampedArray([255, 128, 0]), w: 3, h: 1 };   // preto, cinza, neutro
+const cellB = { data: new Uint8ClampedArray([0, 128, 255]), w: 3, h: 1 };   // o mesmo pattern deslocado
+const outA = mundo.fx12CRT(fonteCinza(200), W, H, { ...limpo }, {}, cellA)._out.data;
+const outB = mundo.fx12CRT(fonteCinza(200), W, H, { ...limpo }, {}, cellB)._out.data;
+ok(!Buffer.from(outA).equals(Buffer.from(outB)), 'trocar o pattern muda o resultado (patterns diferentes funcionam)');
+ok(px(outA, 30, 24) === 0 && px(outA, 31, 24) > 150 && px(outA, 32, 24) > 150,
+  'com imagem clara, o cinza do pattern acende junto do neutro e o preto fica apagado');
+const outEscuro = mundo.fx12CRT(fonteCinza(90), W, H, { ...limpo }, {}, cellA)._out.data;
+ok(px(outEscuro, 31, 24) < px(outA, 31, 24) && px(outEscuro, 32, 24) > px(outEscuro, 31, 24),
+  'com imagem escura, o cinza do pattern apaga antes do neutro (limiar de brilho)');
+ok(/catch \(e\) \{\s*return null/.test(html) && /const teto = 4096/.test(html),
+  'fonte ilegível ou célula gigante nunca quebra o nó (volta ao pattern interno)');
+
 /* cache e fiação */
 ok(/crtScreen: \(n, \[a, b\]\)/.test(html) && /b \? crtModuleMask\(n, b, W, H, a\) : null/.test(html),
   'RUN entrega a máscara do module (ou null quando desconectado)');

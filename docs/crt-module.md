@@ -60,3 +60,44 @@
   do vídeo (ex.: curvas exatas do glow final). Nada foi adicionado ao nó
   com base em suposição visual: os únicos comportamentos novos são os da
   especificação da tarefa + a técnica de pattern descrita na transcrição.
+
+## Correção 1.3.1 — "module não funciona" (relato do usuário)
+
+O usuário testou a 1.3.0 e reportou que o `module` não funcionava,
+observando que no vídeo são usados **patterns diferentes** no mesmo
+sistema CRT. Investigação:
+
+- **Fiação verificada ponta a ponta** (leitura do código): o socket
+  `module` é criado na interface (`nodeInputs`/`buildNodeEl` com
+  `data-idx` na ordem de `inputs`), a conexão grava `links` com o índice
+  alvo correto, `evalNode` entrega o resultado da fonte no slot 1,
+  `RUN.crtScreen` chama `crtModuleMask` e `fx12CRT` usa a máscara, e o
+  `cacheResult` não apaga o runtime do nó. Ou seja: **ligar o pattern
+  chegava ao render** — o defeito não era conexão, índice, cache ou
+  preview/export (mesmo caminho).
+- **Causa raiz**: a semântica da 1.3.0 era uma *multiplicação suave*
+  (máscara como fator de escurecimento, estilo grille). Patterns
+  diferentes apenas escureciam a imagem em graus parecidos, sem formar
+  as formas do pattern — visualmente "nada acontece". No vídeo, o
+  pattern funciona por **limiar de brilho** (Hard Mix): cada nível de
+  cinza do tile acende onde o brilho da imagem passa do seu limiar, e é
+  isso que faz trocar o pattern trocar o visual.
+- **Correção**: dentro de `fx12CRT`, com o module conectado, cada pixel
+  agora compara a luminância da imagem com o valor da máscara naquele
+  ponto (`f = clamp((lum − máscara)/0.12 + 1)`, com transição suave
+  abaixo do limiar e smoothstep): acima do limiar o pixel acende por
+  completo; abaixo, apaga progressivamente. Branco/transparente
+  (máscara 0) sempre acendem (= neutro, fator 1); preto (máscara 255)
+  só acende com a imagem no brilho máximo; os cinzas ficam no meio —
+  exatamente os retângulos do tile do vídeo. A força continua sendo o
+  parâmetro `grille` (100% = pattern puro; menos mistura com o tubo).
+  Desconectado, o caminho interno é o mesmo de antes (hashes dourados
+  inalterados).
+- **Robustez extra**: `crtModuleMask` agora tem teto de rasterização
+  (4096px no maior lado da célula, redução proporcional) e qualquer
+  falha ao ler a fonte devolve `null` (volta ao pattern interno) em vez
+  de propagar exceção para o render do nó.
+- **Testes**: `tests/crt-screen.test.mjs` ganhou a regressão do caso
+  real — trocar o pattern muda o resultado; com imagem clara o cinza do
+  pattern acende e o preto apaga; com imagem escura o cinza apaga antes
+  do neutro (44 verificações no total, suíte completa verde).
