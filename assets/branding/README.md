@@ -1,29 +1,30 @@
 # Marca — Ouroboros Editor
 
-## Asset esperado (ainda não fornecido)
+## Asset oficial (recebido em 2026-11-02)
 
-O ícone oficial do **Ouroboros Editor** deve ser colocado nesta pasta:
+A arte enviada pelo usuário (cobra Ouroboros verde em forma de infinito sobre
+fundo preto, 1024×1024) é a fonte de todos os ícones:
 
 | Arquivo | Uso |
 | --- | --- |
-| `ouroboros-icon.svg` | fonte vetorial do ícone (favicon e base para os demais) |
-| `ouroboros-icon-1024.png` | PNG 1024×1024 para gerar os tamanhos do Android/PWA |
+| `ouroboros-icon-1024.png` | fonte oficial 1024×1024 (base de todos os tamanhos) |
+| `icon-512.png` | favicon principal (`<link rel="icon">` no `index.html`) |
+| `icon-192.png` | `shortcut icon` |
+| `icon-180.png` | `apple-touch-icon` |
+| `icon-32.png` | tamanho pequeno de reserva |
 
-**Não desenhar um substituto à mão.** Enquanto o arquivo oficial não estiver aqui,
-o app continua com o ícone atual (o símbolo de infinito), que já está ligado em:
+No Android, os PNGs gerados a partir da mesma fonte vivem em
+`android/app/src/main/res/mipmap-*dpi/` (`ic_launcher_foreground.png` com a
+arte a 78% sobre preto — zona segura do adaptive icon — e os legados
+`ic_launcher.png`/`ic_launcher_round.png`), referenciados por
+`mipmap-anydpi-v26/ic_launcher.xml` sobre `@color/ic_launcher_background`
+(`#000000`, o mesmo preto da arte). O APK empacota `index.html` + `assets/`
+automaticamente (`copyWebApp` no `build.gradle`), então os favicons acima
+valem para o site e para o app.
 
-- `index.html` — `<link rel="icon">`, `<link rel="shortcut icon">` e
-  `<link rel="apple-touch-icon">` (SVG embutido no `<head>`);
-- `android/app/src/main/res/drawable/ic_launcher_foreground.xml` — foreground do
-  adaptive icon (`android/app/src/main/res/mipmap-anydpi-v26/ic_launcher.xml`),
-  sobre `@color/ic_launcher_background`.
-
-## Quando o asset chegar
-
-1. Trocar os três `href` de ícone no `<head>` do `index.html` pelo novo SVG/PNG.
-2. Regenerar o foreground do adaptive icon a partir do SVG (vector drawable ou
-   mipmaps PNG por densidade), mantendo `@mipmap/ic_launcher` no manifesto.
-3. Conferir o ícone no launcher Android e na aba do navegador.
+Para regenerar: redimensionar `ouroboros-icon-1024.png` (web: 512/192/180/32
+cheios; Android foreground: 108/162/216/324/432 com arte a 78% centrada sobre
+preto; legado: 48/72/96/144/192 cheios).
 
 ## O que NÃO muda com a marca
 
