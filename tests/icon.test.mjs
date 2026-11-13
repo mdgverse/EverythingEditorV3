@@ -28,6 +28,16 @@ ok(html.includes('href="assets/branding/icon-192.png"'), 'shortcut icon usa o Ou
 ok(html.includes('<link rel="apple-touch-icon" sizes="180x180" href="assets/branding/icon-180.png" />'), 'apple-touch-icon usa o Ouroboros');
 ok(!html.includes("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'"), 'SVG antigo do infinito saiu do <head>');
 
+/* 1.4.1: a marca na interface (barra superior e tela inicial) é o ícone oficial,
+   no lugar do símbolo de infinito desenhado */
+ok(!html.includes('M12,12C9,7.6'), 'o caminho do infinito não existe mais em nenhum lugar da interface');
+const marcas = html.split('<img class="brand-mark" src="assets/branding/icon-192.png"').length - 1;
+ok(marcas === 2, 'ícone oficial nos dois lugares da marca (topo + tela inicial)', marcas);
+const iBrand = html.indexOf('id="brandBtn"'), iLogo = html.indexOf('class="ss-logo"');
+ok(html.slice(iBrand, iBrand + 200).includes('assets/branding/icon-192.png'), 'barra superior usa o ícone oficial');
+ok(html.slice(iLogo, iLogo + 200).includes('assets/branding/icon-192.png'), 'tela inicial usa o ícone oficial');
+ok(/\.brand-mark\{[^}]*object-fit:cover/.test(html), 'a marca enquadra o ícone quadrado sem distorcer');
+
 /* Android: adaptive icon com o foreground novo em todas as densidades */
 const adapt = le('android/app/src/main/res/mipmap-anydpi-v26/ic_launcher.xml').toString('utf8');
 ok(adapt.includes('@mipmap/ic_launcher_foreground'), 'adaptive icon usa o foreground Ouroboros');
