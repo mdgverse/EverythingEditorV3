@@ -23,7 +23,7 @@ import crypto from 'node:crypto';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
 const RAIZ = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-export const TAGS = ['everythingeditor', 'EverythingEditor'];
+export const TAGS = ['everythingeditor', 'EverythingEditor', 'ouroboroseditor'];
 export const LIMITE = 24;          // cartões no carrossel
 export const SEED_MAX = 12;        // quantos vão embutidos no index.html
 export const BLOG_PADRAO = 'mdgverse';   // blog lido direto — só post marcado entra
