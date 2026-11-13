@@ -19,7 +19,7 @@ const extrai = (ini, fim) => {
 console.log('Comunidade · carrossel e feed');
 
 /* ---------------------------------------------------------------- o coletor */
-ok(TAGS.join(',') === 'everythingeditor,EverythingEditor', 'as duas grafias da tag', TAGS);
+ok(TAGS.join(',') === 'everythingeditor,EverythingEditor,ouroboroseditor', 'as hashtags coletadas (as duas grafias + a marca nova)', TAGS);
 ok(LIMITE === 24, 'limite de cartões definido', LIMITE);
 
 const ig = normaliza('instagram', fixtures('community-instagram.json'));
