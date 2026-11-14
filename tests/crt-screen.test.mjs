@@ -25,7 +25,7 @@ const funcao = nome => {
 const NUM = (key, label, min, max, def, step = 1) => ({ type: 'num', key, label, min, max, def, step });
 const ENUM = (key, label, options, def) => ({ type: 'enum', key, label, options, def });
 const SEC = (key, label, tip, closed) => ({ type: 'sec', key, label, tip, closed: !!closed });
-const blocoNo = extrai("  crtScreen: {\n    title: 'CRT screen'", '  glassStudio: {').replace(/^\s*crtScreen:\s*/, '').replace(/,\s*$/, '');
+const blocoNo = extrai("  crtScreen: {\n    title: 'CRT screen'", '  blobTracker: {').replace(/^\s*crtScreen:\s*/, '').replace(/,\s*$/, '');
 const noDef = new Function('NUM', 'ENUM', 'SEC', 'return (' + blocoNo + ')')(NUM, ENUM, SEC);
 const defs = noDef.params.filter(d => d.type !== 'sec');
 const secs = noDef.params.filter(d => d.type === 'sec');

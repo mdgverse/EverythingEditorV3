@@ -97,6 +97,8 @@ jobs:
         run: node tests/glow.test.mjs
       - name: Home spread-and-roll (pasta aberta em fileiras à deriva)
         run: node tests/spread-home.test.mjs
+      - name: Blob Tracker (detecção, IDs estáveis e painel)
+        run: node tests/blob-tracker.test.mjs
       - name: Versão (VERSION = index.html = APK)
         run: node tests/version.test.mjs
       - name: Higiene (código morto, CSS sem uso, reference/ fora)
