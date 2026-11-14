@@ -483,7 +483,7 @@ html, body{overscroll-behavior:none;-webkit-tap-highlight-color:transparent}/* 1
 
 /* Versão do editor — o arquivo VERSION na raiz é a fonte da verdade
    (o build do APK usa o mesmo número no versionName e falha se divergir). */
-const APP_VERSION = '1.5.0';
+const APP_VERSION = '1.6.0';
 /* tooltip do botão da marca: só o nome do produto (a versão é metadado, não entra na marca) */
 {
   const marca = document.getElementById('brandBtn');
@@ -3429,6 +3429,39 @@ const NODE_TYPES = {
       NUM('moduleScale', 'Module scale', 10, 400, 100),
       SEC('crtOutput', 'Output', 'How strongly the tube image replaces the original, and the variation seed.', true),
       NUM('mix', 'Blend', 0, 100, 100), NUM('seed', 'Seed', 0, 99, 4),
+    ],
+  },
+  blobTracker: {
+    title: 'Blob Tracker', cat: 'matte', inputs: ['Image'],
+    kw: 'blob track tracking detection regions labels connections dasca',
+    params: [
+      SEC('btDetect', 'Detection', 'Which regions of the image become tracked blobs.', true),
+      ENUM('track', 'Track', [['details', 'Details'], ['boxes', 'Boxes'], ['points', 'Points']], 'details'),
+      NUM('sensitivity', 'Sensitivity', 0, 1, 0.51, 0.01), NUM('softness', 'Softness', 0, 1, 0.8, 0.01),
+      NUM('merge', 'Merge', 0, 1, 0.13, 0.01),
+      NUM('minSize', 'Min Size', 0, 1, 0.03, 0.001), NUM('maxSize', 'Max Size', 0, 1, 0.35, 0.01),
+      NUM('maxBlobs', 'Max Blobs', 1, 500, 208), ENUM('fineTune', 'Fine Tune', [['no', 'Off'], ['yes', 'On']], 'no'),
+      SEC('btViz', 'Visualization', 'How each detected blob is drawn over the image.', true),
+      NUM('lineWidth', 'Line Width', 0, 10, 1.5, 0.1), NUM('padding', 'Padding', 0, 1, 0.1, 0.01),
+      ENUM('colors', 'Colors', [['single', 'Single'], ['byId', 'By ID'], ['bySize', 'By Size']], 'single'),
+      COL('color', 'Color', '#FFFFFF'),
+      ENUM('centerMark', 'Center Mark', [['none', 'None'], ['dot', 'Dot'], ['cross', 'Cross']], 'none'),
+      ENUM('inside', 'Inside', [['original', 'Original'], ['tint', 'Tint'], ['solid', 'Solid']], 'original'),
+      NUM('dimOutside', 'Dim Outside', 0, 1, 0, 0.01),
+      SEC('btLabels', 'Labels', 'Text drawn next to each blob.', true),
+      ENUM('labels', 'Labels', [['yes', 'On'], ['no', 'Off']], 'yes'),
+      ENUM('text', 'Text', [['id', 'ID'], ['size', 'Size'], ['idSize', 'ID + Size']], 'id'),
+      ENUM('placement', 'Placement', [['above', 'Above'], ['below', 'Below'], ['center', 'Center']], 'above'),
+      NUM('textSize', 'Text Size', 6, 64, 12), ENUM('tagBg', 'Tag Background', [['no', 'Off'], ['yes', 'On']], 'no'),
+      SEC('btConn', 'Connections', 'Lines linking the detected blobs.', true),
+      ENUM('connections', 'Connections', [['yes', 'On'], ['no', 'Off']], 'yes'),
+      ENUM('connect', 'Connect', [['chain', 'Chain'], ['nearest', 'Nearest'], ['web', 'Web'], ['hub', 'Hub']], 'chain'),
+      ENUM('line', 'Line', [['solid', 'Solid'], ['dashed', 'Dashed'], ['dotted', 'Dotted']], 'solid'),
+      NUM('lineOpacity', 'Line Opacity', 0, 1, 0.6, 0.01),
+      SEC('btColors', 'Colors', 'Per-element colors of the overlay.', true),
+      COL('labelColor', 'Label Color', '#FFFFFF'), COL('shapeColor', 'Shape Color', '#FFFFFF'),
+      COL('bgColor', 'Background Color', '#000000'), COL('lineColor', 'Line Color', '#FFFFFF'),
+      COL('junctionColor', 'Junction Color', '#FFFFFF'), COL('arrowColor', 'Arrow Color', '#FFFFFF'),
     ],
   },
   glassStudio: {
@@ -12310,6 +12343,298 @@ function fx12CRT(srcCanvas, W, H, p, cache, modMask) {
     }
   }
   ctx.putImageData(out, 0, 0);
+  return cv;
+}
+
+/* BLOB_PURO_INI */
+/* Blob Tracker: detecção pura (sem DOM/canvas) — luminância, limiar pela
+   Sensitivity, componentes conexos, Merge por proximidade, filtro de
+   tamanho RELATIVO à área do quadro e IDs estáveis entre quadros.
+   Tamanho de um blob = pixels do blob ÷ pixels do quadro (0..1). */
+function blobLuminancia(data, w, h) {
+  const out = new Float32Array(w * h);
+  for (let i = 0, j = 0; i < out.length; i++, j += 4) out[i] = (0.2126 * data[j] + 0.7152 * data[j + 1] + 0.0722 * data[j + 2]) / 255;
+  return out;
+}
+function blobSuaviza(lum, w, h, r) {
+  if (r < 1) return lum;
+  const tmp = new Float32Array(lum.length), out = new Float32Array(lum.length);
+  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+    let soma = 0, n = 0;
+    for (let k = -r; k <= r; k++) { const xx = Math.min(w - 1, Math.max(0, x + k)); soma += lum[y * w + xx]; n++; }
+    tmp[y * w + x] = soma / n;
+  }
+  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+    let soma = 0, n = 0;
+    for (let k = -r; k <= r; k++) { const yy = Math.min(h - 1, Math.max(0, y + k)); soma += tmp[yy * w + x]; n++; }
+    out[y * w + x] = soma / n;
+  }
+  return out;
+}
+function blobAnalisar(data, w, h, o) {
+  const sens = Math.min(1, Math.max(0, Number(o.sensitivity ?? 0.51)));
+  const limiar = 1 - sens;
+  let lum = blobSuaviza(blobLuminancia(data, w, h), w, h, Math.round(Math.min(1, Math.max(0, Number(o.softness ?? 0.8))) * 3));
+  const total = w * h;
+  const masc = new Uint8Array(total);
+  let claros = 0;
+  for (let i = 0; i < total; i++) { if (lum[i] >= limiar) { masc[i] = 1; claros++; } }
+  if (claros > total / 2) {           // fundo claro: os blobs são as regiões escuras
+    for (let i = 0; i < total; i++) masc[i] = lum[i] <= 1 - limiar ? 1 : 0;
+  }
+  /* componentes conexos (duas passagens com union-find) */
+  const rot = new Int32Array(total).fill(-1);
+  const pai = [];
+  const acha = a => { while (pai[a] !== a) { pai[a] = pai[pai[a]]; a = pai[a]; } return a; };
+  let prox = 0;
+  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+    const i = y * w + x;
+    if (!masc[i]) continue;
+    const esq = x > 0 ? rot[i - 1] : -1, cima = y > 0 ? rot[i - w] : -1;
+    if (esq < 0 && cima < 0) { rot[i] = prox; pai[prox] = prox; prox++; }
+    else if (esq >= 0 && cima >= 0 && acha(esq) !== acha(cima)) { rot[i] = acha(esq); pai[acha(cima)] = acha(esq); }
+    else rot[i] = acha(esq >= 0 ? esq : cima);
+  }
+  const stats = new Map();
+  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+    const i = y * w + x;
+    if (!masc[i]) continue;
+    const r = acha(rot[i]);
+    let st = stats.get(r);
+    if (!st) { st = { area: 0, sx: 0, sy: 0, x0: x, y0: y, x1: x, y1: y, membros: [r] }; stats.set(r, st); }
+    st.area++; st.sx += x; st.sy += y;
+    if (x < st.x0) st.x0 = x; if (x > st.x1) st.x1 = x;
+    if (y < st.y0) st.y0 = y; if (y > st.y1) st.y1 = y;
+  }
+  let blobs = [...stats.values()];
+  /* Merge: une blobs cujas caixas quase se tocam (distância cresce com o Merge) */
+  const mergeDist = Math.min(1, Math.max(0, Number(o.merge ?? 0.13))) * 0.12 * Math.min(w, h);
+  if (mergeDist > 0.5 && blobs.length > 1) {
+    let mudou = true;
+    while (mudou) {
+      mudou = false;
+      for (let i = 0; i < blobs.length && !mudou; i++) for (let j = i + 1; j < blobs.length; j++) {
+        const A = blobs[i], B = blobs[j];
+        const dx = Math.max(0, Math.max(A.x0 - B.x1, B.x0 - A.x1) - 1);
+        const dy = Math.max(0, Math.max(A.y0 - B.y1, B.y0 - A.y1) - 1);
+        if (Math.hypot(dx, dy) <= mergeDist) {
+          A.area += B.area; A.sx += B.sx; A.sy += B.sy;
+          A.x0 = Math.min(A.x0, B.x0); A.y0 = Math.min(A.y0, B.y0);
+          A.x1 = Math.max(A.x1, B.x1); A.y1 = Math.max(A.y1, B.y1);
+          A.membros.push(...B.membros);
+          blobs.splice(j, 1); mudou = true; break;
+        }
+      }
+    }
+  }
+  /* contorno: pontos de borda agrupados por ângulo em volta do centróide */
+  const membroDe = new Map();
+  blobs.forEach((b, bi) => b.membros.forEach(m => membroDe.set(m, bi)));
+  const bordas = blobs.map(() => new Array(40).fill(null));
+  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+    const i = y * w + x;
+    if (!masc[i]) continue;
+    const bi = membroDe.get(acha(rot[i]));
+    if (bi === undefined) continue;
+    if ((x > 0 && masc[i - 1]) && (x < w - 1 && masc[i + 1]) && (y > 0 && masc[i - w]) && (y < h - 1 && masc[i + w])) continue;
+    const b = blobs[bi], cx = b.sx / b.area, cy = b.sy / b.area;
+    const ang = Math.atan2(y - cy, x - cx);
+    const caixa = Math.min(39, Math.max(0, Math.floor((ang + Math.PI) / (2 * Math.PI) * 40)));
+    const d2 = (x - cx) * (x - cx) + (y - cy) * (y - cy);
+    const atual = bordas[bi][caixa];
+    if (!atual || d2 > atual[2]) bordas[bi][caixa] = [x, y, d2];
+  }
+  const minS = Math.min(1, Math.max(0, Number(o.minSize ?? 0.03)));
+  const maxS = Math.min(1, Math.max(minS, Number(o.maxSize ?? 0.35)));
+  const maxB = Math.max(1, Math.round(Number(o.maxBlobs ?? 208)));
+  blobs = blobs
+    .map((b, bi) => ({
+      cx: b.sx / b.area, cy: b.sy / b.area, area: b.area, frac: b.area / total,
+      x0: b.x0, y0: b.y0, x1: b.x1, y1: b.y1,
+      poly: bordas[bi].filter(Boolean).map(p2 => [p2[0], p2[1]]),
+    }))
+    .filter(b => b.frac >= minS && b.frac <= maxS)
+    .sort((a, b2) => b2.area - a.area)
+    .slice(0, maxB)
+    .sort((a, b2) => (a.y0 - b2.y0) || (a.x0 - b2.x0));
+  return blobs;
+}
+/* IDs estáveis: casa cada blob novo com o anterior mais próximo (e de
+   tamanho parecido); quem não casa ganha ID novo; quem some, some. */
+function blobAtribuirIds(anteriores, blobs, proxId, w, h) {
+  const teto = 0.22 * Math.hypot(w || 100, h || 100);   // distância máxima p/ ser "o mesmo" blob
+  const pares = [];
+  (blobs || []).forEach((b, bi) => (anteriores || []).forEach((a, ai) => {
+    const d = Math.hypot(b.cx - a.cx, b.cy - a.cy);
+    pares.push([d + 20 * Math.abs((b.frac || 0) - (a.frac || 0)), bi, ai]);
+  }));
+  pares.sort((x, y) => x[0] - y[0]);
+  const usadoB = new Set(), usadoA = new Set();
+  const saida = (blobs || []).map(b => ({ ...b, id: 0 }));
+  for (const [custo, bi, ai] of pares) {
+    if (usadoB.has(bi) || usadoA.has(ai)) continue;
+    if (custo > teto) continue;
+    saida[bi].id = anteriores[ai].id;
+    usadoB.add(bi); usadoA.add(ai);
+  }
+  for (const b of saida) if (!b.id) b.id = proxId++;
+  return { blobs: saida, proxId };
+}
+/* BLOB_PURO_FIM */
+
+function fxBlobTrack(srcCanvas, W, H, p, runtime) {
+  const cv = fx7NewCanvas(W, H);
+  const g = cv.getContext('2d', { willReadFrequently: true });
+  g.drawImage(srcCanvas, 0, 0);
+  const maxDim = p.fineTune === 'yes' ? 512 : 288;
+  const esc = Math.min(1, maxDim / Math.max(W, H));
+  const aw = Math.max(8, Math.round(W * esc)), ah = Math.max(8, Math.round(H * esc));
+  const mini = fx7NewCanvas(aw, ah);
+  const mg = mini.getContext('2d', { willReadFrequently: true });
+  mg.drawImage(srcCanvas, 0, 0, aw, ah);
+  let dados;
+  try { dados = mg.getImageData(0, 0, aw, ah).data; } catch (_) { return cv; }
+  const rt = runtime || (runtime = {});
+  const achados = blobAnalisar(dados, aw, ah, p);
+  const comIds = blobAtribuirIds(rt._blobPrev || [], achados, rt._blobProx || 1, aw, ah);
+  rt._blobPrev = comIds.blobs; rt._blobProx = comIds.proxId;
+  const blobs = comIds.blobs;
+  if (!blobs.length) return cv;
+  const sx = W / aw, sy = H / ah, k = Math.min(4, Math.max(0.5, W / 640));
+  const corDoBlob = b => {
+    if (p.colors === 'byId') { const h = (b.id * 47) % 360; return 'hsl(' + h + ',85%,65%)'; }
+    if (p.colors === 'bySize') { const t = Math.min(1, b.frac / Math.max(0.0001, Number(p.maxSize || 0.35))); return 'hsl(' + Math.round(210 - 210 * t) + ',85%,60%)'; }
+    return p.color || '#FFFFFF';
+  };
+  const caminho = (b, expandir) => {
+    const path = new Path2D();
+    if (p.track === 'boxes' || b.poly.length < 3) {
+      const padX = (b.x1 - b.x0) * expandir, padY = (b.y1 - b.y0) * expandir;
+      path.rect((b.x0 - padX) * sx, (b.y0 - padY) * sy, (b.x1 - b.x0 + 1 + 2 * padX) * sx, (b.y1 - b.y0 + 1 + 2 * padY) * sy);
+      return path;
+    }
+    const cx = b.cx * sx, cy = b.cy * sy, f = 1 + expandir;
+    b.poly.forEach(([x, y], i) => {
+      const px = cx + (x * sx - cx) * f, py = cy + (y * sy - cy) * f;
+      if (i) path.lineTo(px, py); else path.moveTo(px, py);
+    });
+    path.closePath();
+    return path;
+  };
+  const pad = Number(p.padding || 0);
+  /* Dim Outside: véu escuro com os blobs recortados */
+  const dim = Number(p.dimOutside || 0);
+  if (dim > 0.001) {
+    const veu = fx7NewCanvas(W, H);
+    const vg = veu.getContext('2d');
+    vg.fillStyle = p.bgColor || '#000000';
+    vg.globalAlpha = dim;
+    vg.fillRect(0, 0, W, H);
+    vg.globalAlpha = 1;
+    vg.globalCompositeOperation = 'destination-out';
+    for (const b of blobs) vg.fill(caminho(b, pad));
+    g.drawImage(veu, 0, 0);
+  }
+  /* Inside: tint ou preenchimento com o Shape Color */
+  if (p.inside === 'tint' || p.inside === 'solid') {
+    g.save();
+    g.fillStyle = p.shapeColor || '#FFFFFF';
+    g.globalAlpha = p.inside === 'tint' ? 0.35 : 1;
+    for (const b of blobs) g.fill(caminho(b, pad));
+    g.restore();
+  }
+  /* Connections */
+  if (p.connections === 'yes' && blobs.length > 1) {
+    const centros = blobs.map(b => [b.cx * sx, b.cy * sy]);
+    const pares = [];
+    const liga = (i, j) => { if (i !== j) pares.push([Math.min(i, j), Math.max(i, j)]); };
+    if (p.connect === 'chain') {
+      const ordem = blobs.map((b, i) => i).sort((x, y) => blobs[x].id - blobs[y].id);
+      for (let i = 1; i < ordem.length; i++) liga(ordem[i - 1], ordem[i]);
+    } else if (p.connect === 'nearest') {
+      centros.forEach((c, i) => {
+        let melhor = -1, md = Infinity;
+        centros.forEach((c2, j) => { if (j !== i) { const d = Math.hypot(c[0] - c2[0], c[1] - c2[1]); if (d < md) { md = d; melhor = j; } } });
+        liga(i, melhor);
+      });
+    } else if (p.connect === 'hub') {
+      let centro = 0;
+      blobs.forEach((b, i) => { if (b.area > blobs[centro].area) centro = i; });
+      blobs.forEach((_, i) => liga(centro, i));
+    } else {
+      for (let i = 0; i < centros.length; i++) for (let j = i + 1; j < centros.length; j++) liga(i, j);
+    }
+    const vistos = new Set();
+    g.save();
+    g.strokeStyle = p.lineColor || '#FFFFFF';
+    g.fillStyle = p.arrowColor || '#FFFFFF';
+    g.globalAlpha = Number(p.lineOpacity ?? 0.6);
+    g.lineWidth = Math.max(0.5, Number(p.lineWidth || 1.5) * k * 0.8);
+    if (p.line === 'dashed') g.setLineDash([6 * k, 4 * k]);
+    else if (p.line === 'dotted') { g.setLineDash([0.1, 5 * k]); g.lineCap = 'round'; }
+    for (const [i, j] of pares) {
+      const chave = i + '-' + j;
+      if (vistos.has(chave)) continue;
+      vistos.add(chave);
+      const [x1, y1] = centros[i], [x2, y2] = centros[j];
+      g.beginPath(); g.moveTo(x1, y1); g.lineTo(x2, y2); g.stroke();
+      const ang = Math.atan2(y2 - y1, x2 - x1), t = 5 * k + 3;
+      g.beginPath();
+      g.moveTo(x2, y2);
+      g.lineTo(x2 - t * Math.cos(ang - 0.42), y2 - t * Math.sin(ang - 0.42));
+      g.lineTo(x2 - t * Math.cos(ang + 0.42), y2 - t * Math.sin(ang + 0.42));
+      g.closePath(); g.fill();
+    }
+    g.restore();
+    g.save();
+    g.fillStyle = p.junctionColor || '#FFFFFF';
+    for (const [x, y] of centros) { g.beginPath(); g.arc(x, y, Math.max(1.5, Number(p.lineWidth || 1.5) * k), 0, 6.2832); g.fill(); }
+    g.restore();
+  }
+  /* Shapes + Center Mark */
+  g.save();
+  g.lineWidth = Math.max(0.25, Number(p.lineWidth || 1.5) * k);
+  g.strokeStyle = p.shapeColor || '#FFFFFF';
+  for (const b of blobs) {
+    if (p.track === 'points') break;
+    g.strokeStyle = corDoBlob(b);
+    g.stroke(caminho(b, pad));
+  }
+  if (p.centerMark !== 'none' || p.track === 'points') {
+    for (const b of blobs) {
+      const x = b.cx * sx, y = b.cy * sy, r = Math.max(2, 3 * k);
+      g.strokeStyle = corDoBlob(b); g.fillStyle = corDoBlob(b);
+      if (p.centerMark === 'cross' && p.track !== 'points') {
+        g.beginPath(); g.moveTo(x - r, y); g.lineTo(x + r, y); g.moveTo(x, y - r); g.lineTo(x, y + r); g.stroke();
+      } else { g.beginPath(); g.arc(x, y, r * 0.7, 0, 6.2832); g.fill(); }
+    }
+  }
+  g.restore();
+  /* Labels */
+  if (p.labels === 'yes') {
+    g.save();
+    g.font = '600 ' + Math.max(6, Number(p.textSize || 12) * k) + 'px system-ui, sans-serif';
+    g.textBaseline = 'middle';
+    for (const b of blobs) {
+      const texto = p.text === 'size' ? (b.frac * 100).toFixed(1) + '%'
+        : p.text === 'idSize' ? '#' + b.id + ' · ' + (b.frac * 100).toFixed(1) + '%'
+        : '#' + b.id;
+      const cx = b.cx * sx;
+      const ty = p.placement === 'below' ? (b.y1 + 1) * sy + 8 * k
+        : p.placement === 'center' ? b.cy * sy
+        : b.y0 * sy - 8 * k;
+      const largura = g.measureText(texto).width;
+      if (p.tagBg === 'yes') {
+        g.fillStyle = p.bgColor || '#000000';
+        g.globalAlpha = 0.78;
+        g.fillRect(cx - largura / 2 - 4 * k, ty - 8 * k, largura + 8 * k, 16 * k);
+        g.globalAlpha = 1;
+      }
+      g.fillStyle = p.labelColor || '#FFFFFF';
+      g.fillText(texto, cx - largura / 2, ty);
+    }
+    g.restore();
+  }
   return cv;
 }
 
@@ -25072,6 +25397,7 @@ const RUN = {
   hueCurves: (n, [a]) => (a ? fx7Pixel(a, (s, o, W, H) => fx7HueCurves(s, o, W, H, n.params)) : null),
   thermal: (n, [a]) => (a ? fx7Pixel(a, (s, o, W, H) => fx8Thermal(s, o, W, H, n.params)) : null),
   glowEffect: (n, [a]) => runGlowV2(n, a),
+  blobTracker: (n, [a]) => (a ? fx7Canvas(a, (s, W, H) => fxBlobTrack(s, W, H, n.params, n.runtime)) : null),
   invertGhost: (n, [a]) => (a ? fx7Pixel(a, (s, o, W, H) => fx9Ghost(s, o, W, H, n.params)) : null),
   tron: (n, [a]) => (a ? fx7Canvas(a, (s, W, H) => fx10Tron(s, W, H, n.params)) : null),
   highlightStarburst: (n, [a]) => (a ? fx7Canvas(a, (s, W, H) => fx11Starburst(s, W, H, n.params)) : null),
