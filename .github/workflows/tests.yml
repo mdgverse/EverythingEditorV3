@@ -95,6 +95,8 @@ jobs:
         run: node tests/crt-screen.test.mjs
       - name: Glow Lightroom (5 estilos, pipeline de highlights e visibilidade)
         run: node tests/glow.test.mjs
+      - name: Home spread-and-roll (pasta aberta em fileiras à deriva)
+        run: node tests/spread-home.test.mjs
       - name: Versão (VERSION = index.html = APK)
         run: node tests/version.test.mjs
       - name: Higiene (código morto, CSS sem uso, reference/ fora)
